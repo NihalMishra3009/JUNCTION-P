@@ -1,0 +1,4 @@
+
+.page { display: flex; height: 100%; }
+.mapWrap { flex: 1; }
+.panelWrap { width: 280px; overflow-y: auto; }

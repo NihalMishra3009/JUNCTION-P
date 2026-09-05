@@ -1,0 +1,15 @@
+
+.page { padding: 28px; display: flex; flex-direction: column; gap: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); padding: 24px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 16px; }
+.eventHeader { display: flex; gap: 8px; }
+.eventName { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--ink); }
+.eventVenue { font-size: 14px; color: var(--ink-muted); }
+.eventMeta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.metaItem { display: flex; flex-direction: column; gap: 4px; }
+.metaLabel { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.metaVal { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--ink); }
+.gates { display: flex; flex-direction: column; gap: 14px; }
+.gate { display: flex; flex-direction: column; gap: 4px; }
+.gateLabel { font-size: 14px; font-weight: 600; color: var(--ink); }
+.gateCap { font-size: 12px; color: var(--ink-muted); }

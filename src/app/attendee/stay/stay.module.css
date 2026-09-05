@@ -1,0 +1,25 @@
+
+.page { display: flex; flex-direction: column; gap: 16px; }
+.heading { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--ink); line-height: 1.2; }
+.zoneCards { display: flex; flex-direction: column; gap: 10px; }
+.zoneCard { background: var(--white); border: 1.5px solid var(--neutral); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-sm); }
+.zoneRec { border-color: var(--yellow); }
+.zoneHeader { display: flex; align-items: center; justify-content: space-between; }
+.zoneName { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--ink); }
+.zoneRooms { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--ink); }
+.zoneMeta { display: flex; align-items: center; gap: 8px; }
+.zoneMetaItem { font-size: 13px; font-weight: 600; }
+.zoneMetaDot { color: var(--ink-faint); }
+.hotelList { display: flex; flex-direction: column; gap: 12px; }
+.hotelCard { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-sm); }
+.hotelRec { border-color: var(--yellow); border-left: 3px solid var(--yellow); }
+.hotelHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.hotelName { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--ink); }
+.hotelMeta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.metaGroup { display: flex; flex-direction: column; gap: 2px; }
+.metaLabel { font-size: 8px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.metaValue { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--ink); }
+.metaSub { font-size: 10px; color: var(--ink-faint); }
+.hotelPrice { font-size: 13px; color: var(--ink-muted); }
+.hotelFooter { display: flex; align-items: center; justify-content: space-between; }
+.usableNote { font-size: 11px; color: var(--ink-faint); display: flex; gap: 6px; line-height: 1.4; }

@@ -1,0 +1,10 @@
+
+.wrap { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.bar { width: 100%; height: 6px; background: var(--neutral); border-radius: var(--radius-pill); overflow: hidden; }
+.fill { height: 100%; border-radius: var(--radius-pill); transition: width 0.5s ease, background 0.3s ease; }
+.labels { display: flex; align-items: center; justify-content: space-between; }
+.value { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+.sm .value { font-size: 14px; }
+.lg .value { font-size: 24px; }
+.sm .bar { height: 4px; }
+.lg .bar { height: 8px; }

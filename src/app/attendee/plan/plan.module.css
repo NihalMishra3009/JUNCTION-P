@@ -1,0 +1,60 @@
+
+.page { display: flex; flex-direction: column; gap: 16px; }
+.planHeader { display: flex; flex-direction: column; gap: 12px; }
+.planTitle { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--ink); }
+.planInputs { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); overflow: hidden; }
+.inputRow { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--neutral); }
+.inputRow:last-child { border-bottom: none; }
+.inputLabel { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); width: 36px; flex-shrink: 0; }
+.inputBox { font-size: 15px; font-weight: 600; color: var(--ink); }
+.orgBanner { background: var(--blue-bg); border: 1.5px solid var(--blue); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px; }
+.orgBannerIcon { font-size: 16px; color: var(--blue); flex-shrink: 0; margin-top: 2px; }
+.orgBannerTitle { font-size: 13px; font-weight: 700; color: var(--ink); display: block; }
+.orgBannerMsg { font-size: 12px; color: var(--ink-muted); line-height: 1.4; }
+.routeOptions { display: flex; flex-direction: column; gap: 12px; }
+.routeCard {
+  background: var(--white);
+  border: 1.5px solid var(--neutral);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  transition: all var(--t-med);
+  box-shadow: var(--shadow-sm);
+}
+.routeCard:hover { border-color: var(--ink); box-shadow: var(--shadow-md); }
+.routeRecommended { border-color: var(--yellow); border-width: 2px; }
+.routeSelected { border-color: var(--green) !important; border-width: 2px !important; }
+.routeCardHeader { display: flex; align-items: center; justify-content: space-between; }
+.routeCardType { display: flex; align-items: center; gap: 8px; }
+.routeTime { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--ink); }
+.routeCardMeta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.routeMeta { font-size: 13px; color: var(--ink-muted); }
+.routeMetaDot { color: var(--ink-faint); }
+.routeCardSteps { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.routeStep2 { font-size: 12px; font-weight: 600; color: var(--ink-light); display: flex; align-items: center; gap: 4px; }
+.stepSep { color: var(--ink-faint); }
+.recExplanation { font-size: 12px; color: var(--ink-muted); line-height: 1.5; font-style: italic; border-top: 1px solid var(--neutral); padding-top: 8px; }
+/* Route Detail */
+.routeDetail { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); padding: 20px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow-sm); }
+.routeDetailHeader { display: flex; align-items: center; justify-content: space-between; }
+.detailTime { font-family: var(--font-display); font-size: 36px; font-weight: 700; color: var(--ink); }
+.routeSteps { display: flex; flex-direction: column; gap: 0; padding: 8px 0; }
+.routeStep { display: flex; gap: 14px; }
+.stepLine { display: flex; flex-direction: column; align-items: center; width: 16px; flex-shrink: 0; }
+.stepDot { width: 10px; height: 10px; border-radius: 50%; background: var(--yellow); border: 2px solid var(--ink); flex-shrink: 0; margin-top: 3px; }
+.stepConnector { width: 2px; flex: 1; background: var(--neutral); min-height: 24px; }
+.stepContent { display: flex; flex-direction: column; gap: 2px; padding-bottom: 16px; }
+.stepFrom { font-size: 15px; font-weight: 700; color: var(--ink); font-family: var(--font-display); }
+.stepMode { font-size: 11px; color: var(--ink-muted); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+.routeStats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.statItem { background: var(--paper); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 3px; }
+.statLabel { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.statValue { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--ink); }
+.whyBox { background: var(--yellow-light); border: 1.5px solid var(--yellow); border-radius: var(--radius-sm); padding: 14px; }
+.whyTitle { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-muted); display: block; margin-bottom: 6px; }
+.whyText { font-size: 13px; color: var(--ink-light); line-height: 1.5; }
+.confirmedBanner { background: var(--green-bg); border-radius: var(--radius-sm); padding: 14px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--green); }
+.simLabel { display: flex; justify-content: center; padding: 4px 0; }

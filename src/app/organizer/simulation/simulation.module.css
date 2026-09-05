@@ -1,0 +1,45 @@
+
+.page { padding: 28px; display: flex; flex-direction: column; gap: 24px; }
+.header {}
+.subtitle { font-size: 14px; color: var(--ink-muted); margin-top: 6px; max-width: 640px; line-height: 1.5; }
+.grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+.controls {
+  background: var(--white);
+  border: 1px solid var(--neutral);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.controlsTitle { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--ink); }
+.controlGroup { display: flex; flex-direction: column; gap: 8px; }
+.controlLabel { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink-light); }
+.slider { width: 100%; accent-color: var(--yellow); }
+.sliderRange { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-faint); }
+.segmented { display: flex; border-radius: var(--radius-xs); overflow: hidden; border: 1.5px solid var(--neutral); }
+.segBtn { flex: 1; padding: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; background: transparent; color: var(--ink-muted); border: none; cursor: pointer; transition: all var(--t-fast); }
+.segBtn:hover { background: var(--paper); color: var(--ink); }
+.segActive { background: var(--ink) !important; color: var(--white) !important; }
+.results {
+  background: var(--white);
+  border: 1px solid var(--neutral);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+.resultsHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.compGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.compCard { background: var(--paper); border-radius: var(--radius-sm); padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.compName { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-muted); }
+.compValues { display: flex; align-items: center; gap: 12px; }
+.compBefore, .compAfter { display: flex; flex-direction: column; gap: 2px; }
+.compTag { font-size: 8px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.compNum { font-family: var(--font-display); font-size: 22px; font-weight: 700; }
+.compArrow { color: var(--ink-faint); font-size: 16px; }
+.compDelta { font-size: 12px; font-weight: 700; margin-left: auto; }
+.compImproved { color: var(--green); }
+.compWorse { color: var(--red); }
+.emptyState { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 0; color: var(--ink-faint); text-align: center; font-size: 14px; }
+.emptyIcon { font-size: 40px; opacity: 0.3; }

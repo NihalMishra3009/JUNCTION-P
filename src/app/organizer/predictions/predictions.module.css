@@ -1,0 +1,27 @@
+
+.page { padding: 28px; display: flex; flex-direction: column; gap: 20px; }
+.header { display: flex; align-items: flex-start; justify-content: space-between; }
+.subtitle { font-size: 14px; color: var(--ink-muted); margin-top: 4px; }
+.tableCard { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); }
+.tableHeader { display: grid; grid-template-columns: 200px repeat(4, 1fr) 100px; background: var(--paper); border-bottom: 1px solid var(--neutral); padding: 10px 20px; }
+.tableHeader span { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); text-align: center; }
+.tableHeader .resourceCol { text-align: left; }
+.tableRow { display: grid; grid-template-columns: 200px repeat(4, 1fr) 100px; padding: 14px 20px; border-bottom: 1px solid var(--neutral); align-items: center; }
+.tableRow:last-child { border-bottom: none; }
+.tableRow:hover { background: var(--paper); }
+.resourceName { font-size: 14px; font-weight: 600; color: var(--ink); }
+.pressureCell { font-family: var(--font-display); font-size: 16px; font-weight: 700; text-align: center; }
+.trendCell { font-size: 12px; font-weight: 600; text-align: center; }
+.trendUp { color: var(--red); }
+.trendDown { color: var(--green); }
+.resourceCol { text-align: left; }
+.timeCol { text-align: center; }
+.trendCol { text-align: center; }
+.chartCard { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); padding: 24px; box-shadow: var(--shadow-sm); }
+.chartTitle { font-family: var(--font-display); font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.chartNote { font-size: 12px; color: var(--ink-muted); margin-bottom: 16px; }
+.cascadeNote { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow-sm); }
+.cascade { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+.cascadeWrap { display: flex; flex-direction: column; align-items: center; }
+.cascadeNode { background: var(--paper); border: 1px solid var(--neutral); border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.cascadeArrow { font-size: 18px; color: var(--ink-faint); padding: 2px 0; }

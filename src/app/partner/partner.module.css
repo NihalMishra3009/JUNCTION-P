@@ -1,0 +1,28 @@
+
+.page { min-height: 100vh; background: var(--paper); display: flex; flex-direction: column; }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; background: var(--white); border-bottom: 1px solid var(--neutral); position: sticky; top: 0; z-index: 10; }
+.logo { font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: 0.1em; color: var(--ink); }
+.headerRight { display: flex; align-items: center; gap: 10px; }
+.main { max-width: 720px; margin: 0 auto; padding: 32px 24px; display: flex; flex-direction: column; gap: 24px; width: 100%; }
+.portalHeader { display: flex; flex-direction: column; gap: 6px; }
+.portalTitle { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--ink); }
+.portalSub { font-size: 13px; color: var(--ink-muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.demandBanner { border-radius: var(--radius-md); padding: 16px 20px; display: flex; align-items: flex-start; gap: 14px; }
+.demandHigh { background: var(--orange-bg); border: 1.5px solid var(--orange); }
+.demandMod { background: var(--yellow-state-bg); border: 1.5px solid var(--yellow-state); }
+.demandIcon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.demandTitle { font-size: 15px; font-weight: 700; color: var(--ink); display: block; }
+.demandMsg { font-size: 13px; color: var(--ink-muted); line-height: 1.4; }
+.statsGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.statCard { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow-sm); }
+.statLabel { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+.statValue { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--ink); }
+.statNote { font-size: 11px; color: var(--ink-faint); }
+.updateCard { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow-sm); }
+.updateTitle { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+.updateNote { font-size: 13px; color: var(--ink-muted); line-height: 1.5; }
+.formGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.formGroup { display: flex; flex-direction: column; gap: 6px; }
+.formLabel { font-size: 12px; font-weight: 600; color: var(--ink-light); }
+.savedBanner { background: var(--green-bg); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--green); }
+.footer { display: flex; justify-content: center; }

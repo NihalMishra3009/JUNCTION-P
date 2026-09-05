@@ -1,0 +1,74 @@
+
+.page { display: flex; flex-direction: column; gap: 16px; }
+.greeting { display: flex; flex-direction: column; gap: 8px; }
+.greetText { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.eventCard { background: var(--ink); border-radius: var(--radius-md); padding: 16px 20px; }
+.eventInfo { display: flex; flex-direction: column; gap: 6px; }
+.eventName { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--white); }
+.eventMeta { font-size: 13px; color: rgba(255,255,255,0.6); }
+.alertBanner {
+  background: var(--orange-bg);
+  border: 1.5px solid var(--orange);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.alertBannerIcon { width: 24px; height: 24px; background: var(--orange); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; margin-top: 2px; }
+.alertBannerContent { flex: 1; min-width: 0; }
+.alertBannerTitle { font-size: 13px; font-weight: 700; color: var(--ink); display: block; }
+.alertBannerMsg { font-size: 12px; color: var(--ink-muted); line-height: 1.4; margin-top: 2px; }
+.journeyCard {
+  background: var(--white);
+  border: 1px solid var(--neutral);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.journeyRoute { display: flex; align-items: center; gap: 12px; }
+.journeyFrom, .journeyTo { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.routeLabel { font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.routePlace { font-size: 15px; font-weight: 700; color: var(--ink); font-family: var(--font-display); }
+.routeArrow { font-size: 18px; color: var(--yellow); font-weight: 700; flex-shrink: 0; }
+.journeyMeta { display: flex; align-items: baseline; gap: 10px; }
+.journeyTime { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--ink); }
+.journeyType { font-size: 13px; color: var(--ink-muted); }
+.selectedRoute { display: flex; align-items: center; gap: 12px; }
+.selectedTime { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--ink); }
+.quickGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.quickCard {
+  background: var(--white);
+  border: 1px solid var(--neutral);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all var(--t-fast);
+  box-shadow: var(--shadow-sm);
+}
+.quickCard:hover { border-color: var(--yellow); background: var(--yellow-light); }
+.quickIcon { font-size: 22px; color: var(--ink); }
+.quickLabel { font-size: 14px; font-weight: 600; color: var(--ink); }
+.alertsList { display: flex; flex-direction: column; gap: 10px; }
+.alertItem {
+  background: var(--white);
+  border: 1px solid var(--neutral);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-left: 3px solid transparent;
+}
+.alertCRITICAL { border-left-color: var(--red); background: var(--red-bg); }
+.alertHIGH { border-left-color: var(--orange); background: var(--orange-bg); }
+.alertWATCH { border-left-color: var(--yellow-state); }
+.alertItemHeader { display: flex; align-items: center; justify-content: space-between; }
+.alertTitle { font-size: 13px; font-weight: 600; color: var(--ink); }
+.alertTime { font-size: 10px; color: var(--ink-faint); }
+.simLabel { display: flex; justify-content: center; padding: 8px 0; }

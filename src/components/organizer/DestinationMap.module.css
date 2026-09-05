@@ -1,0 +1,42 @@
+
+.mapWrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--paper-dark);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.layerBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 14px;
+  background: var(--white);
+  border-bottom: 1px solid var(--neutral);
+}
+.layerBtn {
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: var(--radius-pill);
+  background: var(--paper);
+  border: 1.5px solid var(--neutral);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.layerBtn:hover { border-color: var(--ink); color: var(--ink); }
+.layerActive { background: var(--ink) !important; color: var(--white) !important; border-color: var(--ink) !important; }
+.svgWrap { flex: 1; padding: 16px; display: flex; align-items: center; justify-content: center; min-height: 320px; }
+.svg { width: 100%; max-width: 560px; height: auto; }
+.node { transition: opacity var(--t-fast); }
+.node:hover { opacity: 0.85; }
+.haloAnimate { animation: hpulse 2.5s ease-in-out infinite; }
+@keyframes hpulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+.selectedRing { animation: spin-ring 8s linear infinite; }
+@keyframes spin-ring { from { transform-origin: center; } to { transform-origin: center; } }
+.flowLine { animation: flowAnim 2.5s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes flowAnim { 0%,100% { opacity: 0.3; } 50% { opacity: 0.9; } }
