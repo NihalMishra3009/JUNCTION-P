@@ -3,6 +3,7 @@ import { Hotel } from "@/types";
 export const MOCK_HOTELS_BASE: Hotel[] = [
   {
     id: "H1", name: "Trident Nariman Point", zone: "ZONE_A",
+    location: { latitude: 18.9275, longitude: 72.8208 },
     totalRooms: 540, availableRooms: 12, usableRooms: 8,
     expectedCheckIns: 24, expectedCheckOuts: 18,
     travelTimeToVenue: 12, pressure: 91,
@@ -12,6 +13,7 @@ export const MOCK_HOTELS_BASE: Hotel[] = [
   },
   {
     id: "H2", name: "Intercontinental Marine Drive", zone: "ZONE_A",
+    location: { latitude: 18.9348, longitude: 72.8238 },
     totalRooms: 410, availableRooms: 6, usableRooms: 4,
     expectedCheckIns: 19, expectedCheckOuts: 12,
     travelTimeToVenue: 15, pressure: 88,
@@ -21,6 +23,7 @@ export const MOCK_HOTELS_BASE: Hotel[] = [
   },
   {
     id: "H3", name: "Hotel Marine Plaza", zone: "ZONE_B",
+    location: { latitude: 18.9318, longitude: 72.8235 },
     totalRooms: 68, availableRooms: 9, usableRooms: 7,
     expectedCheckIns: 11, expectedCheckOuts: 8,
     travelTimeToVenue: 18, pressure: 74,
@@ -30,6 +33,7 @@ export const MOCK_HOTELS_BASE: Hotel[] = [
   },
   {
     id: "H4", name: "Ramada by Wyndham Dadar", zone: "ZONE_C",
+    location: { latitude: 19.0195, longitude: 72.8432 },
     totalRooms: 250, availableRooms: 62, usableRooms: 48,
     expectedCheckIns: 27, expectedCheckOuts: 14,
     travelTimeToVenue: 22, pressure: 52,
@@ -39,6 +43,7 @@ export const MOCK_HOTELS_BASE: Hotel[] = [
   },
   {
     id: "H5", name: "Hotel Kohinoor Dadar", zone: "ZONE_C",
+    location: { latitude: 19.0180, longitude: 72.8425 },
     totalRooms: 180, availableRooms: 38, usableRooms: 31,
     expectedCheckIns: 18, expectedCheckOuts: 9,
     travelTimeToVenue: 25, pressure: 48,

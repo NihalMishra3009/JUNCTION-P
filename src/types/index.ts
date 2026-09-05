@@ -32,6 +32,11 @@ export interface JunctionEvent {
   gates: { id: string; label: string; capacity: number }[];
 }
 
+export interface GeoLocation {
+  latitude: number;
+  longitude: number;
+}
+
 export interface Zone {
   id: string; name: string; pressure: number; predictedPressure: number;
   availableCapacity: number; resources: string[];
@@ -39,7 +44,9 @@ export interface Zone {
 
 export interface Resource {
   id: string; type: ResourceType; name: string; shortName: string;
-  zone: string; mapPos: { x: number; y: number };
+  zone: string;
+  location: GeoLocation;
+  mapPos?: { x: number; y: number };
   totalCapacity: number; currentUtilization: number;
   availableCapacity: number; predictedDemand: number;
   operatingStatus: OperatingStatus; pressure: number;
@@ -49,7 +56,9 @@ export interface Resource {
 }
 
 export interface Hotel {
-  id: string; name: string; zone: string; totalRooms: number;
+  id: string; name: string; zone: string;
+  location: GeoLocation;
+  totalRooms: number;
   availableRooms: number; usableRooms: number;
   expectedCheckIns: number; expectedCheckOuts: number;
   travelTimeToVenue: number; pressure: number;
@@ -61,11 +70,49 @@ export interface Hotel {
 
 export interface Restaurant {
   id: string; name: string; cuisine: string; zone: string;
+  location: GeoLocation;
   capacity: number; currentOccupancy: number; availableTables: number;
   waitTime: number; predictedWaitTime: number;
   distanceFromVenue: number; pressure: number;
   pressureLevel: PressureLevel; source: ConfidenceSource;
   hasIncentive: boolean; incentiveLabel?: string; recommended?: boolean;
+}
+
+export interface RoadEdge {
+  id: string;
+  name: string;
+  fromId: string;
+  toId: string;
+  geometry: GeoLocation[];
+  distanceKm?: number;
+  capacity?: number;
+  travelTimeMin?: number;
+  congestion: number;
+  status: 'NORMAL' | 'HEAVY' | 'CONGESTED' | 'DISRUPTED';
+}
+
+export interface CrowdFlow {
+  id: string;
+  fromId: string;
+  toId: string;
+  fromCoord: GeoLocation;
+  toCoord: GeoLocation;
+  direction: 'INBOUND' | 'OUTBOUND';
+  volume: number;
+  pressure: number;
+  corridorName: string;
+}
+
+export interface PredictedHotspot {
+  id: string;
+  resourceId: string;
+  name: string;
+  location: GeoLocation;
+  currentPressure: number;
+  predictedPressure: number;
+  severity: 'WATCH' | 'HIGH' | 'CRITICAL';
+  projectedTimeframe: string;
+  radiusMeters: number;
 }
 
 export interface TransportRoute {

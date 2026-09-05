@@ -11,6 +11,7 @@ export const STATIC_RESOURCES: Omit<Resource, "pressure"|"pressureLevel"|"curren
   {
     id: "WANKHEDE", type: "VENUE", name: "Wankhede Stadium",
     shortName: "Wankhede", zone: "SOUTH_MUMBAI",
+    location: { latitude: 18.9389, longitude: 72.8258 },
     mapPos: { x: 320, y: 290 },
     totalCapacity: 33000, operatingStatus: "OPERATIONAL",
     confidence: 0.99, source: "SIMULATED",
@@ -20,6 +21,7 @@ export const STATIC_RESOURCES: Omit<Resource, "pressure"|"pressureLevel"|"curren
   {
     id: "CHURCHGATE", type: "STATION", name: "Churchgate Station",
     shortName: "Churchgate", zone: "CHURCHGATE",
+    location: { latitude: 18.9355, longitude: 72.8272 },
     mapPos: { x: 220, y: 350 },
     totalCapacity: 10000, operatingStatus: "OPERATIONAL",
     confidence: 0.95, source: "SIMULATED",
@@ -29,6 +31,7 @@ export const STATIC_RESOURCES: Omit<Resource, "pressure"|"pressureLevel"|"curren
   {
     id: "CSMT", type: "STATION", name: "CSMT",
     shortName: "CSMT", zone: "FORT",
+    location: { latitude: 18.9400, longitude: 72.8353 },
     mapPos: { x: 450, y: 240 },
     totalCapacity: 14000, operatingStatus: "OPERATIONAL",
     confidence: 0.95, source: "SIMULATED",
@@ -38,6 +41,7 @@ export const STATIC_RESOURCES: Omit<Resource, "pressure"|"pressureLevel"|"curren
   {
     id: "DADAR", type: "STATION", name: "Dadar Station",
     shortName: "Dadar", zone: "DADAR",
+    location: { latitude: 19.0183, longitude: 72.8434 },
     mapPos: { x: 380, y: 130 },
     totalCapacity: 18000, operatingStatus: "OPERATIONAL",
     confidence: 0.93, source: "SIMULATED",
@@ -47,6 +51,7 @@ export const STATIC_RESOURCES: Omit<Resource, "pressure"|"pressureLevel"|"curren
   {
     id: "MARINE_LINES", type: "STATION", name: "Marine Lines Station",
     shortName: "Marine Lines", zone: "MARINE_LINES",
+    location: { latitude: 18.9436, longitude: 72.8236 },
     mapPos: { x: 260, y: 295 },
     totalCapacity: 8000, operatingStatus: "OPERATIONAL",
     confidence: 0.90, source: "SIMULATED",
@@ -56,6 +61,7 @@ export const STATIC_RESOURCES: Omit<Resource, "pressure"|"pressureLevel"|"curren
   {
     id: "TAXI_ZONE", type: "PICKUP_ZONE", name: "Wankhede Taxi & Rideshare Zone",
     shortName: "Taxi Zone", zone: "SOUTH_MUMBAI",
+    location: { latitude: 18.9372, longitude: 72.8268 },
     mapPos: { x: 370, y: 340 },
     totalCapacity: 200, operatingStatus: "OPERATIONAL",
     confidence: 0.85, source: "SIMULATED",
@@ -65,6 +71,7 @@ export const STATIC_RESOURCES: Omit<Resource, "pressure"|"pressureLevel"|"curren
   {
     id: "WANKHEDE_EXIT", type: "VENUE", name: "Wankhede Exit Gates",
     shortName: "Exit Gates", zone: "SOUTH_MUMBAI",
+    location: { latitude: 18.9379, longitude: 72.8257 },
     mapPos: { x: 320, y: 345 },
     totalCapacity: 4000, operatingStatus: "OPERATIONAL",
     confidence: 0.95, source: "SIMULATED",
