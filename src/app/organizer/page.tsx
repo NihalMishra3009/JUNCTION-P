@@ -32,48 +32,49 @@ export default function OrganizerDashboard() {
           background: "var(--green-bg)",
           border: "1.5px solid var(--green)",
           borderRadius: "var(--radius-md)",
-          padding: "16px 20px",
+          padding: "10px 16px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           flexWrap: "wrap",
-          gap: 16,
-          boxShadow: "var(--shadow-sm)"
+          gap: 12,
+          boxShadow: "var(--shadow-sm)",
+          flexShrink: 0,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 24 }}>⚡</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20 }}>⚡</span>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <strong style={{ fontSize: 14, color: "var(--ink)" }}>Closed-Loop Orchestration Active</strong>
-                <span className="pill pill-live">ATTENDEE CHOICES APPLIED</span>
+                <strong style={{ fontSize: 13, color: "var(--ink)" }}>Closed-Loop Orchestration Active</strong>
+                <span className="pill pill-live" style={{ fontSize: 9, padding: "2px 6px" }}>ATTENDEE CHOICES APPLIED</span>
               </div>
-              <p style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 2 }}>
-                Attendees adopted the recommended Balanced Route toward Dadar. Destination state has been dynamically updated.
+              <p style={{ fontSize: 12, color: "var(--ink-muted)", marginTop: 1 }}>
+                Attendees adopted the recommended Balanced Route toward Dadar. Destination state updated.
               </p>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <div style={{ textAlign: "center" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-faint)", textTransform: "uppercase" }}>Churchgate</span>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--green)" }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: "var(--ink-faint)", textTransform: "uppercase" }}>Churchgate</span>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--green)" }}>
                 {redistributionImpact.churchgateBefore}% → {redistributionImpact.churchgateAfter}%
               </div>
             </div>
             <div style={{ textAlign: "center" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-faint)", textTransform: "uppercase" }}>Dadar</span>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: "var(--ink-faint)", textTransform: "uppercase" }}>Dadar</span>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
                 {redistributionImpact.dadarBefore}% → {redistributionImpact.dadarAfter}%
               </div>
             </div>
             <div style={{ textAlign: "center" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-faint)", textTransform: "uppercase" }}>Redistributed</span>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: "var(--ink-faint)", textTransform: "uppercase" }}>Redistributed</span>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
                 ~{redistributionImpact.visitorsRedistributed.toLocaleString()}
               </div>
             </div>
             <div style={{ textAlign: "center" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-faint)", textTransform: "uppercase" }}>Avg Detour</span>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: "var(--ink-faint)", textTransform: "uppercase" }}>Avg Detour</span>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
                 +{redistributionImpact.travelDeltaMin} min
               </div>
             </div>
@@ -169,7 +170,7 @@ export default function OrganizerDashboard() {
                         </div>
                       ))}
                     </div>
-                    <Link href="/organizer/recommendations" className="btn btn-yellow btn-sm" style={{ marginTop: 12 }}>
+                    <Link href="/organizer/recommendations" className="btn btn-yellow btn-sm" style={{ marginTop: 6, textAlign: "center" }}>
                       Review Recommendations →
                     </Link>
                   </div>
@@ -180,38 +181,42 @@ export default function OrganizerDashboard() {
         </div>
       </div>
 
-      {/* PREDICTION MINI BAR */}
+      {/* COMPACT PREDICTION BAR */}
       <div className={styles.predBar}>
         <div className={styles.predBarHeader}>
-          <span className="text-meta">Pressure Forecast</span>
-          <ConfidenceBadge source="SIMULATED" />
-          <Link href="/organizer/predictions" className="btn btn-ghost btn-sm" style={{ marginLeft: "auto" }}>View Full →</Link>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span className="text-meta">Pressure Forecast</span>
+            <ConfidenceBadge source="SIMULATED" />
+          </div>
+          <Link href="/organizer/predictions" className="btn btn-ghost btn-sm">View Full Predictions →</Link>
         </div>
-        <div className={styles.predGrid}>
-          {resources.slice(0, 5).map(r => {
-            const pd = (require("@/data/mockScenarios").SCENARIOS as any)[activeScenario]?.pressure[r.id];
-            if (!pd) return null;
-            return (
-              <div key={r.id} className={styles.predRow}>
-                <span className={styles.predName}>{r.shortName}</span>
-                {[pd.pressure, pd.predictedPressure15, pd.predictedPressure30, pd.predictedPressure60].map((p: number, i: number) => (
-                  <span
-                    key={i}
-                    className={styles.predCell}
-                    style={{ color: p >= 95 ? "var(--red)" : p >= 85 ? "var(--orange)" : p >= 70 ? "var(--yellow-state)" : "var(--green)" }}
-                  >
-                    {p}%
-                  </span>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-        <div className={styles.predHeaders}>
-          <span />
-          {["NOW", "+15 MIN", "+30 MIN", "+60 MIN"].map(h => (
-            <span key={h} className={styles.predHeader}>{h}</span>
-          ))}
+        <div className={styles.predTableWrap}>
+          <div className={styles.predHeaders}>
+            <span className={styles.predColName}>RESOURCE</span>
+            {["NOW", "+15 MIN", "+30 MIN", "+60 MIN"].map(h => (
+              <span key={h} className={styles.predHeader}>{h}</span>
+            ))}
+          </div>
+          <div className={styles.predGrid}>
+            {resources.slice(0, 4).map(r => {
+              const pd = (require("@/data/mockScenarios").SCENARIOS as any)[activeScenario]?.pressure[r.id];
+              if (!pd) return null;
+              return (
+                <div key={r.id} className={styles.predRow}>
+                  <span className={styles.predName}>{r.shortName || r.name}</span>
+                  {[pd.pressure, pd.predictedPressure15, pd.predictedPressure30, pd.predictedPressure60].map((p: number, i: number) => (
+                    <span
+                      key={i}
+                      className={styles.predCell}
+                      style={{ color: p >= 95 ? "var(--red)" : p >= 85 ? "var(--orange)" : p >= 70 ? "var(--yellow-state)" : "var(--green)" }}
+                    >
+                      {p}%
+                    </span>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

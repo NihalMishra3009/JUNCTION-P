@@ -20,8 +20,325 @@
 .chartCard { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); padding: 24px; box-shadow: var(--shadow-sm); }
 .chartTitle { font-family: var(--font-display); font-size: 16px; font-weight: 700; margin-bottom: 4px; }
 .chartNote { font-size: 12px; color: var(--ink-muted); margin-bottom: 16px; }
-.cascadeNote { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow-sm); }
-.cascade { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
-.cascadeWrap { display: flex; flex-direction: column; align-items: center; }
-.cascadeNode { background: var(--paper); border: 1px solid var(--neutral); border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; }
-.cascadeArrow { font-size: 18px; color: var(--ink-faint); padding: 2px 0; }
+
+/* CASCADE SECTION */
+.cascadeCard {
+  background: var(--white);
+  border: 1px solid var(--neutral);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.cascadeHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cascadeTitle {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.cascadeSubtitle {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.cascadeFlowContainer {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 8px 4px 14px 4px;
+  scroll-behavior: smooth;
+}
+
+.cascadeNodeCard {
+  flex: 1;
+  min-width: 155px;
+  background: var(--paper);
+  border: 1px solid var(--neutral);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--t-fast), box-shadow var(--t-fast);
+}
+
+.cascadeNodeCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.cascadeNodeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.nodeStep {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-faint);
+  letter-spacing: 0.05em;
+}
+
+.nodeBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nodeName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.nodeContext {
+  font-size: 10px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.nodeValuesRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.valBefore {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.valArrow {
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+.valAfter {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.nodeDelta {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.deltaInc {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.deltaDec {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 82px;
+  max-width: 95px;
+  text-align: center;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.connectorArrow {
+  font-size: 18px;
+  color: var(--ink-faint);
+  line-height: 1;
+}
+
+.connectorLabel {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  line-height: 1.25;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* DECISION GRID */
+.decisionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+@media (max-width: 980px) {
+  .decisionGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.noActionCard {
+  background: #FFF9F5;
+  border: 1.5px solid var(--orange);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.noActionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.noActionTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--orange);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.noActionText {
+  font-size: 13px;
+  color: var(--ink-light);
+  line-height: 1.5;
+}
+
+.affectedList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.affectedItem {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--white);
+  border: 1px solid var(--neutral);
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--ink);
+}
+
+.riskBanner {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--orange);
+  background: var(--orange-bg);
+  padding: 6px 10px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.recommendCard {
+  background: var(--white);
+  border: 1.5px solid var(--yellow-state);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recommendHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.recommendTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--yellow-state);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.recActionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.recommendText {
+  font-size: 13px;
+  color: var(--ink-muted);
+  line-height: 1.4;
+}
+
+.impactGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.impactPill {
+  background: var(--paper);
+  border: 1px solid var(--neutral);
+  border-radius: 4px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.impactName {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.impactValues {
+  font-weight: 700;
+  color: var(--green);
+}
+
+.impactDelta {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+

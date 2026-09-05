@@ -12,14 +12,18 @@ interface Props {
 export default function KPICard({ label, value, subtitle, trend, trendUp, accent }: Props) {
   return (
     <div className={`${styles.card} ${accent ? styles.accent : ""}`}>
-      <span className={styles.label}>{label}</span>
-      <span className={styles.value}>{value}</span>
-      {subtitle && <span className={styles.subtitle}>{subtitle}</span>}
-      {trend && (
-        <span className={`${styles.trend} ${trendUp ? styles.trendUp : styles.trendDown}`}>
-          {trendUp ? "↑" : "↓"} {trend}
-        </span>
-      )}
+      <div className={styles.headerRow}>
+        <span className={styles.label}>{label}</span>
+        {trend && (
+          <span className={`${styles.trend} ${trendUp ? styles.trendUp : styles.trendDown}`}>
+            {trendUp ? "↑" : "↓"} {trend}
+          </span>
+        )}
+      </div>
+      <div className={styles.bodyRow}>
+        <span className={styles.value}>{value}</span>
+        {subtitle && <span className={styles.subtitle}>{subtitle}</span>}
+      </div>
     </div>
   );
 }

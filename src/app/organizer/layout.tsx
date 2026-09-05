@@ -22,21 +22,35 @@ const NAV = [
   ]},
 ];
 
+import { useState } from "react";
+
 export default function OrganizerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { activeScenario, setScenario } = useApp();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
     <div className={styles.shell}>
       {/* SIDEBAR */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${isCollapsed ? styles.sidebarCollapsed : ""}`}>
         <div className={styles.sidebarHeader}>
-          <Link href="/" className={styles.sidebarLogo}>JUNCTION</Link>
+          <Link href="/" className={styles.sidebarLogo}>
+            {isCollapsed ? "J" : "JUNCTION"}
+          </Link>
+          <button
+            type="button"
+            className={styles.collapseBtn}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label="Toggle sidebar"
+          >
+            {isCollapsed ? "»" : "«"}
+          </button>
         </div>
         <nav className={styles.sidebarNav}>
           {NAV.map(group => (
             <div key={group.group} className={styles.navGroup}>
-              <span className={styles.navGroupLabel}>{group.group}</span>
+              {!isCollapsed && <span className={styles.navGroupLabel}>{group.group}</span>}
               {group.items.map(item => {
                 const isActive = item.href === "/organizer"
                   ? pathname === "/organizer"
@@ -45,33 +59,43 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
+                    className={`${styles.navItem} ${isActive ? styles.navItemActive : ""} ${isCollapsed ? styles.navItemCollapsed : ""}`}
+                    title={isCollapsed ? item.label : undefined}
                   >
                     <span className={styles.navIcon}>{item.icon}</span>
-                    {item.label}
+                    {!isCollapsed && <span className={styles.navLabel}>{item.label}</span>}
                   </Link>
                 );
               })}
             </div>
           ))}
         </nav>
-        <div className={styles.sidebarFooter}>
-          <div className={styles.scenarioSelector}>
-            <span className={styles.scenarioLabel}>SCENARIO</span>
-            <select
-              className={`select ${styles.scenarioSelect}`}
-              value={activeScenario}
-              onChange={e => setScenario(e.target.value as ScenarioId)}
-            >
-              {Object.values(SCENARIOS).map(s => (
-                <option key={s.id} value={s.id}>{s.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className={styles.simulatedEnv}>
-            <span className="simulated-dot" />
-            <span>SIMULATED ENVIRONMENT</span>
-          </div>
+        <div className={`${styles.sidebarFooter} ${isCollapsed ? styles.footerCollapsedWrap : ""}`}>
+          {!isCollapsed ? (
+            <>
+              <div className={styles.scenarioSelector}>
+                <span className={styles.scenarioLabel}>SCENARIO</span>
+                <select
+                  className={`select ${styles.scenarioSelect}`}
+                  value={activeScenario}
+                  onChange={e => setScenario(e.target.value as ScenarioId)}
+                >
+                  {Object.values(SCENARIOS).map(s => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.simulatedEnv}>
+                <span className="simulated-dot" />
+                <span>SIMULATED ENVIRONMENT</span>
+              </div>
+            </>
+          ) : (
+            <div className={styles.footerCollapsed} title={`Scenario: ${SCENARIOS[activeScenario]?.label || activeScenario} (Simulated)`}>
+              <span className="simulated-dot" />
+              <span className={styles.collapsedScenarioTag}>{activeScenario.slice(0, 3)}</span>
+            </div>
+          )}
         </div>
       </aside>
 
