@@ -71,10 +71,28 @@ export default function PlanPage() {
             <p className={styles.whyText}>{selectedRoute.explanation}</p>
           </div>
 
-          {confirmed && attendeeSelectedRouteId === selectedRoute.id ? (
-            <div className={styles.confirmedBanner}>
-              <span>✓ Route selected! Your journey preference has been noted.</span>
-              <span style={{ fontSize: 11, color: "var(--green)", opacity: 0.8 }}>This updates the destination state in the organizer view.</span>
+          {attendeeSelectedRouteId === selectedRoute.id ? (
+            <div className={styles.confirmedBanner} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "14px 16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 16 }}>✓</span>
+                <span style={{ fontWeight: 700 }}>Route Confirmed: {selectedRoute.label}</span>
+              </div>
+              {selectedRoute.id === "BALANCED" && rec1Approved && (
+                <div style={{ background: "rgba(255,255,255,0.8)", borderRadius: 6, padding: "8px 12px", marginTop: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: "var(--green)", letterSpacing: "0.05em" }}>
+                    Closed-Loop Destination Impact
+                  </span>
+                  <div style={{ fontSize: 12, color: "var(--ink)", marginTop: 2, fontWeight: 600 }}>
+                    Churchgate: 94% → 76% · Dadar: 58% → 69%
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 2 }}>
+                    ~1,200 attendees redistributed · Average detour: +8 min
+                  </div>
+                </div>
+              )}
+              <span style={{ fontSize: 11, color: "var(--green)", opacity: 0.9 }}>
+                Propagated to Destination State · Organizer Command Center updated in real time.
+              </span>
             </div>
           ) : (
             <button className="btn btn-yellow" style={{ width: "100%" }} onClick={() => handleChoose(selectedRoute)}>

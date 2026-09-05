@@ -8,8 +8,28 @@ import styles from "./predictions.module.css";
 const TIME_LABELS = ["NOW", "+15 MIN", "+30 MIN", "+60 MIN"];
 
 export default function PredictionsPage() {
-  const { activeScenario } = useApp();
-  const predictions = getPredictions(activeScenario);
+  const { activeScenario, redistributionApplied } = useApp();
+  const basePredictions = getPredictions(activeScenario);
+
+  const predictions = redistributionApplied
+    ? basePredictions.map(p => {
+        if (p.resourceId === "CHURCHGATE") {
+          return {
+            ...p,
+            current: Math.max(40, p.current - 18),
+            points: p.points.map(pt => ({ ...pt, pressure: Math.max(40, pt.pressure - 18) })),
+          };
+        }
+        if (p.resourceId === "DADAR") {
+          return {
+            ...p,
+            current: Math.min(88, p.current + 11),
+            points: p.points.map(pt => ({ ...pt, pressure: Math.min(90, pt.pressure + 10) })),
+          };
+        }
+        return p;
+      })
+    : basePredictions;
 
   const chartData = TIME_LABELS.map((label, i) => {
     const obj: Record<string, number | string> = { time: label };
@@ -24,7 +44,12 @@ export default function PredictionsPage() {
           <h1 className="text-page-heading">Pressure Forecast</h1>
           <p className={styles.subtitle}>Predicted capacity pressure across the event impact zone.</p>
         </div>
-        <ConfidenceBadge source="SIMULATED" />
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {redistributionApplied && (
+            <span className="pill pill-live">REDISTRIBUTION APPLIED</span>
+          )}
+          <ConfidenceBadge source="SIMULATED" />
+        </div>
       </div>
 
       {/* TABLE */}

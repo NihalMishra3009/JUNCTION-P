@@ -6,8 +6,13 @@ import Link from "next/link";
 import styles from "./home.module.css";
 
 export default function AttendeeHome() {
-  const { activeScenario, hasAttendeeRecommendation, attendeeRecommendationMessage, attendeeSelectedRouteId } = useApp();
-  const alerts = getAlerts(activeScenario);
+  const {
+    activeScenario,
+    hasAttendeeRecommendation,
+    attendeeRecommendationMessage,
+    attendeeSelectedRouteId,
+    alerts,
+  } = useApp();
   const topAlert = alerts[0];
 
   const hour = new Date().getHours();

@@ -8,8 +8,7 @@ import ResourcePanel from "@/components/organizer/ResourcePanel";
 import styles from "./map.module.css";
 
 export default function MapPage() {
-  const { activeScenario } = useApp();
-  const resources = getResources(activeScenario);
+  const { activeScenario, resources } = useApp();
   const [selected, setSelected] = useState<Resource | null>(null);
 
   return (

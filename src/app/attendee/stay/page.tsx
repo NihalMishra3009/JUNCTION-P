@@ -1,14 +1,33 @@
 "use client";
 import { useApp } from "@/state/AppContext";
-import { getHotels } from "@/services/mockDataService";
 import styles from "./stay.module.css";
 
 export default function StayPage() {
-  const { activeScenario } = useApp();
-  const hotels = getHotels(activeScenario);
+  const { hotels } = useApp();
+
   const zoneC = hotels.filter(h => h.zone === "ZONE_C");
   const zoneA = hotels.filter(h => h.zone === "ZONE_A");
   const zoneB = hotels.filter(h => h.zone === "ZONE_B");
+
+  const getZoneAvgPressure = (list: typeof hotels) => {
+    if (list.length === 0) return 50;
+    return Math.round(list.reduce((sum, h) => sum + h.pressure, 0) / list.length);
+  };
+
+  const zoneAPressure = getZoneAvgPressure(zoneA);
+  const zoneBPressure = getZoneAvgPressure(zoneB);
+  const zoneCPressure = getZoneAvgPressure(zoneC);
+
+  const zoneARooms = zoneA.reduce((a, h) => a + h.usableRooms, 0);
+  const zoneBRooms = zoneB.reduce((a, h) => a + h.usableRooms, 0);
+  const zoneCRooms = zoneC.reduce((a, h) => a + h.usableRooms, 0);
+
+  // Re-rank hotels dynamically: lowest pressure first, Zone C favored when Zone A is congested
+  const sortedHotels = [...hotels].sort((a, b) => {
+    if (a.zone === "ZONE_C" && b.zone !== "ZONE_C") return -1;
+    if (b.zone === "ZONE_C" && a.zone !== "ZONE_C") return 1;
+    return a.pressure - b.pressure;
+  });
 
   return (
     <div className={styles.page}>
@@ -17,9 +36,9 @@ export default function StayPage() {
       {/* ZONE COMPARISON */}
       <div className={styles.zoneCards}>
         {[
-          { zone: "Zone A", hotels: zoneA, pressure: 91, rooms: zoneA.reduce((a,h) => a+h.usableRooms, 0), travel: 12, recommended: false },
-          { zone: "Zone B", hotels: zoneB, pressure: 74, rooms: zoneB.reduce((a,h) => a+h.usableRooms, 0), travel: 18, recommended: false },
-          { zone: "Zone C", hotels: zoneC, pressure: 50, rooms: zoneC.reduce((a,h) => a+h.usableRooms, 0), travel: 22, recommended: true },
+          { zone: "Zone A", hotels: zoneA, pressure: zoneAPressure, rooms: zoneARooms, travel: 12, recommended: false },
+          { zone: "Zone B", hotels: zoneB, pressure: zoneBPressure, rooms: zoneBRooms, travel: 18, recommended: false },
+          { zone: "Zone C", hotels: zoneC, pressure: zoneCPressure, rooms: zoneCRooms, travel: 22, recommended: true },
         ].map(z => (
           <div key={z.zone} className={`${styles.zoneCard} ${z.recommended ? styles.zoneRec : ""}`}>
             <div className={styles.zoneHeader}>
@@ -43,12 +62,18 @@ export default function StayPage() {
 
       {/* HOTEL LIST */}
       <div>
-        <span className="text-meta" style={{ marginBottom: 12, display: "block" }}>Hotels — Zone C Recommended</span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <span className="text-meta">Hotels — Dynamic Usable Inventory</span>
+          <span className="pill pill-live" style={{ fontSize: 9 }}>SHARED DESTINATION STATE</span>
+        </div>
         <div className={styles.hotelList}>
-          {[...zoneC, ...zoneB, ...zoneA].map(h => (
+          {sortedHotels.map(h => (
             <div key={h.id} className={`${styles.hotelCard} ${h.zone === "ZONE_C" ? styles.hotelRec : ""}`}>
               <div className={styles.hotelHeader}>
-                <h3 className={styles.hotelName}>{h.name}</h3>
+                <div>
+                  <h3 className={styles.hotelName}>{h.name}</h3>
+                  <span style={{ fontSize: 11, color: "var(--ink-muted)" }}>{h.travelTimeToVenue} min to venue via {h.transportConnectivity} transit</span>
+                </div>
                 <span className={`pill ${h.pressureLevel === "NORMAL" ? "pill-live" : h.pressureLevel === "WATCH" ? "pill-watch" : "pill-high"}`}>
                   {h.zone.replace("_", " ")}
                 </span>
@@ -56,7 +81,7 @@ export default function StayPage() {
               <div className={styles.hotelMeta}>
                 <div className={styles.metaGroup}>
                   <span className={styles.metaLabel}>USABLE ROOMS</span>
-                  <span className={styles.metaValue}>{h.usableRooms}</span>
+                  <span className={styles.metaValue} style={{ color: "var(--yellow-state)" }}>{h.usableRooms}</span>
                   <span className={styles.metaSub}>(of {h.availableRooms} available)</span>
                 </div>
                 <div className={styles.metaGroup}>
@@ -75,7 +100,9 @@ export default function StayPage() {
                 <span className={`pill ${h.transportConnectivity === "EXCELLENT" ? "pill-live" : h.transportConnectivity === "GOOD" ? "pill-predicted" : "pill-watch"}`}>
                   Transport: {h.transportConnectivity}
                 </span>
-                <span className="pill pill-simulated">SIMULATED</span>
+                <span className={`pill ${h.source === "PARTNER_REPORTED" ? "pill-live" : "pill-simulated"}`}>
+                  {h.source}
+                </span>
               </div>
             </div>
           ))}
@@ -83,7 +110,7 @@ export default function StayPage() {
       </div>
 
       <div className={styles.usableNote}>
-        <span>*</span> <span>Usable rooms = rooms accessible given current travel conditions, distance, and event timing. May differ from raw availability.</span>
+        <span>*</span> <span>Usable rooms = capacity accessible given current travel conditions, distance, and event timing. May differ from raw partner availability.</span>
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 "use client";
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import { ScenarioId, Recommendation } from "@/types";
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from "react";
+import { ScenarioId, Recommendation, Hotel, Resource, Alert, RedistributionImpact } from "@/types";
 import { MOCK_RECOMMENDATIONS } from "@/data/mockRecommendations";
+import { getHotels, getResources, getScenarioKPIs, getAlerts } from "@/services/mockDataService";
 
 interface AppContextValue {
   // Scenario
@@ -24,6 +25,18 @@ interface AppContextValue {
 
   // Destination pressure adjusted for attendee choice
   redistributionApplied: boolean;
+  redistributionImpact: RedistributionImpact | null;
+
+  // Centralized Dynamic Hotels
+  hotels: Hotel[];
+  hotelOverrides: Record<string, Partial<Hotel>>;
+  updateHotelAvailability: (hotelId: string, availableRooms: number, checkIns?: number, checkOuts?: number) => void;
+  resetHotels: () => void;
+
+  // Centralized Dynamic Destination State
+  resources: Resource[];
+  kpis: ReturnType<typeof getScenarioKPIs>;
+  alerts: Alert[];
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -32,13 +45,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [activeScenario, setActiveScenario] = useState<ScenarioId>("NORMAL");
   const [recommendations, setRecommendations] = useState<Recommendation[]>(MOCK_RECOMMENDATIONS);
   const [attendeeSelectedRouteId, setAttendeeSelectedRouteId] = useState<string | null>(null);
+  const [hotelOverrides, setHotelOverrides] = useState<Record<string, Partial<Hotel>>>({});
 
+  // Reset entire state when scenario changes to prevent leakage across scenarios
   const setScenario = useCallback((s: ScenarioId) => {
     setActiveScenario(s);
-    // Reset attendee selection on scenario change
     setAttendeeSelectedRouteId(null);
-    // Reset recommendation statuses
     setRecommendations(MOCK_RECOMMENDATIONS.map(r => ({ ...r, status: "PENDING" as const })));
+    setHotelOverrides({});
   }, []);
 
   const approveRecommendation = useCallback((id: string) => {
@@ -61,6 +75,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAttendeeSelectedRouteId(id);
   }, []);
 
+  // Hotel update handler for partner portal
+  const updateHotelAvailability = useCallback((
+    hotelId: string,
+    availableRooms: number,
+    checkIns?: number,
+    checkOuts?: number
+  ) => {
+    setHotelOverrides(prev => ({
+      ...prev,
+      [hotelId]: {
+        ...(prev[hotelId] || {}),
+        availableRooms,
+        ...(checkIns !== undefined ? { expectedCheckIns: checkIns } : {}),
+        ...(checkOuts !== undefined ? { expectedCheckOuts: checkOuts } : {}),
+      },
+    }));
+  }, []);
+
+  const resetHotels = useCallback(() => {
+    setHotelOverrides({});
+  }, []);
+
+  // Compute dynamic hotels incorporating scenario multiplier and partner updates
+  const hotels = useMemo(() => {
+    return getHotels(activeScenario, hotelOverrides);
+  }, [activeScenario, hotelOverrides]);
+
   // REC1 affects attendees (redistribute Churchgate -> Dadar)
   const rec1Approved = recommendations.find(r => r.id === "REC1")?.status === "APPROVED";
   const hasAttendeeRecommendation = rec1Approved;
@@ -71,13 +112,75 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // If attendee selected BALANCED route and rec1 is approved, redistribution is applied
   const redistributionApplied = rec1Approved && attendeeSelectedRouteId === "BALANCED";
 
+  const redistributionImpact: RedistributionImpact | null = useMemo(() => {
+    if (!redistributionApplied) return null;
+    return {
+      churchgateBefore: 94,
+      churchgateAfter: 76,
+      dadarBefore: 58,
+      dadarAfter: 69,
+      wankhedeExitBefore: 88,
+      wankhedeExitAfter: 82,
+      visitorsRedistributed: 1200,
+      travelDeltaMin: 8,
+    };
+  }, [redistributionApplied]);
+
+  // Dynamic destination resources (reflecting scenario + attendee redistribution)
+  const resources = useMemo(() => {
+    return getResources(activeScenario, redistributionApplied);
+  }, [activeScenario, redistributionApplied]);
+
+  // Dynamic KPIs (destination pressure, usable capacity including hotels, bottleneck)
+  const kpis = useMemo(() => {
+    return getScenarioKPIs(activeScenario, redistributionApplied, hotels);
+  }, [activeScenario, redistributionApplied, hotels]);
+
+  // Dynamic alerts
+  const alerts = useMemo(() => {
+    const baseAlerts = getAlerts(activeScenario);
+    const dynamicList: Alert[] = [...baseAlerts];
+
+    // If redistribution is active, add positive closed loop alert
+    if (redistributionApplied) {
+      dynamicList.unshift({
+        id: "ALERT_CLOSED_LOOP",
+        severity: "WATCH",
+        category: "CROWD",
+        title: "Closed-loop redistribution active",
+        message: "Attendee choice diverted ~1,200 visitors to Dadar. Churchgate pressure reduced 94% → 76%.",
+        resourceId: "CHURCHGATE",
+        timestamp: "JUST NOW",
+      });
+    }
+
+    // If any partner hotel reported tight inventory (< 25 rooms in Zone C or < 10 in Zone A)
+    const tightHotels = hotels.filter(h => h.source === "PARTNER_REPORTED" && h.availableRooms <= 20);
+    tightHotels.forEach(h => {
+      dynamicList.unshift({
+        id: `ALERT_HOTEL_${h.id}`,
+        severity: h.availableRooms <= 10 ? "HIGH" : "WATCH",
+        category: "ACCOMMODATION",
+        title: `${h.name} inventory low`,
+        message: `Partner reported ${h.availableRooms} rooms available (${h.usableRooms} usable). Accommodation pressure at ${h.pressure}%.`,
+        actionLabel: "View Stay",
+        actionRoute: "/attendee/stay",
+        timestamp: "JUST NOW",
+      });
+    });
+
+    return dynamicList;
+  }, [activeScenario, redistributionApplied, hotels]);
+
   return (
     <AppContext.Provider value={{
       activeScenario, setScenario,
       recommendations, approveRecommendation, rejectRecommendation, isRecommendationApproved,
       attendeeSelectedRouteId, selectAttendeeRoute,
       hasAttendeeRecommendation, attendeeRecommendationMessage,
-      redistributionApplied,
+      redistributionApplied, redistributionImpact,
+      hotels, hotelOverrides, updateHotelAvailability, resetHotels,
+      resources, kpis, alerts,
     }}>
       {children}
     </AppContext.Provider>
@@ -89,3 +192,4 @@ export function useApp() {
   if (!ctx) throw new Error("useApp must be used within AppProvider");
   return ctx;
 }
+

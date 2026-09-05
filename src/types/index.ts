@@ -1,5 +1,5 @@
 // ============================================================
-// JUNCTION — Core Type Definitions
+// JUNCTION - Core Type Definitions
 // ============================================================
 
 export type ScenarioId =
@@ -142,6 +142,25 @@ export interface AttendeeRoute {
   transfers: number; walkingTime: number;
   reliability: 'HIGH' | 'MEDIUM' | 'LOW';
   recommended: boolean; steps: RouteStep[]; explanation: string; score: number;
+}
+
+export interface RedistributionImpact {
+  churchgateBefore: number;
+  churchgateAfter: number;
+  dadarBefore: number;
+  dadarAfter: number;
+  wankhedeExitBefore: number;
+  wankhedeExitAfter: number;
+  visitorsRedistributed: number;
+  travelDeltaMin: number;
+}
+
+export interface PartnerHotelUpdate {
+  hotelId: string;
+  availableRooms: number;
+  expectedCheckIns?: number;
+  expectedCheckOuts?: number;
+  lastUpdated: string;
 }
 
 export interface AppState {

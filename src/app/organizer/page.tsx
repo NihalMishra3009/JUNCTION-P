@@ -11,16 +11,76 @@ import Link from "next/link";
 import styles from "./dashboard.module.css";
 
 export default function OrganizerDashboard() {
-  const { activeScenario, recommendations } = useApp();
-  const resources = getResources(activeScenario);
-  const kpis = getScenarioKPIs(activeScenario);
-  const alerts = getAlerts(activeScenario);
+  const {
+    activeScenario,
+    recommendations,
+    resources,
+    kpis,
+    alerts,
+    redistributionApplied,
+    redistributionImpact,
+  } = useApp();
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
 
   const topRec = recommendations.find(r => r.status === "PENDING");
 
   return (
     <div className={styles.page}>
+      {/* CLOSED-LOOP IMPACT BANNER */}
+      {redistributionApplied && redistributionImpact && (
+        <div style={{
+          background: "var(--green-bg)",
+          border: "1.5px solid var(--green)",
+          borderRadius: "var(--radius-md)",
+          padding: "16px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 16,
+          boxShadow: "var(--shadow-sm)"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 24 }}>⚡</span>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <strong style={{ fontSize: 14, color: "var(--ink)" }}>Closed-Loop Orchestration Active</strong>
+                <span className="pill pill-live">ATTENDEE CHOICES APPLIED</span>
+              </div>
+              <p style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 2 }}>
+                Attendees adopted the recommended Balanced Route toward Dadar. Destination state has been dynamically updated.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <div style={{ textAlign: "center" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-faint)", textTransform: "uppercase" }}>Churchgate</span>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--green)" }}>
+                {redistributionImpact.churchgateBefore}% → {redistributionImpact.churchgateAfter}%
+              </div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-faint)", textTransform: "uppercase" }}>Dadar</span>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
+                {redistributionImpact.dadarBefore}% → {redistributionImpact.dadarAfter}%
+              </div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-faint)", textTransform: "uppercase" }}>Redistributed</span>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
+                ~{redistributionImpact.visitorsRedistributed.toLocaleString()}
+              </div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-faint)", textTransform: "uppercase" }}>Avg Detour</span>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>
+                +{redistributionImpact.travelDeltaMin} min
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* KPI ROW */}
       <div className={styles.kpiRow}>
         <KPICard
@@ -41,7 +101,7 @@ export default function OrganizerDashboard() {
         <KPICard
           label="Available Capacity"
           value={kpis.availableCapacity.toLocaleString()}
-          subtitle="usable resources"
+          subtitle="usable resources + hotels"
         />
         <KPICard
           label="Active Alerts"

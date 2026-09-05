@@ -38,12 +38,14 @@ export default function ResourcePanel({ resource, scenario, onClose }: Props) {
         <div className={styles.section}>
           <span className="text-meta">Pressure Forecast</span>
           <div className={styles.forecastGrid}>
-            {[
-              { label: "NOW", value: pd.pressure },
-              { label: "+15 MIN", value: pd.predictedPressure15 },
-              { label: "+30 MIN", value: pd.predictedPressure30 },
-              { label: "+60 MIN", value: pd.predictedPressure60 },
-            ].map(pt => (
+            {(() => {
+              const delta = resource.pressure - pd.pressure;
+              return [
+                { label: "NOW", value: resource.pressure },
+                { label: "+15 MIN", value: Math.max(20, Math.min(99, pd.predictedPressure15 + delta)) },
+                { label: "+30 MIN", value: Math.max(20, Math.min(99, pd.predictedPressure30 + delta)) },
+                { label: "+60 MIN", value: Math.max(20, Math.min(99, pd.predictedPressure60 + delta)) },
+              ].map(pt => (
               <div key={pt.label} className={styles.forecastCell}>
                 <span className={styles.forecastTime}>{pt.label}</span>
                 <span
@@ -54,7 +56,8 @@ export default function ResourcePanel({ resource, scenario, onClose }: Props) {
                 </span>
                 <span className={styles.forecastLabel}>{getPressureLabel(pt.value)}</span>
               </div>
-            ))}
+            ));
+          })()}
           </div>
         </div>
       )}

@@ -1,10 +1,12 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useApp } from "@/state/AppContext";
 import ConfidenceBadge from "@/components/ui/ConfidenceBadge";
 import styles from "./recommendations.module.css";
 
 export default function RecommendationsPage() {
+  const router = useRouter();
   const { recommendations, approveRecommendation, rejectRecommendation, isRecommendationApproved } = useApp();
   const [approving, setApproving] = useState<string | null>(null);
   const [justApproved, setJustApproved] = useState<string | null>(null);
@@ -92,10 +94,24 @@ export default function RecommendationsPage() {
 
               {!approved && !rejected && (
                 <div className={styles.recActions}>
-                  <button className="btn btn-outline btn-sm" onClick={() => {}}>SIMULATE</button>
-                  <button className="btn btn-yellow btn-sm" onClick={() => handleApprove(rec.id)}>APPROVE</button>
-                  <button className="btn btn-outline btn-sm" onClick={() => {}}>MODIFY</button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => rejectRecommendation(rec.id)}>REJECT</button>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => router.push(`/organizer/simulation?rec=${rec.id}`)}
+                  >
+                    SIMULATE
+                  </button>
+                  <button className="btn btn-yellow btn-sm" onClick={() => handleApprove(rec.id)}>
+                    APPROVE
+                  </button>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => router.push(`/organizer/simulation?rec=${rec.id}&modify=true`)}
+                  >
+                    MODIFY
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => rejectRecommendation(rec.id)}>
+                    REJECT
+                  </button>
                 </div>
               )}
 
