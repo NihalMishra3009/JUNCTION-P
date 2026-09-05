@@ -36,9 +36,12 @@ function createTransportIcon(resource: Resource, isSelected: boolean) {
   });
 }
 
+const MAJOR_TRANSPORT_IDS = new Set(["CHURCHGATE", "MARINE_LINES", "CSMT", "DADAR", "TAXI_ZONE"]);
+
 export default function TransportLayer({ resources, onSelectResource, selectedId }: Props) {
   const transportResources = resources.filter(
-    r => r.type === "STATION" || r.type === "PICKUP_ZONE" || r.type === "SHUTTLE_HUB"
+    r => (r.type === "STATION" || r.type === "PICKUP_ZONE" || r.type === "SHUTTLE_HUB") &&
+         !MAJOR_TRANSPORT_IDS.has(r.id)
   );
 
   return (
@@ -50,7 +53,7 @@ export default function TransportLayer({ resources, onSelectResource, selectedId
 
         return (
           <Marker
-            key={r.id}
+            key={`${r.id}-${r.pressure}-${isSelected}`}
             position={[r.location.latitude, r.location.longitude]}
             icon={icon}
             eventHandlers={{

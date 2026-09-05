@@ -37,8 +37,10 @@ function createVenueIcon(resource: Resource, isSelected: boolean) {
   });
 }
 
+const MAJOR_VENUE_IDS = new Set(["WANKHEDE", "WANKHEDE_EXIT", "WANKHEDE_STADIUM"]);
+
 export default function VenueLayer({ resources, onSelectResource, selectedId }: Props) {
-  const venues = resources.filter(r => r.type === "VENUE");
+  const venues = resources.filter(r => r.type === "VENUE" && !MAJOR_VENUE_IDS.has(r.id));
 
   return (
     <>
@@ -49,7 +51,7 @@ export default function VenueLayer({ resources, onSelectResource, selectedId }: 
 
         return (
           <Marker
-            key={r.id}
+            key={`${r.id}-${r.pressure}-${isSelected}`}
             position={[r.location.latitude, r.location.longitude]}
             icon={icon}
             eventHandlers={{

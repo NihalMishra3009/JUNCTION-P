@@ -142,10 +142,11 @@ export function getAlerts(scenario: ScenarioId) {
 export function getScenarioKPIs(
   scenario: ScenarioId,
   redistributionApplied = false,
-  hotels?: Hotel[]
+  hotels?: Hotel[],
+  customResources?: Resource[]
 ) {
   const s = SCENARIOS[scenario];
-  const resources = getResources(scenario, redistributionApplied);
+  const resources = customResources || getResources(scenario, redistributionApplied);
   const pressures = resources.map(r => r.pressure);
   const avgPressure = Math.round(pressures.reduce((a, b) => a + b, 0) / pressures.length);
   const maxPressureResource = resources.reduce((a, b) => a.pressure > b.pressure ? a : b);

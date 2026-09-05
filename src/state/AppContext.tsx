@@ -1,8 +1,20 @@
 "use client";
-import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from "react";
-import { ScenarioId, Recommendation, Hotel, Resource, Alert, RedistributionImpact } from "@/types";
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, ReactNode } from "react";
+import {
+  ScenarioId,
+  Recommendation,
+  Hotel,
+  Resource,
+  Alert,
+  RedistributionImpact,
+  SimulationState,
+  SimulationSpeed,
+  SimulationParams,
+} from "@/types";
 import { MOCK_RECOMMENDATIONS } from "@/data/mockRecommendations";
 import { getHotels, getResources, getScenarioKPIs, getAlerts } from "@/services/mockDataService";
+import { getPressureLevel } from "@/data/mockResources";
+import { createInitialSimulationState, nextSimulationState } from "@/services/simulationEngine";
 
 interface AppContextValue {
   // Scenario
@@ -37,6 +49,15 @@ interface AppContextValue {
   resources: Resource[];
   kpis: ReturnType<typeof getScenarioKPIs>;
   alerts: Alert[];
+
+  // Simulation Engine State & Controls
+  simulationState: SimulationState;
+  playSimulation: () => void;
+  pauseSimulation: () => void;
+  resetSimulation: () => void;
+  setSimulationSpeed: (speed: SimulationSpeed) => void;
+  simParams: SimulationParams;
+  updateSimParams: (p: Partial<SimulationParams>) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -47,13 +68,63 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [attendeeSelectedRouteId, setAttendeeSelectedRouteId] = useState<string | null>(null);
   const [hotelOverrides, setHotelOverrides] = useState<Record<string, Partial<Hotel>>>({});
 
+  // Simulation Parameters
+  const [simParams, setSimParams] = useState<SimulationParams>({
+    attendance: 33000,
+    eventDelay: 0,
+    weather: "NORMAL",
+    additionalBuses: 0,
+    visitorRedistribution: 0,
+    transportDisruption: false,
+  });
+
+  // Pure Domain Simulation State
+  const [simulationState, setSimulationState] = useState<SimulationState>(() =>
+    createInitialSimulationState(activeScenario, simParams.attendance)
+  );
+
+  // Play / Pause / Reset / Speed Controls
+  const playSimulation = useCallback(() => {
+    setSimulationState(prev => ({ ...prev, status: "PLAYING" }));
+  }, []);
+
+  const pauseSimulation = useCallback(() => {
+    setSimulationState(prev => ({ ...prev, status: "PAUSED" }));
+  }, []);
+
+  const resetSimulation = useCallback(() => {
+    setSimulationState(createInitialSimulationState(activeScenario, simParams.attendance));
+  }, [activeScenario, simParams.attendance]);
+
+  const setSimulationSpeed = useCallback((speed: SimulationSpeed) => {
+    setSimulationState(prev => ({ ...prev, speed }));
+  }, []);
+
+  const updateSimParams = useCallback((p: Partial<SimulationParams>) => {
+    setSimParams(prev => {
+      const next = { ...prev, ...p };
+      // Base parameter change rule: Changing attendance, weather, eventDelay, or disruption
+      // cleanly reinitializes the simulation from the new configuration.
+      const baseChanged =
+        p.attendance !== undefined ||
+        p.weather !== undefined ||
+        p.transportDisruption !== undefined ||
+        p.eventDelay !== undefined;
+      if (baseChanged) {
+        setSimulationState(createInitialSimulationState(activeScenario, next.attendance));
+      }
+      return next;
+    });
+  }, [activeScenario]);
+
   // Reset entire state when scenario changes to prevent leakage across scenarios
   const setScenario = useCallback((s: ScenarioId) => {
     setActiveScenario(s);
     setAttendeeSelectedRouteId(null);
     setRecommendations(MOCK_RECOMMENDATIONS.map(r => ({ ...r, status: "PENDING" as const })));
     setHotelOverrides({});
-  }, []);
+    setSimulationState(createInitialSimulationState(s, simParams.attendance));
+  }, [simParams.attendance]);
 
   const approveRecommendation = useCallback((id: string) => {
     setRecommendations(prev =>
@@ -126,15 +197,70 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [redistributionApplied]);
 
-  // Dynamic destination resources (reflecting scenario + attendee redistribution)
+  // Controlled Simulation Ticker Loop
+  // Fires at a controlled cadence (800ms) when status is PLAYING.
+  // Advances simulation time by (1 * speed) simulated minutes per tick.
+  useEffect(() => {
+    if (simulationState.status !== "PLAYING") return;
+
+    const timer = setInterval(() => {
+      setSimulationState(prev => {
+        if (prev.status !== "PLAYING") return prev;
+        return nextSimulationState(
+          prev,
+          1 * prev.speed,
+          activeScenario,
+          simParams.attendance,
+          redistributionApplied
+        );
+      });
+    }, 800);
+
+    return () => clearInterval(timer);
+  }, [
+    simulationState.status,
+    simulationState.speed,
+    activeScenario,
+    simParams.attendance,
+    redistributionApplied,
+  ]);
+
+  // Dynamic destination resources (reflecting scenario + attendee redistribution + live simulation loads)
   const resources = useMemo(() => {
-    return getResources(activeScenario, redistributionApplied);
-  }, [activeScenario, redistributionApplied]);
+    const baseResources = getResources(activeScenario, redistributionApplied);
+
+    // If simulation has run (minutesElapsed > 0), seamlessly incorporate simulation node loads
+    if (simulationState.minutesElapsed > 0) {
+      return baseResources.map(r => {
+        const simLoad = simulationState.nodeLoads[r.id];
+        if (simLoad !== undefined) {
+          const cap = r.totalCapacity || 1000;
+          const pressure = Math.min(99, Math.max(20, Math.round((simLoad / cap) * 100)));
+          const pressureLevel = getPressureLevel(pressure);
+          return {
+            ...r,
+            pressure,
+            pressureLevel,
+            currentUtilization: simLoad,
+            availableCapacity: Math.max(0, cap - simLoad),
+          };
+        }
+        return r;
+      });
+    }
+
+    return baseResources;
+  }, [
+    activeScenario,
+    redistributionApplied,
+    simulationState.minutesElapsed,
+    simulationState.nodeLoads,
+  ]);
 
   // Dynamic KPIs (destination pressure, usable capacity including hotels, bottleneck)
   const kpis = useMemo(() => {
-    return getScenarioKPIs(activeScenario, redistributionApplied, hotels);
-  }, [activeScenario, redistributionApplied, hotels]);
+    return getScenarioKPIs(activeScenario, redistributionApplied, hotels, resources);
+  }, [activeScenario, redistributionApplied, hotels, resources]);
 
   // Dynamic alerts
   const alerts = useMemo(() => {
@@ -181,6 +307,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       redistributionApplied, redistributionImpact,
       hotels, hotelOverrides, updateHotelAvailability, resetHotels,
       resources, kpis, alerts,
+      simulationState, playSimulation, pauseSimulation, resetSimulation, setSimulationSpeed,
+      simParams, updateSimParams,
     }}>
       {children}
     </AppContext.Provider>
@@ -192,4 +320,3 @@ export function useApp() {
   if (!ctx) throw new Error("useApp must be used within AppProvider");
   return ctx;
 }
-

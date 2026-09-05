@@ -1,45 +1,467 @@
+.page {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
-.page { padding: 28px; display: flex; flex-direction: column; gap: 24px; }
-.header {}
-.subtitle { font-size: 14px; color: var(--ink-muted); margin-top: 6px; max-width: 640px; line-height: 1.5; }
-.grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--ink-muted);
+  margin-top: 6px;
+  max-width: 680px;
+  line-height: 1.5;
+}
+
+/* SIMULATION COMMAND CONSOLE */
+.simConsole {
+  background: var(--white);
+  border: 1px solid var(--neutral);
+  border-radius: var(--radius-md);
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.clockGroup {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.clockIcon {
+  font-size: 28px;
+  color: var(--ink-light);
+}
+
+.clockDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.clockLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.clockTime {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.elapsedTag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-light);
+  margin-top: 2px;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.statusRunning {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.statusPaused {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.statusIdle {
+  background: var(--paper);
+  color: var(--ink-muted);
+  border: 1px solid var(--neutral);
+}
+
+.consoleActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btnGroup {
+  display: flex;
+  gap: 8px;
+}
+
+.speedGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--paper);
+  padding: 3px 6px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--neutral);
+}
+
+.speedLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-left: 4px;
+}
+
+.speedBtn {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.speedBtn:hover {
+  color: var(--ink);
+}
+
+.speedActive {
+  background: var(--ink) !important;
+  color: var(--white) !important;
+}
+
+/* TELEMETRY METRIC STRIP */
+.telemetryStrip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.telemetryCard {
+  background: var(--white);
+  border: 1px solid var(--neutral);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow-sm);
+}
+
+.telemetryLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.telemetryVal {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.telemetrySub {
+  font-size: 11px;
+  color: var(--ink-light);
+}
+
+/* MAIN LAYOUT GRID */
+.grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
 .controls {
   background: var(--white);
   border: 1px solid var(--neutral);
   border-radius: var(--radius-md);
-  padding: 24px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
   box-shadow: var(--shadow-sm);
 }
-.controlsTitle { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--ink); }
-.controlGroup { display: flex; flex-direction: column; gap: 8px; }
-.controlLabel { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink-light); }
-.slider { width: 100%; accent-color: var(--yellow); }
-.sliderRange { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-faint); }
-.segmented { display: flex; border-radius: var(--radius-xs); overflow: hidden; border: 1.5px solid var(--neutral); }
-.segBtn { flex: 1; padding: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; background: transparent; color: var(--ink-muted); border: none; cursor: pointer; transition: all var(--t-fast); }
-.segBtn:hover { background: var(--paper); color: var(--ink); }
-.segActive { background: var(--ink) !important; color: var(--white) !important; }
+
+.controlsTitle {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.controlLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-light);
+}
+
+.slider {
+  width: 100%;
+  accent-color: var(--yellow);
+}
+
+.sliderRange {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--ink-faint);
+}
+
+.segmented {
+  display: flex;
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  border: 1.5px solid var(--neutral);
+}
+
+.segBtn {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--ink-muted);
+  border: none;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.segBtn:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.segActive {
+  background: var(--ink) !important;
+  color: var(--white) !important;
+}
+
+.paramNote {
+  font-size: 11px;
+  color: var(--ink-faint);
+  background: var(--paper);
+  padding: 8px 10px;
+  border-radius: var(--radius-xs);
+  line-height: 1.4;
+  border-left: 2px solid var(--yellow-state);
+}
+
+/* RESULTS & TELEMETRY SECTION */
 .results {
   background: var(--white);
   border: 1px solid var(--neutral);
   border-radius: var(--radius-md);
   padding: 24px;
   box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
 }
-.resultsHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.compGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-.compCard { background: var(--paper); border-radius: var(--radius-sm); padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-.compName { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-muted); }
-.compValues { display: flex; align-items: center; gap: 12px; }
-.compBefore, .compAfter { display: flex; flex-direction: column; gap: 2px; }
-.compTag { font-size: 8px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
-.compNum { font-family: var(--font-display); font-size: 22px; font-weight: 700; }
-.compArrow { color: var(--ink-faint); font-size: 16px; }
-.compDelta { font-size: 12px; font-weight: 700; margin-left: auto; }
-.compImproved { color: var(--green); }
-.compWorse { color: var(--red); }
-.emptyState { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 0; color: var(--ink-faint); text-align: center; font-size: 14px; }
-.emptyIcon { font-size: 40px; opacity: 0.3; }
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--neutral);
+  padding-bottom: 8px;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* NODE ACCUMULATION GRID */
+.nodeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.nodeCard {
+  background: var(--paper);
+  border: 1px solid var(--neutral);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nodeCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nodeName {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.nodePressurePill {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+}
+
+.nodeMetrics {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.nodeLoadVal {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.nodeCapVal {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.pressureBar {
+  height: 6px;
+  background: var(--neutral);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pressureBarFill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+/* EDGE LOADS LIST */
+.edgeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.edgeCard {
+  background: var(--paper);
+  border: 1px solid var(--neutral);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.edgeName {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  max-width: 70%;
+  line-height: 1.3;
+}
+
+.edgeLoadBadge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.edgeLoadNumber {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.edgeLoadLabel {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* COHORTS TABLE */
+.cohortTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.cohortTable th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--neutral);
+}
+
+.cohortTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--paper-dark);
+  color: var(--ink);
+}
+
+.progressBarWrap {
+  width: 90px;
+  height: 6px;
+  background: var(--neutral);
+  border-radius: 3px;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: #2563eb;
+  transition: width 0.3s ease;
+}

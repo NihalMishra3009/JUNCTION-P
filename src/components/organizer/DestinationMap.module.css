@@ -295,3 +295,411 @@
     stroke-width: 4;
   }
 }
+
+/* SIMULATION CONTROL BAR OVERLAY */
+.simBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 14px;
+  background: #111111;
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  z-index: 10;
+  font-size: 11px;
+}
+
+.simBarLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.simClockIcon {
+  font-size: 14px;
+}
+
+.simClockTime {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fbbf24;
+}
+
+.simStatusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.simRunning {
+  background: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.4);
+}
+
+.simPaused {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.simIdle {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.simElapsed {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}
+
+.simBarRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.simControlBtn {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  transition: all var(--t-fast);
+}
+
+.simControlBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.simPlayBtn {
+  background: var(--yellow) !important;
+  color: #111111 !important;
+  border-color: var(--yellow) !important;
+}
+
+.simSpeedGroup {
+  display: flex;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px;
+  border-radius: var(--radius-pill);
+}
+
+.simSpeedBtn {
+  padding: 1px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.simSpeedActive {
+  background: #ffffff !important;
+  color: #111111 !important;
+}
+
+/* OPERATIONAL NODE CARD (Major Destination Hubs) */
+.opNodeCard {
+  background: #ffffff;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--node-accent, #111111);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  padding: 5px 8px;
+  min-width: 146px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.opNodeCard:hover {
+  transform: scale(1.06);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  z-index: 9999 !important;
+}
+
+.opNodeCardSelected {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35), 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.opNodeHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 3px;
+}
+
+.opNodeIcon {
+  font-size: 11px;
+}
+
+.opNodeTitle {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.opNodeSimTag {
+  font-size: 7px;
+  font-weight: 800;
+  background: #111111;
+  color: #fbbf24;
+  padding: 1px 4px;
+  border-radius: 2px;
+  letter-spacing: 0.04em;
+}
+
+.opNodeBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.opNodePressureRow {
+  display: flex;
+  align-items: center;
+}
+
+.opNodePressureBadge {
+  font-size: 8.5px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.opNodeMetricsRow {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+.opNodeLoad {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.opNodeSep {
+  color: var(--neutral);
+}
+
+.opNodeCap {
+  color: var(--ink-light);
+}
+
+/* FLOW LINE ANIMATION & COHORT PARTICLES */
+:global(.leaflet-animated-flow-line) {
+  animation: flowDashAnim 1.4s linear infinite;
+}
+
+@keyframes flowDashAnim {
+  from {
+    stroke-dashoffset: 28;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+:global(.leaflet-cohort-pulse) {
+  animation: cohortPulseAnim 2.2s ease-in-out infinite;
+}
+
+@keyframes cohortPulseAnim {
+  0%, 100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* FLOATING MAP LEGEND OVERLAY */
+.legendOverlay {
+  position: absolute;
+  bottom: 60px;
+  left: 12px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--neutral);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  font-size: 10px;
+  max-width: 220px;
+  user-select: none;
+  transition: all var(--t-fast);
+}
+
+.legendHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--paper-dark);
+}
+
+.legendTitle {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.legendSimPill {
+  font-size: 7.5px;
+  font-weight: 800;
+  background: #111111;
+  color: #fbbf24;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.legendGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.legendCol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.legendItemTitle {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 1px;
+}
+
+.legendItemRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  color: var(--ink-muted);
+}
+
+.legendSwatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legendLineSwatch {
+  width: 14px;
+  height: 3px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+/* BOTTOM SIMULATION TELEMETRY STRIP */
+.telemetryStrip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #0f172a;
+  color: #ffffff;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 10;
+  flex-wrap: wrap;
+}
+
+.telemetryGrid {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.telemetryTile {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.telemetryLabel {
+  font-size: 8.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+}
+
+.telemetryValue {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.telemetryBadgeWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.telemetryEnvBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #fbbf24;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  text-transform: uppercase;
+}
+
+.telemetryConservedPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+}

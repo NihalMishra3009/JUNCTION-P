@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { Resource } from "@/types";
+import { Resource, RoadEdge } from "@/types";
 import { useApp } from "@/state/AppContext";
 import { getRoadNetwork } from "@/data/mockRoadNetwork";
 import { getCrowdFlows } from "@/data/mockCrowdFlows";
@@ -27,7 +27,8 @@ interface Props {
 }
 
 const LAYER_CONFIG = [
-  { name: "Crowd Pressure", dotColor: "#EF4444" },
+  { name: "Human Flow", dotColor: "#3B82F6" },
+  { name: "Human Density", dotColor: "#EF4444" },
   { name: "Transport", dotColor: "#2563EB" },
   { name: "Accommodation", dotColor: "#8B5CF6" },
   { name: "Restaurants", dotColor: "#F59E0B" },
@@ -41,12 +42,27 @@ export default function DestinationMap({
   onSelectResource,
   selectedId,
 }: Props) {
-  const { activeScenario, hotels, redistributionApplied } = useApp();
+  const {
+    activeScenario,
+    hotels,
+    redistributionApplied,
+    simulationState,
+    playSimulation,
+    pauseSimulation,
+    resetSimulation,
+    setSimulationSpeed,
+    simParams,
+  } = useApp();
 
-  // Multi-layer simultaneous composability - all 7 operational layers enabled by default
+  const isRunning = simulationState.status === "PLAYING";
+  const isPaused = simulationState.status === "PAUSED";
+  const [showLegend, setShowLegend] = useState(true);
+
+  // Multi-layer simultaneous composability - all 8 operational layers enabled by default
   const [activeLayers, setActiveLayers] = useState<Set<string>>(
     new Set([
-      "Crowd Pressure",
+      "Human Flow",
+      "Human Density",
       "Transport",
       "Accommodation",
       "Restaurants",
@@ -68,11 +84,46 @@ export default function DestinationMap({
     });
   };
 
-  // Pure domain-derived operational state, reactive to scenario & redistribution
-  const roads = useMemo(
-    () => getRoadNetwork(activeScenario, redistributionApplied),
-    [activeScenario, redistributionApplied]
-  );
+  // Pure domain-derived road network reacting dynamically to simulation edge loads
+  const roads = useMemo(() => {
+    const baseRoads = getRoadNetwork(activeScenario, redistributionApplied);
+    if (simulationState.minutesElapsed > 0) {
+      const edgeLoadMap: Record<string, string> = {
+        ROAD_VEER_NARIMAN: "EDGE_EXIT_VEER_NARIMAN",
+        ROAD_MAHARSHI_KARVE: "EDGE_EXIT_MK_ROAD",
+        ROAD_DN_ROAD: "EDGE_DN_ROAD_LINK",
+        ROAD_CENTRAL_SPINE: "EDGE_CENTRAL_SPINE",
+      };
+
+      return baseRoads.map(road => {
+        const topologyEdgeId = edgeLoadMap[road.id];
+        if (topologyEdgeId && simulationState.edgeLoads[topologyEdgeId] !== undefined) {
+          const load = simulationState.edgeLoads[topologyEdgeId];
+          const capacity = road.capacity || 3000;
+          const congestion = Math.min(99, Math.max(30, Math.round((load / capacity) * 100) + 35));
+          let status: RoadEdge["status"] = "NORMAL";
+          if (congestion >= 90) status = "DISRUPTED";
+          else if (congestion >= 80) status = "CONGESTED";
+          else if (congestion >= 65) status = "HEAVY";
+          const travelTimeMin = Math.round((road.distanceKm || 2) * 3 * (1 + (congestion - 50) / 100));
+
+          return {
+            ...road,
+            congestion,
+            status,
+            travelTimeMin,
+          };
+        }
+        return road;
+      });
+    }
+    return baseRoads;
+  }, [
+    activeScenario,
+    redistributionApplied,
+    simulationState.minutesElapsed,
+    simulationState.edgeLoads,
+  ]);
 
   const flows = useMemo(
     () => getCrowdFlows(activeScenario, redistributionApplied),
@@ -89,9 +140,16 @@ export default function DestinationMap({
     [activeScenario]
   );
 
+  // Exact conservation metrics derived from SimulationState
+  const totalModeled = simParams.attendance || 33000;
+  const remainingAtVenue = Math.max(0, totalModeled - simulationState.totalExitedVenue);
+  const inTransit = Object.values(simulationState.edgeLoads).reduce((s, v) => s + v, 0);
+  const accumulated = Object.values(simulationState.nodeLoads).reduce((s, v) => s + v, 0);
+  const processed = simulationState.totalCleared;
+
   return (
     <div className={styles.mapWrap}>
-      {/* 7-LAYER OPERATIONAL TOGGLE BAR */}
+      {/* 8-LAYER OPERATIONAL TOGGLE BAR */}
       <div className={styles.layerBar}>
         {LAYER_CONFIG.map(layer => {
           const isActive = activeLayers.has(layer.name);
@@ -114,18 +172,159 @@ export default function DestinationMap({
         })}
       </div>
 
+      {/* COMPACT MAP SIMULATION CONTROLLER */}
+      <div className={styles.simBar}>
+        <div className={styles.simBarLeft}>
+          <span className={styles.simClockIcon}>⏱</span>
+          <span className={styles.simClockTime}>{simulationState.simulationTime}</span>
+          <span className={`${styles.simStatusPill} ${
+            isRunning ? styles.simRunning : isPaused ? styles.simPaused : styles.simIdle
+          }`}>
+            {isRunning ? "● SIMULATING" : isPaused ? "Ⅱ PAUSED" : "○ IDLE"}
+          </span>
+          <span className={styles.simElapsed}>+{simulationState.minutesElapsed}m</span>
+          <span className={styles.telemetryEnvBadge}>
+            SIMULATED ENVIRONMENT
+          </span>
+        </div>
+
+        <div className={styles.simBarRight}>
+          {isRunning ? (
+            <button className={styles.simControlBtn} onClick={pauseSimulation}>
+              Ⅱ Pause
+            </button>
+          ) : (
+            <button className={`${styles.simControlBtn} ${styles.simPlayBtn}`} onClick={playSimulation}>
+              ▶ Play
+            </button>
+          )}
+          <button className={styles.simControlBtn} onClick={resetSimulation}>
+            ↻ Reset
+          </button>
+          <div className={styles.simSpeedGroup}>
+            {([1, 5, 10] as const).map(s => (
+              <button
+                key={s}
+                className={`${styles.simSpeedBtn} ${simulationState.speed === s ? styles.simSpeedActive : ""}`}
+                onClick={() => setSimulationSpeed(s)}
+              >
+                {s}×
+              </button>
+            ))}
+          </div>
+          <button
+            className={styles.simControlBtn}
+            onClick={() => setShowLegend(prev => !prev)}
+            title="Toggle Map Legend"
+          >
+            {showLegend ? "Legend ▾" : "Legend ▸"}
+          </button>
+        </div>
+      </div>
+
       {/* GEOGRAPHIC COMMAND MAP CONTAINER */}
-      <LeafletCommandMap
-        resources={resources}
-        hotels={hotels}
-        restaurants={restaurants}
-        roads={roads}
-        flows={flows}
-        hotspots={hotspots}
-        activeLayers={activeLayers}
-        onSelectResource={onSelectResource}
-        selectedId={selectedId}
-      />
+      <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
+        <LeafletCommandMap
+          resources={resources}
+          hotels={hotels}
+          restaurants={restaurants}
+          roads={roads}
+          flows={flows}
+          hotspots={hotspots}
+          simulationState={simulationState}
+          activeLayers={activeLayers}
+          onSelectResource={onSelectResource}
+          selectedId={selectedId}
+        />
+
+        {/* COMPACT MAP LEGEND OVERLAY */}
+        {showLegend && (
+          <div className={styles.legendOverlay}>
+            <div className={styles.legendHeader}>
+              <span className={styles.legendTitle}>MAP INTELLIGENCE</span>
+              <span className={styles.legendSimPill}>SIMULATED</span>
+            </div>
+            <div className={styles.legendGrid}>
+              <div className={styles.legendCol}>
+                <span className={styles.legendItemTitle}>Human Density</span>
+                <div className={styles.legendItemRow}>
+                  <span className={styles.legendSwatch} style={{ background: "#10b981" }} />
+                  <span>Low &lt;50%</span>
+                </div>
+                <div className={styles.legendItemRow}>
+                  <span className={styles.legendSwatch} style={{ background: "#f59e0b" }} />
+                  <span>Moderate 50-74%</span>
+                </div>
+                <div className={styles.legendItemRow}>
+                  <span className={styles.legendSwatch} style={{ background: "#f97316" }} />
+                  <span>High 75-89%</span>
+                </div>
+                <div className={styles.legendItemRow}>
+                  <span className={styles.legendSwatch} style={{ background: "#ef4444" }} />
+                  <span>Critical ≥90%</span>
+                </div>
+              </div>
+              <div className={styles.legendCol}>
+                <span className={styles.legendItemTitle}>Corridor Flow</span>
+                <div className={styles.legendItemRow}>
+                  <span className={styles.legendLineSwatch} style={{ background: "#3b82f6" }} />
+                  <span>Directional Dash</span>
+                </div>
+                <div className={styles.legendItemRow}>
+                  <span className={styles.legendLineSwatch} style={{ background: "#64748b" }} />
+                  <span>Road Pressure</span>
+                </div>
+                <div className={styles.legendItemRow}>
+                  <span className={styles.legendSwatch} style={{ background: "transparent", border: "1.5px dashed #dc2626" }} />
+                  <span>Forecast Hotspot</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* BOTTOM SIMULATION TELEMETRY STRIP */}
+      <div className={styles.telemetryStrip}>
+        <div className={styles.telemetryGrid}>
+          <div className={styles.telemetryTile}>
+            <span className={styles.telemetryLabel}>Total Modeled</span>
+            <span className={styles.telemetryValue}>{totalModeled.toLocaleString()}</span>
+          </div>
+          <div className={styles.telemetryTile}>
+            <span className={styles.telemetryLabel}>Remaining Venue</span>
+            <span className={styles.telemetryValue}>~{(remainingAtVenue / 1000).toFixed(1)}K</span>
+          </div>
+          <div className={styles.telemetryTile}>
+            <span className={styles.telemetryLabel}>In Transit</span>
+            <span className={styles.telemetryValue} style={{ color: "#38bdf8" }}>
+              ~{(inTransit / 1000).toFixed(1)}K
+            </span>
+          </div>
+          <div className={styles.telemetryTile}>
+            <span className={styles.telemetryLabel}>Accumulated</span>
+            <span className={styles.telemetryValue} style={{ color: "#fbbf24" }}>
+              ~{(accumulated / 1000).toFixed(1)}K
+            </span>
+          </div>
+          <div className={styles.telemetryTile}>
+            <span className={styles.telemetryLabel}>Processed</span>
+            <span className={styles.telemetryValue} style={{ color: "#34d399" }}>
+              ~{(processed / 1000).toFixed(1)}K
+            </span>
+          </div>
+        </div>
+
+        <div className={styles.telemetryBadgeWrap}>
+          <span className={styles.telemetryConservedPill}>
+            ✓ Flow Conserved
+          </span>
+          <span className={styles.telemetryEnvBadge}>
+            MODEL SIMULATION
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
+

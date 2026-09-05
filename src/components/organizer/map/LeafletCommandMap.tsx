@@ -2,13 +2,15 @@
 import React, { useEffect } from "react";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { Resource, Hotel, Restaurant, RoadEdge, CrowdFlow, PredictedHotspot } from "@/types";
+import { Resource, Hotel, Restaurant, RoadEdge, CrowdFlow, PredictedHotspot, SimulationState } from "@/types";
 import VenueLayer from "./layers/VenueLayer";
 import TransportLayer from "./layers/TransportLayer";
 import AccommodationLayer from "./layers/AccommodationLayer";
 import RestaurantLayer from "./layers/RestaurantLayer";
 import RoadLayer from "./layers/RoadLayer";
-import CrowdPressureLayer from "./layers/CrowdPressureLayer";
+import HumanDensityLayer from "./layers/HumanDensityLayer";
+import HumanFlowLayer from "./layers/HumanFlowLayer";
+import OperationalNodeLayer from "./layers/OperationalNodeLayer";
 import PredictedHotspotLayer from "./layers/PredictedHotspotLayer";
 import styles from "../DestinationMap.module.css";
 
@@ -19,6 +21,7 @@ interface Props {
   roads: RoadEdge[];
   flows: CrowdFlow[];
   hotspots: PredictedHotspot[];
+  simulationState?: SimulationState;
   activeLayers: Set<string>;
   onSelectResource: (r: Resource) => void;
   selectedId: string | null;
@@ -43,6 +46,7 @@ export default function LeafletCommandMap({
   roads,
   flows,
   hotspots,
+  simulationState,
   activeLayers,
   onSelectResource,
   selectedId,
@@ -70,23 +74,43 @@ export default function LeafletCommandMap({
         {/* 1. ROADS LAYER */}
         {activeLayers.has("Roads") && <RoadLayer roads={roads} />}
 
-        {/* 2. CROWD PRESSURE LAYER (Halos & Flows) */}
-        {activeLayers.has("Crowd Pressure") && (
-          <CrowdPressureLayer resources={resources} flows={flows} />
+        {/* 2. HUMAN DENSITY LAYER (Continuous Spatial Heatmap Field) */}
+        {activeLayers.has("Human Density") && (
+          <HumanDensityLayer densityCells={simulationState?.densityCells} />
         )}
 
-        {/* 3. PREDICTED HOTSPOTS LAYER */}
+        {/* 3. HUMAN FLOW LAYER (Directional Flow Streams & Moving Particles) */}
+        {activeLayers.has("Human Flow") && (
+          <HumanFlowLayer
+            edgeLoads={simulationState?.edgeLoads}
+            humanCohorts={simulationState?.humanCohorts}
+          />
+        )}
+
+        {/* 4. PREDICTED HOTSPOTS LAYER */}
         {activeLayers.has("Predicted Hotspots") && (
           <PredictedHotspotLayer hotspots={hotspots} />
         )}
 
-        {/* 4. ACCOMMODATION LAYER */}
+        {/* 5. ACCOMMODATION LAYER */}
         {activeLayers.has("Accommodation") && <AccommodationLayer hotels={hotels} />}
 
-        {/* 5. RESTAURANT LAYER */}
+        {/* 6. RESTAURANT LAYER */}
         {activeLayers.has("Restaurants") && <RestaurantLayer restaurants={restaurants} />}
 
-        {/* 6. TRANSPORT LAYER */}
+        {/* 7. MAJOR OPERATIONAL NODES (Primary Command Cards) */}
+        {(activeLayers.has("Transport") || activeLayers.has("Venues")) && (
+          <OperationalNodeLayer
+            resources={resources}
+            nodeLoads={simulationState?.nodeLoads}
+            onSelectResource={onSelectResource}
+            selectedId={selectedId}
+            showTransport={activeLayers.has("Transport")}
+            showVenues={activeLayers.has("Venues")}
+          />
+        )}
+
+        {/* 8. TRANSPORT LAYER (Standard transport resources) */}
         {activeLayers.has("Transport") && (
           <TransportLayer
             resources={resources}
@@ -95,7 +119,7 @@ export default function LeafletCommandMap({
           />
         )}
 
-        {/* 7. VENUE LAYER */}
+        {/* 9. VENUE LAYER (Standard venue resources) */}
         {activeLayers.has("Venues") && (
           <VenueLayer
             resources={resources}
@@ -107,3 +131,4 @@ export default function LeafletCommandMap({
     </div>
   );
 }
+

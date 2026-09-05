@@ -178,6 +178,43 @@ export interface SimulationResult {
   recommendations: string[]; summary: string;
 }
 
+export type SimulationStatus = 'IDLE' | 'PLAYING' | 'PAUSED';
+export type SimulationSpeed = 1 | 5 | 10;
+
+export interface HumanCohort {
+  id: string;
+  originId: string;
+  destinationId: string;
+  path: string[];
+  volume: number;
+  currentSegmentIndex: number;
+  progress: number; // 0.0 to 1.0 along current segment
+  speedMps: number;
+  status: 'MOVING' | 'ARRIVED';
+}
+
+export interface DensityCell {
+  id: string;
+  location: GeoLocation;
+  radiusMeters: number;
+  density: number;
+  capacity: number;
+  pressure: number;
+}
+
+export interface SimulationState {
+  simulationTime: string;
+  minutesElapsed: number;
+  status: SimulationStatus;
+  speed: SimulationSpeed;
+  humanCohorts: HumanCohort[];
+  nodeLoads: Record<string, number>;
+  edgeLoads: Record<string, number>;
+  densityCells: DensityCell[];
+  totalExitedVenue: number;
+  totalCleared: number;
+}
+
 export type RouteType = 'FASTEST' | 'BALANCED' | 'LOW_CROWD';
 
 export interface RouteStep { from: string; to: string; mode: 'RAIL' | 'BUS' | 'WALK' | 'METRO'; duration: number; }
