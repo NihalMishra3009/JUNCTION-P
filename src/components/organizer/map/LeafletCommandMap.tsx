@@ -27,6 +27,39 @@ interface Props {
   selectedId: string | null;
 }
 
+export interface MapThemeConfig {
+  id: "DARK" | "LIGHT";
+  name: string;
+  url: string;
+  attribution: string;
+  subdomains?: string;
+  maxZoom: number;
+}
+
+const cartoApiKey = typeof process !== "undefined" ? process.env.NEXT_PUBLIC_CARTO_API_KEY : undefined;
+
+export const MAP_THEMES: Record<"DARK" | "LIGHT", MapThemeConfig> = {
+  DARK: {
+    id: "DARK",
+    name: "Apple Maps Dark Navy",
+    url: cartoApiKey
+      ? `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${cartoApiKey}`
+      : "https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: "abcd",
+    maxZoom: 20,
+  },
+  LIGHT: {
+    id: "LIGHT",
+    name: "OpenStreetMap Light",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  },
+};
+
 // Helper to auto-invalidate size when container resizes or sidebar collapses
 function MapResizeHandler() {
   const map = useMap();
@@ -53,6 +86,7 @@ export default function LeafletCommandMap({
 }: Props) {
   // South Mumbai default coordinates
   const center: [number, number] = [18.9420, 72.8280];
+  const activeTheme = MAP_THEMES.DARK;
 
   return (
     <div className={styles.leafletWrapper}>
@@ -66,9 +100,10 @@ export default function LeafletCommandMap({
       >
         <MapResizeHandler />
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          maxZoom={19}
+          url={activeTheme.url}
+          attribution={activeTheme.attribution}
+          subdomains={activeTheme.subdomains || "abc"}
+          maxZoom={activeTheme.maxZoom}
         />
 
         {/* 1. ROADS LAYER */}

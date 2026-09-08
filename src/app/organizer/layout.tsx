@@ -22,12 +22,39 @@ const NAV = [
   ]},
 ];
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/state/AuthContext";
 
 export default function OrganizerLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const pathname = usePathname();
   const { activeScenario, setScenario } = useApp();
+  const { currentUser, isAuthenticated, isLoading, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Auth protection guard
+  useEffect(() => {
+    if (!isLoading) {
+      if (!isAuthenticated || !currentUser) {
+        router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+      } else if (currentUser.role !== "ORGANIZER") {
+        // Partner user trying to access /organizer -> redirect to /partner
+        router.replace("/partner");
+      }
+    }
+  }, [isLoading, isAuthenticated, currentUser, router, pathname]);
+
+  if (isLoading || !isAuthenticated || currentUser?.role !== "ORGANIZER") {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--paper)" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+          <span className="pill pill-simulated">VERIFYING COMMAND SESSION</span>
+          <p style={{ fontSize: 13, color: "var(--ink-muted)" }}>Connecting to City Operations Command...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.shell}>
@@ -113,9 +140,28 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
               <span className="pill pill-simulated">SIMULATED</span>
               <span className={styles.headerTime}>19:30–22:30</span>
             </div>
-            <Link href="/attendee" className="btn btn-outline btn-sm">
-              Attendee View →
-            </Link>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 8px", borderLeft: "1px solid var(--neutral)", borderRight: "1px solid var(--neutral)" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)" }}>
+                {currentUser?.displayName || "City Operations Command"}
+              </span>
+              <span className="pill pill-simulated" style={{ fontSize: 9, padding: "1px 5px", background: "rgba(17,17,17,0.08)", color: "var(--ink)" }}>
+                ORGANIZER
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                logout();
+                router.replace("/login");
+              }}
+              style={{ color: "var(--red)", fontWeight: 700, fontSize: 11 }}
+              title="Log out of City Operations Command"
+            >
+              Log Out
+            </button>
           </div>
         </header>
         <div className={styles.content}>

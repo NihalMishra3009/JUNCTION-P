@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--paper-dark);
+  background: #0f172a;
   border-radius: var(--radius-md);
   overflow: hidden;
   position: relative;
@@ -62,6 +62,7 @@
   width: 100%;
   position: relative;
   overflow: hidden;
+  background: #0f172a;
 }
 
 .mapContainer {
@@ -69,6 +70,7 @@
   height: 100%;
   min-height: 380px;
   z-index: 1;
+  background: #0f172a;
 }
 
 .mapLoading {
@@ -79,10 +81,41 @@
   height: 100%;
   min-height: 380px;
   gap: 12px;
-  background: var(--paper);
-  color: var(--ink-muted);
+  background: #0f172a;
+  color: #94a3b8;
   font-size: 12px;
   font-weight: 500;
+}
+
+/* Dark Leaflet Controls for Dark Map Theme */
+.mapContainer :global(.leaflet-control-attribution) {
+  background: rgba(15, 23, 42, 0.8) !important;
+  color: #94a3b8 !important;
+  font-size: 9px !important;
+  padding: 2px 6px !important;
+  border-radius: 4px 0 0 0 !important;
+}
+
+.mapContainer :global(.leaflet-control-attribution a) {
+  color: #cbd5e1 !important;
+}
+
+.mapContainer :global(.leaflet-control-zoom) {
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+.mapContainer :global(.leaflet-control-zoom a) {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.mapContainer :global(.leaflet-control-zoom a:hover) {
+  background: #334155 !important;
+  color: #ffffff !important;
 }
 
 /* Custom Marker Styling (divIcon) */
@@ -165,8 +198,13 @@
 }
 
 @keyframes markerSelectedPulse {
-  from { box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4), 0 3px 10px rgba(0, 0, 0, 0.3); }
-  to { box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.7), 0 3px 12px rgba(0, 0, 0, 0.4); }
+  from {
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4), 0 3px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  to {
+    box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.7), 0 3px 12px rgba(0, 0, 0, 0.4);
+  }
 }
 
 /* Custom Popup Overrides */
@@ -271,10 +309,13 @@
 }
 
 @keyframes haloPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.4;
     stroke-width: 1.5;
   }
+
   50% {
     opacity: 0.95;
     stroke-width: 3.5;
@@ -286,10 +327,13 @@
 }
 
 @keyframes hotspotPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.5;
     stroke-width: 2;
   }
+
   50% {
     opacity: 1;
     stroke-width: 4;
@@ -521,6 +565,7 @@
   from {
     stroke-dashoffset: 28;
   }
+
   to {
     stroke-dashoffset: 0;
   }
@@ -531,9 +576,12 @@
 }
 
 @keyframes cohortPulseAnim {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.65;
   }
+
   50% {
     opacity: 1;
   }

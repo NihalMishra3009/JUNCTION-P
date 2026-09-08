@@ -41,7 +41,7 @@ const MAJOR_TRANSPORT_IDS = new Set(["CHURCHGATE", "MARINE_LINES", "CSMT", "DADA
 export default function TransportLayer({ resources, onSelectResource, selectedId }: Props) {
   const transportResources = resources.filter(
     r => (r.type === "STATION" || r.type === "PICKUP_ZONE" || r.type === "SHUTTLE_HUB") &&
-         !MAJOR_TRANSPORT_IDS.has(r.id)
+      !MAJOR_TRANSPORT_IDS.has(r.id)
   );
 
   return (

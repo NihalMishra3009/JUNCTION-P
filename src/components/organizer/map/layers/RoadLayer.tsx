@@ -31,7 +31,8 @@ export default function RoadLayer({ roads }: Props) {
         const coreWeight = isCritical ? 6.5 : isHigh ? 5.5 : isModerate ? 4 : 2.5;
         const casingWeight = coreWeight + 4;
         const coreOpacity = isNormal ? 0.55 : 0.95;
-        const casingOpacity = isCritical ? 0.6 : isHigh ? 0.45 : isModerate ? 0.3 : 0.15;
+        const casingOpacity = isNormal ? 1 : (isCritical ? 0.6 : isHigh ? 0.45 : 0.3);
+        const casingColor = isNormal ? "rgba(255, 255, 255, 0.15)" : "#0f172a";
 
         return (
           <React.Fragment key={road.id}>
@@ -39,7 +40,7 @@ export default function RoadLayer({ roads }: Props) {
             <Polyline
               positions={positions}
               pathOptions={{
-                color: "#0f172a",
+                color: casingColor,
                 weight: casingWeight,
                 opacity: casingOpacity,
                 lineCap: "round",

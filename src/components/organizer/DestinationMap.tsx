@@ -177,9 +177,8 @@ export default function DestinationMap({
         <div className={styles.simBarLeft}>
           <span className={styles.simClockIcon}>⏱</span>
           <span className={styles.simClockTime}>{simulationState.simulationTime}</span>
-          <span className={`${styles.simStatusPill} ${
-            isRunning ? styles.simRunning : isPaused ? styles.simPaused : styles.simIdle
-          }`}>
+          <span className={`${styles.simStatusPill} ${isRunning ? styles.simRunning : isPaused ? styles.simPaused : styles.simIdle
+            }`}>
             {isRunning ? "● SIMULATING" : isPaused ? "Ⅱ PAUSED" : "○ IDLE"}
           </span>
           <span className={styles.simElapsed}>+{simulationState.minutesElapsed}m</span>

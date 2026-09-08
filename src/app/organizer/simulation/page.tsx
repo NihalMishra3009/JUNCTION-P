@@ -121,9 +121,8 @@ function SimulationContent() {
               +{simulationState.minutesElapsed} min elapsed · Scenario: {activeScenario.replace(/_/g, " ")}
             </span>
           </div>
-          <span className={`${styles.statusPill} ${
-            isRunning ? styles.statusRunning : isPaused ? styles.statusPaused : styles.statusIdle
-          }`}>
+          <span className={`${styles.statusPill} ${isRunning ? styles.statusRunning : isPaused ? styles.statusPaused : styles.statusIdle
+            }`}>
             {isRunning ? "● RUNNING" : isPaused ? "Ⅱ PAUSED" : "○ IDLE"}
           </span>
         </div>

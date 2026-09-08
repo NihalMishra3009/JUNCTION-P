@@ -253,3 +253,4 @@ export interface AppState {
   attendeeSelectedRouteId: string | null;
   attendeeRouteChoiceAffectsState: boolean;
 }
+
