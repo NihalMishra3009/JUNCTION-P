@@ -1,4 +1,12 @@
 
+.showcaseShell {
+  min-height: 100vh;
+  width: 100%;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+}
+
 .shell {
   min-height: 100vh;
   background: var(--paper);

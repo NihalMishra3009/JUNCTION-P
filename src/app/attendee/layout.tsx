@@ -1,18 +1,29 @@
 "use client";
+import React, { Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import styles from "./attendee.module.css";
 
 const NAV_ITEMS = [
-  { href: "/attendee", label: "Home", icon: "◉" },
+  { href: "/attendee?app=true", label: "Home", icon: "◉" },
   { href: "/attendee/plan", label: "Plan", icon: "◇" },
   { href: "/attendee/stay", label: "Stay", icon: "◈" },
   { href: "/attendee/food", label: "Food", icon: "◆" },
   { href: "/attendee/event", label: "Event", icon: "★" },
 ];
 
-export default function AttendeeLayout({ children }: { children: React.ReactNode }) {
+function AttendeeLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isApp = searchParams.get("app") === "true";
+
+  // Public showcase at /attendee when NOT in app mode
+  const isShowcase = pathname === "/attendee" && !isApp;
+
+  if (isShowcase) {
+    return <div className={styles.showcaseShell}>{children}</div>;
+  }
+
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
@@ -28,7 +39,9 @@ export default function AttendeeLayout({ children }: { children: React.ReactNode
       </div>
       <nav className={styles.bottomNav}>
         {NAV_ITEMS.map(item => {
-          const isActive = item.href === "/attendee" ? pathname === "/attendee" : pathname.startsWith(item.href);
+          const isActive = item.href.startsWith("/attendee?app=true")
+            ? pathname === "/attendee" && isApp
+            : pathname.startsWith(item.href);
           return (
             <Link key={item.href} href={item.href} className={`${styles.navItem} ${isActive ? styles.navActive : ""}`}>
               <span className={styles.navIcon}>{item.icon}</span>
@@ -38,5 +51,13 @@ export default function AttendeeLayout({ children }: { children: React.ReactNode
         })}
       </nav>
     </div>
+  );
+}
+
+export default function AttendeeLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className={styles.showcaseShell}>{children}</div>}>
+      <AttendeeLayoutContent>{children}</AttendeeLayoutContent>
+    </Suspense>
   );
 }
