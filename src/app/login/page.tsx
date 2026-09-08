@@ -170,7 +170,7 @@ function LoginForm() {
                 </span>
                 <h2 className={styles.roleTitle}>Hotel &amp; Service Partner</h2>
               </div>
-              <span style={{ fontSize: 20 }}>🏨</span>
+              <span style={{ fontSize: 20 }}>⌘</span>
             </div>
 
             <p className={styles.roleDesc}>

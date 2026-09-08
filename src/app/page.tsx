@@ -13,7 +13,7 @@ export default function LandingPage() {
   const primaryCtaRoute = isAuthenticated && currentUser ? currentUser.defaultRoute : "/login";
   const primaryCtaLabel = isAuthenticated && currentUser
     ? `ENTER ${currentUser.role === "ORGANIZER" ? "OPERATIONS" : "PORTAL"} →`
-    : "SIGN IN / ENTER JUNCTION →";
+    : "ENTER JUNCTION →";
 
   return (
     <main className={styles.page}>
@@ -47,7 +47,7 @@ export default function LandingPage() {
             </>
           ) : (
             <Link href="/login" className={`btn btn-primary ${styles.navCta}`}>
-              SIGN IN →
+              ENTER JUNCTION →
             </Link>
           )}
         </div>

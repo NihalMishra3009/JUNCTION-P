@@ -65,10 +65,6 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
             </span>
           </div>
 
-          <Link href="/attendee/stay" className="btn btn-outline btn-sm" title="View attendee stay recommendation">
-            Attendee Stay View
-          </Link>
-
           <button
             type="button"
             className="btn btn-ghost btn-sm"
