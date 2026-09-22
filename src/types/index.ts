@@ -37,9 +37,17 @@ export interface GeoLocation {
   longitude: number;
 }
 
+export * from "./zone";
+export * from "./transport";
+
 export interface Zone {
-  id: string; name: string; pressure: number; predictedPressure: number;
-  availableCapacity: number; resources: string[];
+  id: string;
+  name: string;
+  tier?: import("./zone").ZoneTier;
+  pressure: number;
+  predictedPressure: number;
+  availableCapacity: number;
+  resources: string[];
 }
 
 export interface Resource {

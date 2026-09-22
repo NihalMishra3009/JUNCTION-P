@@ -10,11 +10,13 @@ import {
   SimulationState,
   SimulationSpeed,
   SimulationParams,
+  ZoneState,
 } from "@/types";
 import { MOCK_RECOMMENDATIONS } from "@/data/mockRecommendations";
 import { getHotels, getResources, getScenarioKPIs, getAlerts } from "@/services/mockDataService";
 import { getPressureLevel } from "@/data/mockResources";
 import { createInitialSimulationState, nextSimulationState } from "@/services/simulationEngine";
+import { OPERATIONAL_ZONES, fuseZoneState } from "@/services/zoneRegistry";
 
 interface AppContextValue {
   // Scenario
@@ -58,6 +60,10 @@ interface AppContextValue {
   setSimulationSpeed: (speed: SimulationSpeed) => void;
   simParams: SimulationParams;
   updateSimParams: (p: Partial<SimulationParams>) => void;
+
+  // Zone Registry & Fused State
+  zones: ZoneState[];
+  getZoneState: (zoneId: string) => ZoneState | undefined;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -262,6 +268,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return getScenarioKPIs(activeScenario, redistributionApplied, hotels, resources);
   }, [activeScenario, redistributionApplied, hotels, resources]);
 
+  // Fused Zone States — synthesised from live resources, hotels, scenario, and simulation.
+  // NOTE: fuseZoneState reads simulationState.nodeLoads and simulationState.minutesElapsed only.
+  // We depend on those two specific fields (matching the resources memo pattern) instead of the
+  // full simulationState object so that play/pause/speed changes do not trigger a recomputation.
+  const zones = useMemo((): ZoneState[] => {
+    return OPERATIONAL_ZONES.map(zone =>
+      fuseZoneState(
+        zone,
+        resources,
+        hotels,
+        activeScenario,
+        simulationState,
+        redistributionApplied
+      )
+    );
+  }, [resources, hotels, activeScenario, simulationState.minutesElapsed, simulationState.nodeLoads, redistributionApplied]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const getZoneState = useCallback(
+    (zoneId: string): ZoneState | undefined => zones.find(z => z.id === zoneId),
+    [zones]
+  );
+
   // Dynamic alerts
   const alerts = useMemo(() => {
     const baseAlerts = getAlerts(activeScenario);
@@ -309,6 +337,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       resources, kpis, alerts,
       simulationState, playSimulation, pauseSimulation, resetSimulation, setSimulationSpeed,
       simParams, updateSimParams,
+      zones, getZoneState,
     }}>
       {children}
     </AppContext.Provider>
