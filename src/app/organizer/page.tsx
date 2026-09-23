@@ -131,6 +131,33 @@ export default function OrganizerDashboard() {
             />
           ) : (
             <div className={styles.intelPanel}>
+              {/* HARDWARE SENSORS & AI HOTSPOTS INTELLIGENCE CHIPS */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 8,
+                padding: "8px 12px",
+                background: "var(--surface-sunken)",
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--border-subtle)",
+                marginBottom: 10,
+              }}>
+                <div>
+                  <span style={{ fontSize: 10, color: "var(--ink-faint)", textTransform: "uppercase", fontWeight: 700 }}>Telemetry Feeds</span>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)" }} />
+                    6 Online Sensors
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: 10, color: "var(--ink-faint)", textTransform: "uppercase", fontWeight: 700 }}>Active Hotspots</span>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--red)", display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--red)" }} />
+                    Churchgate Corridor
+                  </div>
+                </div>
+              </div>
+
               {/* ALERTS */}
               <div className={styles.intelSection}>
                 <div className={styles.intelSectionHeader}>

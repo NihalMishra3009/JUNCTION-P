@@ -39,6 +39,14 @@ export interface GeoLocation {
 
 export * from "./zone";
 export * from "./transport";
+export * from "./device";
+export * from "./observation";
+export * from "./computerVision";
+export * from "./hospitality";
+export * from "./forecast";
+export * from "./recommendation";
+export * from "./audit";
+export * from "./resource";
 
 export interface Zone {
   id: string;

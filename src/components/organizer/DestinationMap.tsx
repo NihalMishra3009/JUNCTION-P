@@ -15,7 +15,18 @@ const LeafletCommandMap = dynamic(() => import("./map/LeafletCommandMap"), {
   loading: () => (
     <div className={styles.mapLoading}>
       <div className="spinner" />
-      <span>Loading Geographic Command Map...</span>
+      <span>Loading 2D Leaflet Operational Map...</span>
+    </div>
+  ),
+});
+
+// Dynamic import of CesiumCommandMap with SSR disabled (Cesium WebGL requires browser window)
+const CesiumCommandMap = dynamic(() => import("./map/CesiumCommandMap"), {
+  ssr: false,
+  loading: () => (
+    <div className={styles.mapLoading}>
+      <div className="spinner" />
+      <span>Initializing Cesium 3D Engine...</span>
     </div>
   ),
 });
@@ -52,11 +63,17 @@ export default function DestinationMap({
     resetSimulation,
     setSimulationSpeed,
     simParams,
+    devices,
+    latestObservations,
   } = useApp();
+
+  const staleObs = useMemo(() => latestObservations.filter(o => o.qualityStatus === "STALE"), [latestObservations]);
+  const conflictingObs = useMemo(() => latestObservations.filter(o => o.qualityStatus === "CONFLICTING"), [latestObservations]);
 
   const isRunning = simulationState.status === "PLAYING";
   const isPaused = simulationState.status === "PAUSED";
   const [showLegend, setShowLegend] = useState(true);
+  const [mapRenderer, setMapRenderer] = useState<"2D" | "3D">("3D");
 
   // Multi-layer simultaneous composability - all 8 operational layers enabled by default
   const [activeLayers, setActiveLayers] = useState<Set<string>>(
@@ -149,8 +166,28 @@ export default function DestinationMap({
 
   return (
     <div className={styles.mapWrap}>
-      {/* 8-LAYER OPERATIONAL TOGGLE BAR */}
+      {/* 8-LAYER OPERATIONAL TOGGLE BAR WITH RENDERER SWITCHER */}
       <div className={styles.layerBar}>
+        {/* RENDERER MODE TOGGLE BUTTONS */}
+        <div style={{ display: "flex", gap: "2px", background: "var(--paper-dark)", padding: "2px", borderRadius: "20px", marginRight: "8px" }}>
+          <button
+            className={`${styles.layerBtn} ${mapRenderer === "2D" ? styles.layerActive : ""}`}
+            onClick={() => setMapRenderer("2D")}
+            title="Switch to Leaflet 2D Operational Map"
+            style={{ borderRadius: "12px 0 0 12px", padding: "3px 8px" }}
+          >
+            🗺️ 2D Map
+          </button>
+          <button
+            className={`${styles.layerBtn} ${mapRenderer === "3D" ? styles.layerActive : ""}`}
+            onClick={() => setMapRenderer("3D")}
+            title="Switch to Cesium 3D Command Globe"
+            style={{ borderRadius: "0 12px 12px 0", padding: "3px 8px" }}
+          >
+            🌐 3D Globe
+          </button>
+        </div>
+
         {LAYER_CONFIG.map(layer => {
           const isActive = activeLayers.has(layer.name);
           return (
@@ -183,8 +220,18 @@ export default function DestinationMap({
           </span>
           <span className={styles.simElapsed}>+{simulationState.minutesElapsed}m</span>
           <span className={styles.telemetryEnvBadge}>
-            SIMULATED ENVIRONMENT
+            {mapRenderer === "3D" ? "CESIUM 3D ACTIVE" : "LEAFLET 2D ACTIVE"}
           </span>
+          {staleObs.length > 0 && (
+            <span className="pill pill-watch" style={{ fontSize: 9 }} title={`${staleObs.length} sensor observations exceed freshness threshold`}>
+              ⚠️ STALE TELEMETRY ({staleObs.length})
+            </span>
+          )}
+          {conflictingObs.length > 0 && (
+            <span className="pill pill-critical" style={{ fontSize: 9 }} title="Sensor readings exhibit conflicting measurement spread">
+              ⚡ SENSOR DISAGREEMENT DETECTED
+            </span>
+          )}
         </div>
 
         <div className={styles.simBarRight}>
@@ -221,20 +268,36 @@ export default function DestinationMap({
         </div>
       </div>
 
-      {/* GEOGRAPHIC COMMAND MAP CONTAINER */}
+      {/* GEOGRAPHIC COMMAND MAP CONTAINER (DYNAMIC RENDERER) */}
       <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
-        <LeafletCommandMap
-          resources={resources}
-          hotels={hotels}
-          restaurants={restaurants}
-          roads={roads}
-          flows={flows}
-          hotspots={hotspots}
-          simulationState={simulationState}
-          activeLayers={activeLayers}
-          onSelectResource={onSelectResource}
-          selectedId={selectedId}
-        />
+        {mapRenderer === "3D" ? (
+          <CesiumCommandMap
+            resources={resources}
+            hotels={hotels}
+            restaurants={restaurants}
+            roads={roads}
+            flows={flows}
+            hotspots={hotspots}
+            simulationState={simulationState}
+            activeLayers={activeLayers}
+            onSelectResource={onSelectResource}
+            selectedId={selectedId}
+          />
+        ) : (
+          <LeafletCommandMap
+            resources={resources}
+            hotels={hotels}
+            restaurants={restaurants}
+            roads={roads}
+            flows={flows}
+            hotspots={hotspots}
+            simulationState={simulationState}
+            activeLayers={activeLayers}
+            onSelectResource={onSelectResource}
+            selectedId={selectedId}
+          />
+        )}
+
 
         {/* COMPACT MAP LEGEND OVERLAY */}
         {showLegend && (

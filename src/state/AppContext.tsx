@@ -15,8 +15,13 @@ import {
 import { MOCK_RECOMMENDATIONS } from "@/data/mockRecommendations";
 import { getHotels, getResources, getScenarioKPIs, getAlerts } from "@/services/mockDataService";
 import { getPressureLevel } from "@/data/mockResources";
-import { createInitialSimulationState, nextSimulationState } from "@/services/simulationEngine";
+import { createInitialSimulationState, nextSimulationState, calculateOutflowRate } from "@/services/simulationEngine";
 import { OPERATIONAL_ZONES, fuseZoneState } from "@/services/zoneRegistry";
+import { deviceRegistry } from "@/services/deviceRegistry";
+import { sensorStreamSimulator } from "@/services/sensorStreamSimulator";
+import { ingestionPipeline } from "@/services/ingestionPipeline";
+import { hotspotAndCascadeEngine } from "@/services/hotspotAndCascadeEngine";
+import { recommendationLifecycleEngine } from "@/services/recommendationLifecycleEngine";
 
 interface AppContextValue {
   // Scenario
@@ -64,6 +69,14 @@ interface AppContextValue {
   // Zone Registry & Fused State
   zones: ZoneState[];
   getZoneState: (zoneId: string) => ZoneState | undefined;
+
+  // Real-Time Hardware-Agnostic & CV Intelligence (Additive Seams)
+  devices: import("@/types").DeviceDefinition[];
+  latestObservations: import("@/types").NormalizedObservation[];
+  hotspots: import("@/types").HotspotPrediction[];
+  cascadeResult: import("@/types").CascadeAnalysisResult | null;
+  interventions: import("@/types").OperationalIntervention[];
+  auditRecords: import("@/types").AuditRecord[];
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -326,6 +339,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return dynamicList;
   }, [activeScenario, redistributionApplied, hotels]);
 
+  // Initialize Default Hardware Devices into Registry (Runs once)
+  useEffect(() => {
+    sensorStreamSimulator.initializeDefaultDevices();
+  }, []);
+
+  // Update simulator scenario when activeScenario changes
+  useEffect(() => {
+    sensorStreamSimulator.setConfig({ scenarioId: activeScenario });
+  }, [activeScenario]);
+
+  // Real-Time Normalized Observation Pipeline (Runs when simulation steps)
+  const latestObservations = useMemo(() => {
+    const currentOutflowRate = calculateOutflowRate(
+      simulationState.minutesElapsed,
+      activeScenario,
+      simParams.attendance
+    );
+    const rawObs = sensorStreamSimulator.generateObservationsForState(
+      simulationState.nodeLoads,
+      currentOutflowRate
+    );
+    const normalizedResult = ingestionPipeline.processBatch(rawObs);
+    return normalizedResult.accepted;
+  }, [simulationState.nodeLoads, simulationState.minutesElapsed, activeScenario, simParams.attendance]);
+
+  // Registered Devices
+  const devices = useMemo(() => {
+    return deviceRegistry.getAll();
+  }, [latestObservations]);
+
+  // Detected Spatial Hotspots
+  const hotspots = useMemo(() => {
+    return hotspotAndCascadeEngine.detectHotspots(zones);
+  }, [zones]);
+
+  // Forward Cascade Spillover Analysis
+  const cascadeResult = useMemo(() => {
+    const originZone = zones.find(z => z.id === "ZONE_WANKHEDE");
+    const originPressure = originZone ? originZone.pressure : 85;
+    return hotspotAndCascadeEngine.analyzeCascade("ZONE_WANKHEDE", originPressure, resources);
+  }, [zones, resources]);
+
+  // Generated Operational Interventions
+  const interventions = useMemo(() => {
+    return recommendationLifecycleEngine.generateInterventions(zones);
+  }, [zones]);
+
+  const auditRecords = useMemo(() => {
+    return recommendationLifecycleEngine.getAuditTrail();
+  }, [recommendations]);
+
   return (
     <AppContext.Provider value={{
       activeScenario, setScenario,
@@ -338,6 +402,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       simulationState, playSimulation, pauseSimulation, resetSimulation, setSimulationSpeed,
       simParams, updateSimParams,
       zones, getZoneState,
+      devices, latestObservations, hotspots, cascadeResult, interventions, auditRecords,
     }}>
       {children}
     </AppContext.Provider>

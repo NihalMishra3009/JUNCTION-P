@@ -1,34 +1,44 @@
-import { ResourcePrediction } from "@/types";
-import { ScenarioId } from "@/types";
+import { ResourcePrediction, ScenarioId } from "@/types";
+import { forecastingService } from "@/services/forecastingService";
 import { SCENARIOS } from "./mockScenarios";
 
 export function getPredictions(scenario: ScenarioId): ResourcePrediction[] {
-  const s = SCENARIOS[scenario];
-  const resources = [
-    { id: "CHURCHGATE", name: "Churchgate Station", color: "#EF4444" },
-    { id: "WANKHEDE_EXIT", name: "Wankhede Exit", color: "#F97316" },
-    { id: "TAXI_ZONE", name: "Taxi Zone", color: "#F5C400" },
-    { id: "CSMT", name: "CSMT", color: "#3B82F6" },
-    { id: "DADAR", name: "Dadar Station", color: "#22C55E" },
-    { id: "ROAD_MARINE_DR", name: "Marine Drive", color: "#8B5CF6" },
+  const s = SCENARIOS[scenario] || SCENARIOS.NORMAL;
+  const targetResources = [
+    { id: "CHURCHGATE", name: "Churchgate Station", color: "#EF4444", zoneId: "ZONE_CHURCHGATE" },
+    { id: "WANKHEDE_EXIT", name: "Wankhede Exit", color: "#F97316", zoneId: "ZONE_WANKHEDE" },
+    { id: "TAXI_ZONE", name: "Taxi Zone", color: "#F5C400", zoneId: "ZONE_TAXI_STAGING" },
+    { id: "CSMT", name: "CSMT", color: "#3B82F6", zoneId: "ZONE_CSMT" },
+    { id: "DADAR", name: "Dadar Station", color: "#22C55E", zoneId: "ZONE_DADAR" },
+    { id: "ROAD_MARINE_DR", name: "Marine Drive", color: "#8B5CF6", zoneId: "ZONE_MARINE_LINES" },
   ];
-  return resources.map(r => {
-    const pd = s.pressure[r.id];
-    if (!pd) return null;
+
+  return targetResources.map(r => {
+    const basePressure = s.pressure[r.id]?.pressure ?? 50;
+    const forecast = forecastingService.generateResourceForecast(
+      r.id,
+      r.name,
+      r.zoneId,
+      basePressure,
+      scenario
+    );
+
     return {
-      resourceId: r.id, resourceName: r.name, color: r.color,
-      current: pd.pressure,
+      resourceId: r.id,
+      resourceName: r.name,
+      color: r.color,
+      current: basePressure,
       points: [
-        { label: "NOW", minutesFromNow: 0, pressure: pd.pressure },
-        { label: "+15 MIN", minutesFromNow: 15, pressure: pd.predictedPressure15 },
-        { label: "+30 MIN", minutesFromNow: 30, pressure: pd.predictedPressure30 },
-        { label: "+60 MIN", minutesFromNow: 60, pressure: pd.predictedPressure60 },
+        { label: "NOW", minutesFromNow: 0, pressure: basePressure },
+        ...forecast.forecastPoints.map(pt => ({
+          label: pt.label,
+          minutesFromNow: pt.minutesFromNow,
+          pressure: pt.predictedPressure,
+        })),
       ],
-      thresholdCrossing: pd.predictedPressure30 >= 95
-        ? { level: "CRITICAL" as const, minutesFromNow: 30 }
-        : pd.predictedPressure15 >= 85
-        ? { level: "HIGH" as const, minutesFromNow: 15 }
+      thresholdCrossing: forecast.thresholdCrossing
+        ? { level: forecast.thresholdCrossing.level, minutesFromNow: forecast.thresholdCrossing.minutesFromNow }
         : undefined,
     };
-  }).filter(Boolean) as ResourcePrediction[];
+  });
 }

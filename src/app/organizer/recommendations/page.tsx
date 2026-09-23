@@ -7,7 +7,7 @@ import styles from "./recommendations.module.css";
 
 export default function RecommendationsPage() {
   const router = useRouter();
-  const { recommendations, approveRecommendation, rejectRecommendation, isRecommendationApproved } = useApp();
+  const { recommendations, approveRecommendation, rejectRecommendation, isRecommendationApproved, auditRecords } = useApp();
   const [approving, setApproving] = useState<string | null>(null);
   const [justApproved, setJustApproved] = useState<string | null>(null);
 
@@ -123,6 +123,55 @@ export default function RecommendationsPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* AUDIT TRAIL LOGGING SECTION (FIX-02) */}
+      <div style={{ marginTop: 40, borderTop: "1px solid var(--border)", paddingTop: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-display)", color: "var(--ink)" }}>Operational Audit Trail</h2>
+            <p style={{ fontSize: 12, color: "var(--ink-muted)" }}>Immutable human-in-the-loop decision log tracking approvals, rejections, and state transformations.</p>
+          </div>
+          <span className="pill pill-live" style={{ fontSize: 10 }}>{auditRecords.length} AUDIT RECORDS</span>
+        </div>
+
+        {auditRecords.length === 0 ? (
+          <div style={{ padding: 24, textAlign: "center", background: "var(--surface-sunken)", borderRadius: "var(--radius-md)", border: "1px dashed var(--border)" }}>
+            <p style={{ fontSize: 13, color: "var(--ink-muted)" }}>No operational decisions logged in current session. Approve or reject a recommendation above to record an audit entry.</p>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {auditRecords.map(log => (
+              <div key={log.id} style={{
+                background: "var(--paper)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-sm)",
+                padding: "12px 16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 16,
+              }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span className={`pill ${log.category === "RECOMMENDATION_APPROVAL" ? "pill-live" : "pill-critical"}`} style={{ fontSize: 9 }}>
+                      {log.category}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>{log.changeSummary}</span>
+                  </div>
+                  <p style={{ fontSize: 11, color: "var(--ink-muted)", marginTop: 4 }}>
+                    Actor: {log.actorId} ({log.actorRole}) · Target: {log.targetEntityType} #{log.targetEntityId}
+                  </p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--ink-faint)" }}>
+                    {new Date(log.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* APPROVAL MODAL */}
