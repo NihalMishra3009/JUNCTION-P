@@ -14,6 +14,8 @@ import {
 } from "@/types";
 import styles from "../DestinationMap.module.css";
 
+import { render3DCityAndStadium } from "./layers/Cesium3DCityLayer";
+
 interface Props {
   resources: Resource[];
   hotels: Hotel[];
@@ -75,7 +77,7 @@ export default function CesiumCommandMap({
         shouldAnimate: true,
       });
 
-      // Disable depth test against terrain so operational overlay cylinders stay fully visible
+      // Enable depth test against terrain so 3D buildings and trees stand properly on ground
       viewer.scene.globe.depthTestAgainstTerrain = false;
 
       // Hide default credit container text overflow
@@ -86,16 +88,20 @@ export default function CesiumCommandMap({
 
       // Initial Camera positioning over Wankhede Stadium / South Mumbai Command Center
       viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(72.8258, 18.9389, 2200),
+        destination: Cesium.Cartesian3.fromDegrees(72.8258, 18.9389, 1800),
         orientation: {
           heading: Cesium.Math.toRadians(0),
-          pitch: Cesium.Math.toRadians(-50),
+          pitch: Cesium.Math.toRadians(-45),
           roll: 0,
         },
         duration: 0,
       });
 
       viewerRef.current = viewer;
+
+      // Render 3D Buildings, Wankhede Stadium bowl, floodlight towers, and 3D Trees
+      render3DCityAndStadium(viewer);
+
       setCesiumReady(true);
 
       // Attempt Google Photorealistic 3D Tiles if API Key is available in environment
@@ -146,6 +152,9 @@ export default function CesiumCommandMap({
     if (!viewer || !cesiumReady || viewer.isDestroyed()) return;
 
     viewer.entities.removeAll();
+
+    // Re-render 3D City Buildings, Wankhede Stadium bowl, Floodlights, and 3D Trees
+    render3DCityAndStadium(viewer);
 
     // 1. VENUES & OPERATIONAL ZONES (3D Extruded Cylinder Pillars)
     if (activeLayers.has("Venues") || activeLayers.has("Transport")) {
