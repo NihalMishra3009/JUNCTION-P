@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useApp } from "@/state/AppContext";
 import { getResources, getScenarioKPIs, getAlerts } from "@/services/mockDataService";
 import { Resource } from "@/types";
@@ -19,10 +19,37 @@ export default function OrganizerDashboard() {
     alerts,
     redistributionApplied,
     redistributionImpact,
+    devices,
+    latestObservations,
+    hotspots,
+    cascadeResult,
+    interventions,
+    zones,
+    auditRecords,
   } = useApp();
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
+  const [showCascade, setShowCascade] = useState(false);
 
   const topRec = recommendations.find(r => r.status === "PENDING");
+
+  // Live device health
+  const onlineDevices = useMemo(() => devices.filter(d => d.health.status === "HEALTHY"), [devices]);
+  const degradedDevices = useMemo(() => devices.filter(d => d.health.status === "DEGRADED" || d.health.status === "OFFLINE" || d.health.status === "UNHEALTHY"), [devices]);
+
+  // Top hotspot (highest pressure)
+  const topHotspot = useMemo(() => {
+    if (hotspots.length === 0) return null;
+    return [...hotspots].sort((a, b) => b.currentPressure - a.currentPressure)[0];
+  }, [hotspots]);
+
+  // Critical zones
+  const criticalZones = useMemo(() => zones.filter(z => z.pressureLevel === "CRITICAL" || z.pressureLevel === "HIGH"), [zones]);
+
+  // Cascade pathway nodes
+  const cascadeNodes = useMemo(() => {
+    if (!cascadeResult) return [];
+    return cascadeResult.affectedPathways.flat();
+  }, [cascadeResult]);
 
   return (
     <div className={styles.page}>
@@ -131,7 +158,7 @@ export default function OrganizerDashboard() {
             />
           ) : (
             <div className={styles.intelPanel}>
-              {/* HARDWARE SENSORS & AI HOTSPOTS INTELLIGENCE CHIPS */}
+              {/* LIVE TELEMETRY & HOTSPOT STATUS CHIPS */}
               <div style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
@@ -140,23 +167,141 @@ export default function OrganizerDashboard() {
                 background: "var(--surface-sunken)",
                 borderRadius: "var(--radius-sm)",
                 border: "1px solid var(--border-subtle)",
-                marginBottom: 10,
+                marginBottom: 0,
               }}>
                 <div>
                   <span style={{ fontSize: 10, color: "var(--ink-faint)", textTransform: "uppercase", fontWeight: 700 }}>Telemetry Feeds</span>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)" }} />
-                    6 Online Sensors
+                  <div style={{ fontSize: 12, fontWeight: 700, color: degradedDevices.length > 0 ? "var(--orange)" : "var(--ink)", display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: degradedDevices.length > 0 ? "var(--orange)" : "var(--green)", animation: "pulse 2s infinite" }} />
+                    {onlineDevices.length} Online{degradedDevices.length > 0 ? ` · ${degradedDevices.length} Degraded` : ""}
+                  </div>
+                  <div style={{ fontSize: 10, color: "var(--ink-faint)", marginTop: 1 }}>
+                    {latestObservations.length} observations/tick
                   </div>
                 </div>
                 <div>
                   <span style={{ fontSize: 10, color: "var(--ink-faint)", textTransform: "uppercase", fontWeight: 700 }}>Active Hotspots</span>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--red)", display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--red)" }} />
-                    Churchgate Corridor
+                  <div style={{ fontSize: 12, fontWeight: 700, color: hotspots.length > 0 ? "var(--red)" : "var(--green)", display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: hotspots.length > 0 ? "var(--red)" : "var(--green)", animation: hotspots.length > 0 ? "pulse 1.5s infinite" : "none" }} />
+                    {hotspots.length > 0 ? `${hotspots.length} Detected` : "None"}
                   </div>
+                  {topHotspot && (
+                    <div style={{ fontSize: 10, color: "var(--red)", marginTop: 1, fontWeight: 600 }}>
+                      ⚠ {topHotspot.name} ({topHotspot.currentPressure}%)
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* LIVE ZONE PRESSURE STRIP */}
+              <div className={styles.intelSection} style={{ paddingTop: 8, paddingBottom: 8 }}>
+                <div className={styles.intelSectionHeader}>
+                  <span className="text-meta">Zone Pressure</span>
+                  <span className={`pill ${criticalZones.length > 0 ? "pill-critical" : "pill-watch"}`}>{criticalZones.length} stressed</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                  {zones.slice(0, 5).map(z => (
+                    <div key={z.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{
+                        width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+                        background: z.pressureLevel === "CRITICAL" ? "var(--red)" : z.pressureLevel === "HIGH" ? "var(--orange)" : z.pressureLevel === "WATCH" ? "var(--yellow-state)" : "var(--green)",
+                      }} />
+                      <span style={{ fontSize: 11, color: "var(--ink-light)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{z.name}</span>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, fontFamily: "var(--font-display)",
+                        color: z.pressure >= 90 ? "var(--red)" : z.pressure >= 75 ? "var(--orange)" : z.pressure >= 60 ? "var(--yellow-state)" : "var(--green)",
+                      }}>{z.pressure}%</span>
+                      <span style={{ fontSize: 9, color: "var(--ink-faint)", width: 16, textAlign: "center" }}>
+                        {z.trend === "INCREASING" ? "↑" : z.trend === "DECREASING" ? "↓" : "→"}
+                      </span>
+                      <ConfidenceBadge source={z.source} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* CASCADE PROPAGATION PREVIEW */}
+              {cascadeResult && cascadeNodes.length > 0 && (
+                <div className={styles.intelSection} style={{ paddingTop: 8, paddingBottom: 8 }}>
+                  <div className={styles.intelSectionHeader}>
+                    <span className="text-meta">Cascade Propagation</span>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: 10, padding: "2px 6px" }}
+                      onClick={() => setShowCascade(!showCascade)}
+                    >
+                      {showCascade ? "Hide" : "Expand"}
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {(showCascade ? cascadeNodes : cascadeNodes.slice(0, 3)).map((node, i) => (
+                      <div key={node.nodeId} style={{
+                        display: "flex", alignItems: "center", gap: 6,
+                        padding: "4px 8px",
+                        borderRadius: "var(--radius-sm)",
+                        background: i === 0 ? "var(--red-bg)" : "var(--paper)",
+                        borderLeft: `3px solid ${node.status === "CRITICAL" ? "var(--red)" : node.status === "HIGH" ? "var(--orange)" : node.status === "WATCH" ? "var(--yellow-state)" : "var(--green)"}`,
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink)" }}>{node.label}</div>
+                          <div style={{ fontSize: 10, color: "var(--ink-faint)" }}>Lead: +{node.leadTimeMinutes}min</div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{
+                            fontSize: 12, fontWeight: 700, fontFamily: "var(--font-display)",
+                            color: node.projectedPressure >= 90 ? "var(--red)" : node.projectedPressure >= 75 ? "var(--orange)" : "var(--ink)",
+                          }}>
+                            {node.currentPressure}% → {node.projectedPressure}%
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 10, color: "var(--ink-faint)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                    <ConfidenceBadge source="ESTIMATED" />
+                    <span>Confidence: {Math.round((cascadeResult.confidence || 0.88) * 100)}%</span>
+                  </div>
+                </div>
+              )}
+
+              {/* OPERATIONAL INTERVENTIONS */}
+              {interventions.length > 0 && (
+                <div className={styles.intelSection}>
+                  <div className={styles.intelSectionHeader}>
+                    <span className="text-meta">AI Interventions</span>
+                    <span className="pill pill-critical">{interventions.length} proposed</span>
+                  </div>
+                  {interventions.slice(0, 2).map(intv => (
+                    <div key={intv.id} style={{
+                      background: "var(--paper)",
+                      borderRadius: "var(--radius-sm)",
+                      padding: "8px 10px",
+                      borderLeft: `3px solid ${intv.urgency === "CRITICAL" ? "var(--red)" : "var(--orange)"}`,
+                      display: "flex", flexDirection: "column", gap: 4,
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span className={`pill ${intv.urgency === "CRITICAL" ? "pill-critical" : "pill-high"}`} style={{ fontSize: 9 }}>
+                          {intv.urgency} · {intv.type.replace(/_/g, " ")}
+                        </span>
+                        <span style={{ fontSize: 9, color: "var(--ink-faint)" }}>{intv.status}</span>
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", lineHeight: 1.25 }}>{intv.title}</span>
+                      <p style={{ fontSize: 11, color: "var(--ink-muted)", lineHeight: 1.3, margin: 0 }}>{intv.rationale}</p>
+                      <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+                        <span style={{ fontSize: 10, color: "var(--green)", fontWeight: 600 }}>↓ {intv.expectedPressureReductionPercent}% pressure</span>
+                        <span style={{ fontSize: 10, color: "var(--ink-faint)" }}>· {intv.timeToEffectMinutes}min effect</span>
+                        <span style={{ fontSize: 10, color: "var(--ink-faint)" }}>· {Math.round(intv.confidenceScore * 100)}% conf</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+                        <span style={{ fontSize: 9, color: "var(--ink-faint)", fontStyle: "italic" }}>Requires: {intv.approvalRoleRequired} approval</span>
+                      </div>
+                    </div>
+                  ))}
+                  <Link href="/organizer/recommendations" className="btn btn-yellow btn-sm" style={{ marginTop: 4, textAlign: "center", fontSize: 11 }}>
+                    Review All Interventions →
+                  </Link>
+                </div>
+              )}
 
               {/* ALERTS */}
               <div className={styles.intelSection}>
@@ -200,6 +345,27 @@ export default function OrganizerDashboard() {
                     <Link href="/organizer/recommendations" className="btn btn-yellow btn-sm" style={{ marginTop: 6, textAlign: "center" }}>
                       Review Recommendations →
                     </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* AUDIT TRAIL SUMMARY */}
+              {auditRecords.length > 0 && (
+                <div className={styles.intelSection} style={{ paddingTop: 8, paddingBottom: 8 }}>
+                  <div className={styles.intelSectionHeader}>
+                    <span className="text-meta">Audit Trail</span>
+                    <span className="pill pill-watch">{auditRecords.length} records</span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    {auditRecords.slice(-3).reverse().map(ar => (
+                      <div key={ar.id} style={{
+                        fontSize: 10, color: "var(--ink-muted)", lineHeight: 1.3,
+                        padding: "3px 6px", background: "var(--paper)", borderRadius: "var(--radius-sm)",
+                      }}>
+                        <span style={{ fontWeight: 600, color: "var(--ink-light)" }}>{ar.actorRole}</span>{" "}
+                        {ar.changeSummary}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

@@ -20,6 +20,7 @@ import { OPERATIONAL_ZONES, fuseZoneState } from "@/services/zoneRegistry";
 import { deviceRegistry } from "@/services/deviceRegistry";
 import { sensorStreamSimulator } from "@/services/sensorStreamSimulator";
 import { ingestionPipeline } from "@/services/ingestionPipeline";
+import { sensorFusionEngine } from "@/services/sensorFusionEngine";
 import { hotspotAndCascadeEngine } from "@/services/hotspotAndCascadeEngine";
 import { recommendationLifecycleEngine } from "@/services/recommendationLifecycleEngine";
 
@@ -281,22 +282,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return getScenarioKPIs(activeScenario, redistributionApplied, hotels, resources);
   }, [activeScenario, redistributionApplied, hotels, resources]);
 
-  // Fused Zone States — synthesised from live resources, hotels, scenario, and simulation.
-  // NOTE: fuseZoneState reads simulationState.nodeLoads and simulationState.minutesElapsed only.
-  // We depend on those two specific fields (matching the resources memo pattern) instead of the
-  // full simulationState object so that play/pause/speed changes do not trigger a recomputation.
+  // Real-Time Normalized Observation Pipeline (Runs when simulation steps)
+  const latestObservations = useMemo(() => {
+    const currentOutflowRate = calculateOutflowRate(
+      simulationState.minutesElapsed,
+      activeScenario,
+      simParams.attendance
+    );
+    const rawObs = sensorStreamSimulator.generateObservationsForState(
+      simulationState.nodeLoads,
+      currentOutflowRate
+    );
+    const normalizedResult = ingestionPipeline.processBatch(rawObs);
+    return normalizedResult.accepted;
+  }, [simulationState.nodeLoads, simulationState.minutesElapsed, activeScenario, simParams.attendance]);
+
+  // Fused Zone States — Guarded hybrid fusion algorithm (DR-001)
+  // Combines real-time multi-sensor fusion with legacy zoneRegistry fallback for uninstrumented zones.
   const zones = useMemo((): ZoneState[] => {
     return OPERATIONAL_ZONES.map(zone =>
-      fuseZoneState(
+      sensorFusionEngine.fuseZoneObservations(
         zone,
-        resources,
-        hotels,
-        activeScenario,
-        simulationState,
-        redistributionApplied
+        latestObservations,
+        {
+          scenario: activeScenario,
+          resources,
+          hotels,
+          simulationState,
+          redistributionApplied,
+        }
       )
     );
-  }, [resources, hotels, activeScenario, simulationState.minutesElapsed, simulationState.nodeLoads, redistributionApplied]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [latestObservations, resources, hotels, activeScenario, simulationState.minutesElapsed, simulationState.nodeLoads, redistributionApplied]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getZoneState = useCallback(
     (zoneId: string): ZoneState | undefined => zones.find(z => z.id === zoneId),
@@ -348,21 +365,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     sensorStreamSimulator.setConfig({ scenarioId: activeScenario });
   }, [activeScenario]);
-
-  // Real-Time Normalized Observation Pipeline (Runs when simulation steps)
-  const latestObservations = useMemo(() => {
-    const currentOutflowRate = calculateOutflowRate(
-      simulationState.minutesElapsed,
-      activeScenario,
-      simParams.attendance
-    );
-    const rawObs = sensorStreamSimulator.generateObservationsForState(
-      simulationState.nodeLoads,
-      currentOutflowRate
-    );
-    const normalizedResult = ingestionPipeline.processBatch(rawObs);
-    return normalizedResult.accepted;
-  }, [simulationState.nodeLoads, simulationState.minutesElapsed, activeScenario, simParams.attendance]);
 
   // Registered Devices
   const devices = useMemo(() => {

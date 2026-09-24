@@ -1,0 +1,21 @@
+{
+  "cameraId": "DEV_CCTV_WANKHEDE_01",
+  "zoneId": "ZONE_WANKHEDE",
+  "resourceId": "WANKHEDE_EXIT",
+  "modelPath": "./scratch/CS671-HACKATHON/yolov12n.pt",
+  "confidenceThreshold": 0.3,
+  "device": "cpu",
+  "frameStride": 2,
+  "maxFrames": 300,
+  "calibratedAreaSqM": 150.0,
+  "tripwire": {
+    "enabled": true,
+    "lineStart": [100, 300],
+    "lineEnd": [540, 300],
+    "inboundVector": "DOWN",
+    "minMovementPixels": 15
+  },
+  "junctionApiUrl": "http://localhost:3000/api/observations",
+  "emitJsonlPath": "./artifacts/cctv_observations.jsonl",
+  "outputVideoPath": "./artifacts/annotated_cctv.mp4"
+}

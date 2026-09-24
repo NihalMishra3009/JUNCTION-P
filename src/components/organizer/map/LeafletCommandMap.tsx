@@ -12,6 +12,8 @@ import HumanDensityLayer from "./layers/HumanDensityLayer";
 import HumanFlowLayer from "./layers/HumanFlowLayer";
 import OperationalNodeLayer from "./layers/OperationalNodeLayer";
 import PredictedHotspotLayer from "./layers/PredictedHotspotLayer";
+import SensorHealthLayer from "./layers/SensorHealthLayer";
+import type { DeviceDefinition } from "@/types";
 import styles from "../DestinationMap.module.css";
 
 interface Props {
@@ -22,6 +24,7 @@ interface Props {
   flows: CrowdFlow[];
   hotspots: PredictedHotspot[];
   simulationState?: SimulationState;
+  devices?: DeviceDefinition[];
   activeLayers: Set<string>;
   onSelectResource: (r: Resource) => void;
   selectedId: string | null;
@@ -80,6 +83,7 @@ export default function LeafletCommandMap({
   flows,
   hotspots,
   simulationState,
+  devices,
   activeLayers,
   onSelectResource,
   selectedId,
@@ -133,7 +137,12 @@ export default function LeafletCommandMap({
         {/* 6. RESTAURANT LAYER */}
         {activeLayers.has("Restaurants") && <RestaurantLayer restaurants={restaurants} />}
 
-        {/* 7. MAJOR OPERATIONAL NODES (Primary Command Cards) */}
+        {/* 7. SENSOR HEALTH LAYER (Virtual and Real Device Diagnostics) */}
+        {activeLayers.has("Sensor Health") && devices && (
+          <SensorHealthLayer devices={devices} />
+        )}
+
+        {/* 8. MAJOR OPERATIONAL NODES (Primary Command Cards) */}
         {(activeLayers.has("Transport") || activeLayers.has("Venues")) && (
           <OperationalNodeLayer
             resources={resources}
@@ -145,7 +154,7 @@ export default function LeafletCommandMap({
           />
         )}
 
-        {/* 8. TRANSPORT LAYER (Standard transport resources) */}
+        {/* 9. TRANSPORT LAYER (Standard transport resources) */}
         {activeLayers.has("Transport") && (
           <TransportLayer
             resources={resources}
@@ -154,7 +163,7 @@ export default function LeafletCommandMap({
           />
         )}
 
-        {/* 9. VENUE LAYER (Standard venue resources) */}
+        {/* 10. VENUE LAYER (Standard venue resources) */}
         {activeLayers.has("Venues") && (
           <VenueLayer
             resources={resources}

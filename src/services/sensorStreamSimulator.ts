@@ -6,11 +6,10 @@ import {
   DeviceDefinition,
   NormalizedObservation,
   ScenarioId,
-  QualityStatus,
-  ObservationMetricType,
 } from "@/types";
 import { deviceRegistry } from "./deviceRegistry";
-import { syntheticCVProvider } from "./syntheticCVProvider";
+import { providerRegistry } from "./providers/providerRegistry";
+import { SimulationContext } from "./providers/types";
 
 export interface HardwareSimulationConfig {
   scenarioId: ScenarioId;
@@ -39,11 +38,16 @@ export class SensorStreamSimulator {
     this.config = { ...this.config, ...update };
   }
 
+  public getConfig(): HardwareSimulationConfig {
+    return { ...this.config };
+  }
+
   /**
    * Initializes canonical devices into the DeviceRegistry for the simulation.
    */
   public initializeDefaultDevices(): void {
     const defaultDevices: DeviceDefinition[] = [
+      // Zone 1: Wankhede
       {
         id: "DEV_CCTV_WANKHEDE_01",
         name: "Wankhede Concourse North CCTV",
@@ -76,6 +80,7 @@ export class SensorStreamSimulator {
         health: { status: "HEALTHY", lastSeenAt: new Date().toISOString(), errorCountLastHour: 0 },
         isSimulated: true,
       },
+      // Zone 2: Churchgate
       {
         id: "DEV_CCTV_CHURCHGATE_CONCOURSE",
         name: "Churchgate Subsurface Concourse Cam",
@@ -86,7 +91,7 @@ export class SensorStreamSimulator {
         location: { latitude: 18.9355, longitude: 72.8272 },
         coverageAreaMeters: 300,
         samplingIntervalSeconds: 5,
-        supportedCapabilities: ["PERSON_COUNT", "DENSITY", "QUEUE_LENGTH"],
+        supportedCapabilities: ["PERSON_COUNT", "DENSITY", "QUEUE_LENGTH", "FLOW_RATE"],
         nominalAccuracy: 0.91,
         reliabilityScore: 0.92,
         health: { status: "HEALTHY", lastSeenAt: new Date().toISOString(), errorCountLastHour: 0 },
@@ -108,6 +113,7 @@ export class SensorStreamSimulator {
         health: { status: "HEALTHY", lastSeenAt: new Date().toISOString(), errorCountLastHour: 0 },
         isSimulated: true,
       },
+      // Zone 3: Taxi Staging Bay
       {
         id: "DEV_TAXI_BAY_CAMERA",
         name: "Taxi Staging Bay Automated Counter",
@@ -118,12 +124,30 @@ export class SensorStreamSimulator {
         location: { latitude: 18.9372, longitude: 72.8268 },
         coverageAreaMeters: 180,
         samplingIntervalSeconds: 10,
-        supportedCapabilities: ["QUEUE_LENGTH", "WAIT_TIME", "VEHICLE_COUNT"],
+        supportedCapabilities: ["QUEUE_LENGTH", "WAIT_TIME", "PERSON_COUNT", "DENSITY"],
         nominalAccuracy: 0.89,
         reliabilityScore: 0.90,
         health: { status: "HEALTHY", lastSeenAt: new Date().toISOString(), errorCountLastHour: 0 },
         isSimulated: true,
       },
+      // Zone 4: Marine Lines
+      {
+        id: "DEV_CCTV_MARINE_LINES_PLATFORM",
+        name: "Marine Lines Platform Concourse Cam",
+        type: "CCTV_CAMERA",
+        provider: "WESTERN_RAIL_SECURITY",
+        zoneId: "ZONE_MARINE_LINES",
+        resourceId: "MARINE_LINES",
+        location: { latitude: 18.9436, longitude: 72.8236 },
+        coverageAreaMeters: 250,
+        samplingIntervalSeconds: 5,
+        supportedCapabilities: ["PERSON_COUNT", "DENSITY", "FLOW_RATE"],
+        nominalAccuracy: 0.90,
+        reliabilityScore: 0.91,
+        health: { status: "HEALTHY", lastSeenAt: new Date().toISOString(), errorCountLastHour: 0 },
+        isSimulated: true,
+      },
+      // Zone 5: CSMT
       {
         id: "DEV_CCTV_CSMT_NORTH",
         name: "CSMT Main Hall Overhead Cam",
@@ -140,6 +164,22 @@ export class SensorStreamSimulator {
         health: { status: "HEALTHY", lastSeenAt: new Date().toISOString(), errorCountLastHour: 0 },
         isSimulated: true,
       },
+      // Zone 6: South Hospitality / Nariman Point
+      {
+        id: "DEV_BEACON_HOTELS_SOUTH",
+        name: "Nariman Point Pedestrian Footfall Beacon",
+        type: "BLUETOOTH_WIFI_BEACON",
+        provider: "BMC_SMART_CITY",
+        zoneId: "ZONE_HOTELS_SOUTH",
+        location: { latitude: 18.9280, longitude: 72.8230 },
+        coverageAreaMeters: 600,
+        samplingIntervalSeconds: 15,
+        supportedCapabilities: ["PERSON_COUNT", "DENSITY"],
+        nominalAccuracy: 0.85,
+        reliabilityScore: 0.89,
+        health: { status: "HEALTHY", lastSeenAt: new Date().toISOString(), errorCountLastHour: 0 },
+        isSimulated: true,
+      },
     ];
 
     deviceRegistry.registerMany(defaultDevices);
@@ -148,6 +188,7 @@ export class SensorStreamSimulator {
   /**
    * Generates a batch of normalized observations for all registered devices
    * driven deterministically by zone crowd load, egress rates, and scenario failure injection.
+   * Delegates observation generation to modular SensorInputProvider instances.
    */
   public generateObservationsForState(
     nodeLoads: Record<string, number>,
@@ -156,6 +197,20 @@ export class SensorStreamSimulator {
     const devices = deviceRegistry.getAll();
     const observations: NormalizedObservation[] = [];
     const now = new Date();
+
+    const context: SimulationContext = {
+      simulatedTime: now.toISOString(),
+      scenarioId: this.config.scenarioId,
+      nodeLoads,
+      outflowRate,
+      noiseLevel: this.config.noiseLevel,
+      seed: this.config.seed,
+      faultInjections: {
+        outageDeviceIds: this.config.injectOutagesForDeviceIds,
+        lagDeviceIds: this.config.injectLagForDeviceIds,
+        conflictDeviceIds: this.config.injectConflictForDeviceIds,
+      },
+    };
 
     for (const device of devices) {
       // 1. Simulate Outage
@@ -167,115 +222,9 @@ export class SensorStreamSimulator {
         continue; // No observations emitted while offline
       }
 
-      // Check if device was degraded or healthy
-      const isLagged = this.config.injectLagForDeviceIds?.includes(device.id);
-      const isConflicting = this.config.injectConflictForDeviceIds?.includes(device.id);
-
-      const observedTimestamp = isLagged
-        ? new Date(now.getTime() - 120_000).toISOString() // 2 minutes stale
-        : now.toISOString();
-
-      let qualityStatus: QualityStatus = "FRESH";
-      if (isLagged) qualityStatus = "STALE";
-      if (isConflicting) qualityStatus = "CONFLICTING";
-
-      const resourceLoad = (device.resourceId && nodeLoads[device.resourceId]) ? nodeLoads[device.resourceId] : 500;
-
-      // Handle CCTV via synthetic CV provider
-      if (device.type === "CCTV_CAMERA") {
-        const cvObs = syntheticCVProvider.generateObservation(
-          device,
-          resourceLoad,
-          Math.round(outflowRate * 0.4),
-          Math.round(outflowRate * 0.35),
-          { seed: this.config.seed + observations.length }
-        );
-
-        // Person count observation
-        observations.push({
-          id: `OBS_COUNT_${device.id}_${now.getTime()}`,
-          sourceId: device.id,
-          sourceProvider: device.provider,
-          metricType: "CROWD_COUNT",
-          zoneId: device.zoneId,
-          resourceId: device.resourceId,
-          observedAt: observedTimestamp,
-          receivedAt: now.toISOString(),
-          value: isConflicting ? Math.round(cvObs.personCount * 0.4) : cvObs.personCount,
-          unit: "persons",
-          confidence: isConflicting ? 0.45 : cvObs.confidenceScore,
-          qualityStatus,
-          derivationType: "SIMULATED",
-          freshnessSeconds: isLagged ? 120 : 0,
-          schemaVersion: "1.0.0",
-          metadata: {
-            density: cvObs.densityPeoplePerSqM,
-            dominantDirection: cvObs.dominantDirection,
-            anomaly: cvObs.detectedAnomaly,
-          },
-        });
-
-        // Queue length observation if camera supports it
-        if (cvObs.queueLengthPersons > 0) {
-          observations.push({
-            id: `OBS_QUEUE_${device.id}_${now.getTime()}`,
-            sourceId: device.id,
-            sourceProvider: device.provider,
-            metricType: "QUEUE_LENGTH",
-            zoneId: device.zoneId,
-            resourceId: device.resourceId,
-            observedAt: observedTimestamp,
-            receivedAt: now.toISOString(),
-            value: cvObs.queueLengthPersons,
-            unit: "persons",
-            confidence: cvObs.confidenceScore,
-            qualityStatus,
-            derivationType: "SIMULATED",
-            freshnessSeconds: isLagged ? 120 : 0,
-            schemaVersion: "1.0.0",
-          });
-        }
-      } else if (device.type === "TURNSTILE_GATE") {
-        // High accuracy physical counter
-        const count = Math.round(resourceLoad * 0.7);
-        observations.push({
-          id: `OBS_GATE_${device.id}_${now.getTime()}`,
-          sourceId: device.id,
-          sourceProvider: device.provider,
-          metricType: "CROWD_COUNT",
-          zoneId: device.zoneId,
-          resourceId: device.resourceId,
-          observedAt: observedTimestamp,
-          receivedAt: now.toISOString(),
-          value: count,
-          unit: "persons",
-          confidence: 0.98,
-          qualityStatus,
-          derivationType: "SIMULATED",
-          freshnessSeconds: isLagged ? 120 : 0,
-          schemaVersion: "1.0.0",
-        });
-      } else if (device.type === "BLUETOOTH_WIFI_BEACON") {
-        // Lower confidence wireless sniffer
-        const count = Math.round(resourceLoad * 0.85);
-        observations.push({
-          id: `OBS_WIFI_${device.id}_${now.getTime()}`,
-          sourceId: device.id,
-          sourceProvider: device.provider,
-          metricType: "CROWD_COUNT",
-          zoneId: device.zoneId,
-          resourceId: device.resourceId,
-          observedAt: observedTimestamp,
-          receivedAt: now.toISOString(),
-          value: count,
-          unit: "detected_devices",
-          confidence: 0.82,
-          qualityStatus,
-          derivationType: "SIMULATED",
-          freshnessSeconds: isLagged ? 120 : 0,
-          schemaVersion: "1.0.0",
-        });
-      }
+      // 2. Delegate observation generation to modular ProviderRegistry
+      const deviceObs = providerRegistry.generateObservationsForDevice(device, context);
+      observations.push(...deviceObs);
 
       deviceRegistry.markSeen(device.id, now.toISOString(), 15);
     }

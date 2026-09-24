@@ -10,6 +10,7 @@ const NAV = [
   { group: "OVERVIEW", items: [{ href: "/organizer", label: "Dashboard", icon: "▣" }] },
   { group: "DESTINATION", items: [
     { href: "/organizer/map", label: "Live Map", icon: "◉" },
+    { href: "/organizer/cctv-demo", label: "CCTV Bridge", icon: "⎔" },
     { href: "/organizer/capacity", label: "Capacity", icon: "◈" },
     { href: "/organizer/predictions", label: "Predictions", icon: "◇" },
   ]},

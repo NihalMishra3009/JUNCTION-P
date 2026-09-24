@@ -46,6 +46,7 @@ const LAYER_CONFIG = [
   { name: "Venues", dotColor: "#10B981" },
   { name: "Roads", dotColor: "#64748B" },
   { name: "Predicted Hotspots", dotColor: "#DC2626" },
+  { name: "Sensor Health", dotColor: "#06B6D4" },
 ];
 
 export default function DestinationMap({
@@ -75,7 +76,7 @@ export default function DestinationMap({
   const [showLegend, setShowLegend] = useState(true);
   const [mapRenderer, setMapRenderer] = useState<"2D" | "3D">("3D");
 
-  // Multi-layer simultaneous composability - all 8 operational layers enabled by default
+  // Multi-layer simultaneous composability - all operational layers enabled by default
   const [activeLayers, setActiveLayers] = useState<Set<string>>(
     new Set([
       "Human Flow",
@@ -86,6 +87,7 @@ export default function DestinationMap({
       "Venues",
       "Roads",
       "Predicted Hotspots",
+      "Sensor Health",
     ])
   );
 
@@ -292,6 +294,7 @@ export default function DestinationMap({
             flows={flows}
             hotspots={hotspots}
             simulationState={simulationState}
+            devices={devices}
             activeLayers={activeLayers}
             onSelectResource={onSelectResource}
             selectedId={selectedId}

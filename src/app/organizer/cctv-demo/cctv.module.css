@@ -1,0 +1,204 @@
+/* ============================================================
+   JUNCTION - Live Crowd & CCTV Monitoring Workspace Styles
+   High-Contrast & WCAG AAA Accessible Dark Theme
+   ============================================================ */
+
+.page {
+  padding: 1.5rem;
+  max-width: 1440px;
+  margin: 0 auto;
+  color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* ---------------- Top Header ---------------- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.titleGroup h1 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 0.35rem 0;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: 0.925rem;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ---------------- View Mode Switcher ---------------- */
+.viewSwitcher {
+  display: flex;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 3px;
+}
+
+.viewBtn {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.4rem 0.85rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.15s ease;
+}
+
+.viewBtn:hover {
+  color: #ffffff;
+}
+
+.viewBtnActive {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+/* ---------------- Operational Summary Ribbon ---------------- */
+.summaryRibbon {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.summaryTile {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.65rem;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.summaryLabel {
+  font-size: 0.725rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #cbd5e1;
+  margin-bottom: 0.25rem;
+}
+
+.summaryValue {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.summarySubtext {
+  font-size: 0.725rem;
+  color: #94a3b8;
+  margin-top: 0.2rem;
+}
+
+.colorEmerald {
+  color: #34d399;
+}
+
+.colorSky {
+  color: #38bdf8;
+}
+
+.colorAmber {
+  color: #fbbf24;
+}
+
+/* ---------------- Privacy Banner ---------------- */
+.privacyBanner {
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  border-radius: 0.65rem;
+  padding: 0.85rem 1.15rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  color: #e0f2fe;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  line-height: 1.4;
+}
+
+.privacyBanner strong {
+  color: #ffffff;
+}
+
+.privacyIcon {
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+
+/* ---------------- Feed List Layout ---------------- */
+.feedSection {
+  margin-bottom: 2rem;
+}
+
+.sectionHeadingRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sectionHeading {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.feedCountBadge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #1e293b;
+  color: #38bdf8;
+  border: 1px solid #334155;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.35rem;
+}
+
+.secondaryFeedsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.secondarySectionTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  margin: 0.5rem 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #334155;
+}
