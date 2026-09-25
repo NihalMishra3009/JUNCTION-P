@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test:input": "tsx scripts/test-input-system.ts",
     "postinstall": "node -e \"const fs=require('fs'); const path=require('path'); const src=path.join('node_modules','cesium','Build','Cesium'); const dest=path.join('public','cesium'); if(fs.existsSync(src)){fs.mkdirSync(dest,{recursive:true}); fs.cpSync(src,dest,{recursive:true});}\""
   },
   "dependencies": {

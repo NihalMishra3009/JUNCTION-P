@@ -10,7 +10,7 @@ import numpy as np
 os.makedirs("assets", exist_ok=True)
 output_path = "assets/demo_cctv.mp4"
 
-src_img_path = "scratch/CS671-HACKATHON/Screenshot 2025-05-04 234449.png"
+src_img_path = "assets/sample_frame.png"
 if os.path.exists(src_img_path):
     base_img = cv2.imread(src_img_path)
 else:

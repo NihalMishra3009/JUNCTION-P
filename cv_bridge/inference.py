@@ -10,11 +10,6 @@ import sys
 import time
 from typing import Optional
 
-# Ensure custom YOLOv12 model architecture from reference repo is resolved
-_repo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "scratch", "CS671-HACKATHON"))
-if os.path.exists(_repo_path) and _repo_path not in sys.path:
-    sys.path.insert(0, _repo_path)
-
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -22,6 +17,41 @@ from ultralytics import YOLO
 from cv_bridge.metrics import CrowdMetricsEngine, TripwireConfig
 from cv_bridge.observation_serializer import JunctionObservationSerializer
 from cv_bridge.transport import ObservationTransport
+from cv_bridge.yolo_compat import apply_yolov12_compat_patch
+
+# Apply architecture compatibility patch for dual-conv YOLOv12 checkpoints
+apply_yolov12_compat_patch()
+
+
+def resolve_model_path(model_arg: Optional[str] = None) -> str:
+    """
+    Resolves YOLOv12 model path with strict fallback order:
+    1. Explicit model_arg passed via CLI or function parameter
+    2. Environment variable 'JUNCTION_YOLO_MODEL'
+    3. Documented default path: <PROJECT_ROOT>/models/yolo/yolov12n.pt
+    """
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    default_model = os.path.join(project_root, "models", "yolo", "yolov12n.pt")
+
+    if model_arg and model_arg.strip():
+        candidate = os.path.abspath(model_arg) if not os.path.isabs(model_arg) else model_arg
+        source = f"explicit argument ('{model_arg}')"
+    elif os.environ.get("JUNCTION_YOLO_MODEL"):
+        env_val = os.environ["JUNCTION_YOLO_MODEL"].strip()
+        candidate = os.path.abspath(env_val) if not os.path.isabs(env_val) else env_val
+        source = f"environment variable JUNCTION_YOLO_MODEL ('{env_val}')"
+    else:
+        candidate = default_model
+        source = f"default path ('models/yolo/yolov12n.pt')"
+
+    if not os.path.exists(candidate):
+        raise FileNotFoundError(
+            f"YOLO model weights not found at '{candidate}' (selected via {source}).\n"
+            f"Please place 'yolov12n.pt' or 'yolov12m.pt' into 'models/yolo/' or specify a valid model via --model."
+        )
+
+    print(f"[*] Resolved YOLO model: '{os.path.basename(candidate)}' ({source}) -> {candidate}")
+    return candidate
 
 
 def run_pipeline(
@@ -29,7 +59,7 @@ def run_pipeline(
     zone_id: str,
     camera_id: str,
     resource_id: Optional[str] = None,
-    model_path: str = "./scratch/CS671-HACKATHON/yolov12n.pt",
+    model_path: Optional[str] = None,
     output_video_path: Optional[str] = None,
     emit_jsonl_path: Optional[str] = None,
     http_url: Optional[str] = None,
@@ -46,11 +76,11 @@ def run_pipeline(
     """
     if not os.path.exists(video_path):
         raise FileNotFoundError(f"Input video file not found: {video_path}")
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"YOLO model weights not found: {model_path}")
 
-    print(f"[*] Initializing YOLOv12 detector from '{model_path}' on device '{device}'...")
-    model = YOLO(model_path)
+    resolved_model_path = resolve_model_path(model_path)
+
+    print(f"[*] Initializing YOLOv12 detector from '{resolved_model_path}' on device '{device}'...")
+    model = YOLO(resolved_model_path)
     model.to(device)
 
     # Configure tripwire if Y coordinate provided
@@ -75,7 +105,7 @@ def run_pipeline(
         zone_id=zone_id,
         resource_id=resource_id,
         provider_name="YOLOv12-ByteTrack-Bridge",
-        model_name=os.path.basename(model_path),
+        model_name=os.path.basename(resolved_model_path),
         is_simulated=False,
         video_source_name=os.path.basename(video_path),
     )
@@ -277,7 +307,7 @@ def main():
     parser.add_argument("--zone-id", default="ZONE_WANKHEDE", help="JUNCTION zone ID")
     parser.add_argument("--camera-id", default="DEV_CCTV_WANKHEDE_01", help="CCTV camera ID")
     parser.add_argument("--resource-id", default="WANKHEDE_EXIT", help="Resource ID")
-    parser.add_argument("--model", default="./scratch/CS671-HACKATHON/yolov12n.pt", help="Path to YOLO weights")
+    parser.add_argument("--model", default=None, help="Path to YOLO weights (defaults to models/yolo/yolov12n.pt or JUNCTION_YOLO_MODEL env)")
     parser.add_argument("--output", default=None, help="Path to output annotated MP4 video")
     parser.add_argument("--emit-jsonl", default=None, help="Path to write JSONL observations")
     parser.add_argument("--http-url", default=None, help="JUNCTION observation API URL")

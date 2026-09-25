@@ -9,6 +9,7 @@ import ActionDrawer from "@/components/organizer/ActionDrawer";
 import ZoneDrawer from "@/components/organizer/ZoneDrawer";
 import SimulationDrawer from "@/components/organizer/SimulationDrawer";
 import CctvWidget from "@/components/organizer/CctvWidget";
+import ZoneInputEvidencePanel from "@/components/organizer/ZoneInputEvidencePanel";
 import ConfidenceBadge from "@/components/ui/ConfidenceBadge";
 import { Zap } from "lucide-react";
 import styles from "./dashboard.module.css";
@@ -28,13 +29,16 @@ export default function OrganizerDashboard() {
     approveRecommendation,
     rejectRecommendation,
     isRecommendationApproved,
+    selectedEvidenceZoneId,
+    setSelectedEvidenceZoneId,
   } = useApp();
 
-  // Selected state for drawers
+  // Selected state for drawers and overlays
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [selectedZone, setSelectedZone] = useState<ZoneState | null>(null);
   const [showActionDrawer, setShowActionDrawer] = useState<boolean>(false);
   const [showSimulationDrawer, setShowSimulationDrawer] = useState<boolean>(false);
+  const [showEvidencePanel, setShowEvidencePanel] = useState<boolean>(false);
 
   // Top pending recommendation
   const topRec = useMemo(
@@ -81,7 +85,7 @@ export default function OrganizerDashboard() {
           <div className={styles.heroMetaRow}>
             <span>Forecasted Peak in +15 MIN</span>
             <span>·</span>
-            <span>Inflow Rate: +42 people/min</span>
+            <span>Inflow Rate: +{primaryZone?.inflowRate || 42} people/min</span>
             <span>·</span>
             <span>Usable Transit Capacity: {resources.find(r => r.id === "CHURCHGATE")?.availableCapacity.toLocaleString() || "1,200"} spots remaining</span>
           </div>
@@ -113,6 +117,13 @@ export default function OrganizerDashboard() {
         </div>
       )}
 
+      {/* SENSOR INPUT & FUSION EVIDENCE AUDIT PANEL (EXPANDABLE) */}
+      {showEvidencePanel && (
+        <div style={{ marginBottom: 16 }}>
+          <ZoneInputEvidencePanel onClose={() => setShowEvidencePanel(false)} />
+        </div>
+      )}
+
       {/* 2. SPATIAL CANVAS WORKSPACE (LOCKED MAP CANVAS) */}
       <div className={styles.spatialCanvasContainer}>
         <div className={styles.spatialHud}>
@@ -120,18 +131,29 @@ export default function OrganizerDashboard() {
             <span className={styles.hudTitle}>SOUTH MUMBAI SPATIAL MONITOR</span>
             <span className={styles.hudBadge}>7 MONITORED NODES</span>
           </div>
-          <div className={styles.hudRight}>
+          <div className={styles.hudRight} style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              className={styles.hudBtn}
+              onClick={() => {
+                setSelectedEvidenceZoneId(primaryZone?.id || "ZONE_CHURCHGATE");
+                setShowEvidencePanel(!showEvidencePanel);
+              }}
+              style={{ background: showEvidencePanel ? "var(--yellow-state)" : undefined, color: showEvidencePanel ? "#111" : undefined }}
+            >
+              🔬 {showEvidencePanel ? "HIDE EVIDENCE" : "SENSOR FUSION EVIDENCE"}
+            </button>
             <button
               type="button"
               className={styles.hudBtn}
               onClick={() => setSelectedZone(primaryZone)}
             >
-              INSPECT {primaryZone?.name} SENSOR FUSION →
+              INSPECT {primaryZone?.name} →
             </button>
           </div>
         </div>
 
-        {/* LOCKED MAP COMPONENT (UNTOUCHED) */}
+        {/* LOCKED MAP COMPONENT */}
         <div className={styles.mapCanvas}>
           <DestinationMap
             resources={resources}
@@ -282,4 +304,3 @@ export default function OrganizerDashboard() {
     </div>
   );
 }
-

@@ -1,7 +1,3 @@
-// ============================================================
-// JUNCTION - Guarded Multi-Source Sensor Fusion & Zone State Engine (DR-001)
-// ============================================================
-
 import {
   NormalizedObservation,
   ZoneDefinition,
@@ -13,6 +9,9 @@ import {
   Hotel,
   ScenarioId,
   SimulationState,
+  QualityStatus,
+  ContributingSensorSummary,
+  FusionDiagnostics,
 } from "@/types";
 import { deviceRegistry } from "./deviceRegistry";
 import { getPressureLevel } from "@/data/mockResources";
@@ -97,6 +96,7 @@ export class SensorFusionEngine {
    * 2. If coverage is zero or insufficient, uses legacy zoneRegistry fallback with explicit metadata.
    * 3. When observations exist, fuses multi-source streams against an explicit operational capacity basis.
    * 4. Preserves member hotel inventory, multi-horizon forecasts, and critical bottlenecks.
+   * 5. Produces an explainable provenance breakdown (contributing sensors, weights, formulas, conflicts).
    */
   public fuseZoneObservations(
     zone: ZoneDefinition,
@@ -107,8 +107,12 @@ export class SensorFusionEngine {
     const validObs = zoneObs.filter(o => o.qualityStatus !== "INVALID");
     const freshOrDelayedObs = validObs.filter(o => o.qualityStatus !== "STALE");
 
+    // Expected registered devices for this zone
+    const expectedDevices = deviceRegistry.getByZone(zone.id);
+    const observedDeviceIds = new Set(zoneObs.map(o => o.sourceId));
+    const missingDevices = expectedDevices.filter(d => !observedDeviceIds.has(d.id));
+
     // Coverage & Zero-Observation Check
-    // If 0 observations or all observations invalid/stale without active sensors, trigger graceful fallback
     const hasSufficientSensorCoverage = validObs.length > 0;
 
     if (!hasSufficientSensorCoverage) {
@@ -124,25 +128,34 @@ export class SensorFusionEngine {
 
       return {
         ...fallbackState,
-        confidence: zone.tier === "TIER_1_CRITICAL" ? 0.65 : 0.50, // Down-grade confidence for uninstrumented/fallback
+        confidence: zone.tier === "TIER_1_CRITICAL" ? 0.65 : 0.50,
         source: "SIMULATED",
+        density: Number((fallbackState.currentUtilization / Math.max(500, zone.radiusMeters * 3.14)).toFixed(2)),
+        contributingSensors: [],
+        dataQuality: expectedDevices.length > 0 ? "STALE" : "INTERPOLATED",
+        conflicts: [],
+        missingSensors: expectedDevices.map(d => `${d.name} (${d.id})`),
       };
     }
 
     // Separate metric types
     const countObs = validObs.filter(o => o.metricType === "CROWD_COUNT");
+    const densityObs = validObs.filter(o => o.metricType === "DENSITY");
     const queueObs = validObs.filter(o => o.metricType === "QUEUE_LENGTH");
     const inflowObs = validObs.filter(o => o.metricType === "INFLOW_RATE");
     const outflowObs = validObs.filter(o => o.metricType === "OUTFLOW_RATE");
 
-    // Weighted Sensor Fusion
+    // Weighted Sensor Fusion for Crowd Count
     let weightedCountSum = 0;
     let totalWeight = 0;
-    const countValues: number[] = [];
+    const contributingSensors: ContributingSensorSummary[] = [];
+    const conflicts: string[] = [];
     let hasConflict = false;
 
-    for (const obs of countObs) {
+    for (const obs of validObs) {
       const device = deviceRegistry.get(obs.sourceId);
+      const deviceName = device?.name ?? obs.sourceId;
+      const deviceType = device?.type ?? "GENERIC_SENSOR";
       const deviceReliability = device?.reliabilityScore ?? 0.85;
 
       let freshnessWeight = 1.0;
@@ -152,15 +165,51 @@ export class SensorFusionEngine {
         freshnessWeight = 0.75;
       }
 
-      if (obs.qualityStatus === "CONFLICTING") hasConflict = true;
+      if (obs.qualityStatus === "CONFLICTING") {
+        hasConflict = true;
+        conflicts.push(`Observation conflict from ${deviceName} (${obs.sourceId}): reading deviated significantly from trend.`);
+      }
 
-      const weight = obs.confidence * deviceReliability * freshnessWeight;
-      weightedCountSum += obs.value * weight;
-      totalWeight += weight;
-      countValues.push(obs.value);
+      const weight = Number((obs.confidence * deviceReliability * freshnessWeight).toFixed(4));
+
+      contributingSensors.push({
+        deviceId: obs.sourceId,
+        deviceName,
+        deviceType,
+        metricType: obs.metricType,
+        value: obs.value,
+        unit: obs.unit,
+        weight,
+        confidence: obs.confidence,
+        qualityStatus: obs.qualityStatus,
+        freshnessSeconds: obs.freshnessSeconds ?? 0,
+      });
+
+      if (obs.metricType === "CROWD_COUNT") {
+        weightedCountSum += obs.value * weight;
+        totalWeight += weight;
+      }
     }
 
     const fusedOccupancy = totalWeight > 0 ? Math.round(weightedCountSum / totalWeight) : 0;
+
+    // Fused Spatial Density Calculation
+    let fusedDensity = 0;
+    if (densityObs.length > 0) {
+      let weightedDensitySum = 0;
+      let densityWeightSum = 0;
+      for (const d of densityObs) {
+        const dev = deviceRegistry.get(d.sourceId);
+        const w = d.confidence * (dev?.reliabilityScore ?? 0.85);
+        weightedDensitySum += d.value * w;
+        densityWeightSum += w;
+      }
+      fusedDensity = densityWeightSum > 0 ? Number((weightedDensitySum / densityWeightSum).toFixed(2)) : 0;
+    } else {
+      // Derive density from fused occupancy and nominal coverage area
+      const estimatedArea = zone.radiusMeters ? Math.PI * Math.pow(zone.radiusMeters * 0.4, 2) : 2500;
+      fusedDensity = Number((fusedOccupancy / Math.max(100, estimatedArea)).toFixed(2));
+    }
 
     // Fused Queue Length
     let totalQueuePersons = 0;
@@ -192,9 +241,12 @@ export class SensorFusionEngine {
     const pressureLevel: PressureLevel = getPressureLevel(totalPressure);
 
     // Confidence Calculation
-    let fusedConfidence = totalWeight > 0 ? Number((totalWeight / countObs.length).toFixed(2)) : 0.5;
+    let fusedConfidence = totalWeight > 0 && countObs.length > 0
+      ? Number((totalWeight / countObs.length).toFixed(2))
+      : 0.5;
     if (hasConflict) fusedConfidence = Number((fusedConfidence * 0.7).toFixed(2));
     if (freshOrDelayedObs.length < validObs.length) fusedConfidence = Number((fusedConfidence * 0.85).toFixed(2));
+    if (missingDevices.length > 0) fusedConfidence = Number((fusedConfidence * 0.90).toFixed(2));
     fusedConfidence = Math.min(0.98, Math.max(0.35, fusedConfidence));
 
     // Dynamic Monitoring Status Evaluation
@@ -261,6 +313,29 @@ export class SensorFusionEngine {
     const hasPartnerReportedHotel = memberHotels.some(h => h.source === "PARTNER_REPORTED");
     const source = hasPartnerReportedHotel ? "PARTNER_REPORTED" : "SIMULATED";
 
+    // Overall Data Quality
+    let dataQuality: QualityStatus = "FRESH";
+    if (hasConflict) {
+      dataQuality = "CONFLICTING";
+    } else if (validObs.some(o => o.qualityStatus === "STALE")) {
+      dataQuality = "STALE";
+    } else if (missingDevices.length > 0) {
+      dataQuality = "DELAYED";
+    }
+
+    // Full Diagnostics
+    const fusionDiagnostics: FusionDiagnostics = {
+      capacityBasis: profile.basis,
+      operationalCapacity: profile.operationalCapacity,
+      safetyBufferPercent: profile.safetyBufferPercent,
+      usableCapacityBasis: operationalUsableCapacity,
+      formula: "Fused Occupancy = Σ (Count_i × Confidence_i × Reliability_i × Freshness_i) / Σ Weights; Capacity % = (Occupancy / Usable Operational Capacity) × 100",
+      contributingSensors,
+      conflicts,
+      missingSensors: missingDevices.map(d => `${d.name} (${d.id})`),
+      density: fusedDensity,
+    };
+
     return {
       id: zone.id,
       name: zone.name,
@@ -286,6 +361,12 @@ export class SensorFusionEngine {
       lastUpdated: "JUST NOW",
       confidence: fusedConfidence,
       source,
+      density: fusedDensity,
+      contributingSensors: Array.from(new Set(contributingSensors.map(c => c.deviceId))),
+      dataQuality,
+      conflicts,
+      missingSensors: missingDevices.map(d => d.id),
+      fusionDiagnostics,
     };
   }
 }

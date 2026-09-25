@@ -42,6 +42,31 @@ export interface ZoneDefinition {
   description: string;
 }
 
+export interface ContributingSensorSummary {
+  deviceId: string;
+  deviceName: string;
+  deviceType: string;
+  metricType: string;
+  value: number;
+  unit: string;
+  weight: number;
+  confidence: number;
+  qualityStatus: import("./observation").QualityStatus;
+  freshnessSeconds: number;
+}
+
+export interface FusionDiagnostics {
+  capacityBasis: string;
+  operationalCapacity: number;
+  safetyBufferPercent: number;
+  usableCapacityBasis: number;
+  formula: string;
+  contributingSensors: ContributingSensorSummary[];
+  conflicts: string[];
+  missingSensors: string[];
+  density: number;
+}
+
 /**
  * Runtime snapshot of a zone's fused state.
  *
@@ -93,6 +118,18 @@ export interface ZoneState {
   /** Data provenance confidence score: 0.0 (pure estimate) → 1.0 (directly observed) */
   confidence: number;
   source: ConfidenceSource;
+  /** Spatial density in people or detected devices per square meter */
+  density?: number;
+  /** Device IDs that contributed to the fused state */
+  contributingSensors?: string[];
+  /** Overall data quality status across zone sensors */
+  dataQuality?: import("./observation").QualityStatus;
+  /** Active conflict messages or device discrepancies */
+  conflicts?: string[];
+  /** Registered sensors expected for this zone that are missing or offline */
+  missingSensors?: string[];
+  /** Full mathematical and provenance breakdown for the evaluator */
+  fusionDiagnostics?: FusionDiagnostics;
 }
 
 export interface SensorObservation {

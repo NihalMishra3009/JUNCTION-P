@@ -97,19 +97,19 @@ class EventLogger {
 
   // Convenience methods for common pipeline events
 
-  public logIngestion(observationCount: number, correlationId?: string): void {
-    this.log("INGESTION", "INFO", `Ingested batch of ${observationCount} observations`, {
+  public logIngestion(acceptedCount: number, quarantinedCount: number = 0, deduplicatedCount: number = 0, correlationId?: string): void {
+    this.log("INGESTION", "INFO", `Ingested batch: ${acceptedCount} accepted, ${quarantinedCount} quarantined, ${deduplicatedCount} deduplicated`, {
       correlationId,
       source: "INGESTION_PIPELINE",
-      details: { observationCount },
+      details: { acceptedCount, quarantinedCount, deduplicatedCount },
     });
   }
 
-  public logValidationRejection(reason: string, observationId: string, correlationId?: string): void {
-    this.log("VALIDATION_REJECTION", "WARN", `Rejected observation ${observationId}: ${reason}`, {
+  public logValidationRejection(validatorName: string, observationId: string, reason: string, correlationId?: string): void {
+    this.log("VALIDATION_REJECTION", "WARN", `Rejected observation ${observationId} [${validatorName}]: ${reason}`, {
       correlationId,
       source: "VALIDATION_ENGINE",
-      details: { reason, observationId },
+      details: { validatorName, observationId, reason },
     });
   }
 

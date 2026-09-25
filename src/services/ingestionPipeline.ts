@@ -33,7 +33,7 @@ export class IngestionPipeline {
       if (!obs.id || !obs.sourceId || !obs.zoneId || obs.value === undefined || obs.value === null) {
         const reason = "Missing mandatory fields (id, sourceId, zoneId, or value)";
         quarantined.push({ observation: obs, reason });
-        eventLogger.logValidationRejection(reason, obs.id);
+        eventLogger.logValidationRejection("schema-validator", obs.id || "UNKNOWN", reason);
         continue;
       }
 
@@ -41,7 +41,7 @@ export class IngestionPipeline {
       if (typeof obs.value === "number" && (isNaN(obs.value) || obs.value < 0)) {
         const reason = "Invalid value: negative or NaN count detected";
         quarantined.push({ observation: obs, reason });
-        eventLogger.logValidationRejection(reason, obs.id);
+        eventLogger.logValidationRejection("range-validator", obs.id || "UNKNOWN", reason);
         continue;
       }
 

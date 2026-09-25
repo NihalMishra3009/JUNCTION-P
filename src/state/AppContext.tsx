@@ -78,6 +78,19 @@ interface AppContextValue {
   cascadeResult: import("@/types").CascadeAnalysisResult | null;
   interventions: import("@/types").OperationalIntervention[];
   auditRecords: import("@/types").AuditRecord[];
+
+  // Sensor Fault Simulation Controls (Interactive Evaluation)
+  faultInjections: {
+    outageDeviceIds: string[];
+    lagDeviceIds: string[];
+    conflictDeviceIds: string[];
+  };
+  toggleDeviceOutage: (deviceId: string) => void;
+  toggleDeviceLag: (deviceId: string) => void;
+  toggleDeviceConflict: (deviceId: string) => void;
+  resetFaultInjections: () => void;
+  selectedEvidenceZoneId: string;
+  setSelectedEvidenceZoneId: (zoneId: string) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -87,6 +100,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [recommendations, setRecommendations] = useState<Recommendation[]>(MOCK_RECOMMENDATIONS);
   const [attendeeSelectedRouteId, setAttendeeSelectedRouteId] = useState<string | null>(null);
   const [hotelOverrides, setHotelOverrides] = useState<Record<string, Partial<Hotel>>>({});
+  const [selectedEvidenceZoneId, setSelectedEvidenceZoneId] = useState<string>("ZONE_CHURCHGATE");
+
+  // Fault Injections State
+  const [faultInjections, setFaultInjections] = useState<{
+    outageDeviceIds: string[];
+    lagDeviceIds: string[];
+    conflictDeviceIds: string[];
+  }>({
+    outageDeviceIds: [],
+    lagDeviceIds: [],
+    conflictDeviceIds: [],
+  });
 
   // Simulation Parameters
   const [simParams, setSimParams] = useState<SimulationParams>({
@@ -282,7 +307,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return getScenarioKPIs(activeScenario, redistributionApplied, hotels, resources);
   }, [activeScenario, redistributionApplied, hotels, resources]);
 
-  // Real-Time Normalized Observation Pipeline (Runs when simulation steps)
+  // Fault Injection Handlers
+  const toggleDeviceOutage = useCallback((deviceId: string) => {
+    setFaultInjections(prev => {
+      const exists = prev.outageDeviceIds.includes(deviceId);
+      const nextOutages = exists
+        ? prev.outageDeviceIds.filter(id => id !== deviceId)
+        : [...prev.outageDeviceIds, deviceId];
+      return { ...prev, outageDeviceIds: nextOutages };
+    });
+  }, []);
+
+  const toggleDeviceLag = useCallback((deviceId: string) => {
+    setFaultInjections(prev => {
+      const exists = prev.lagDeviceIds.includes(deviceId);
+      const nextLag = exists
+        ? prev.lagDeviceIds.filter(id => id !== deviceId)
+        : [...prev.lagDeviceIds, deviceId];
+      return { ...prev, lagDeviceIds: nextLag };
+    });
+  }, []);
+
+  const toggleDeviceConflict = useCallback((deviceId: string) => {
+    setFaultInjections(prev => {
+      const exists = prev.conflictDeviceIds.includes(deviceId);
+      const nextConflict = exists
+        ? prev.conflictDeviceIds.filter(id => id !== deviceId)
+        : [...prev.conflictDeviceIds, deviceId];
+      return { ...prev, conflictDeviceIds: nextConflict };
+    });
+  }, []);
+
+  const resetFaultInjections = useCallback(() => {
+    setFaultInjections({
+      outageDeviceIds: [],
+      lagDeviceIds: [],
+      conflictDeviceIds: [],
+    });
+  }, []);
+
+  // Update simulator config when activeScenario or faultInjections change
+  useEffect(() => {
+    sensorStreamSimulator.setConfig({
+      scenarioId: activeScenario,
+      injectOutagesForDeviceIds: faultInjections.outageDeviceIds,
+      injectLagForDeviceIds: faultInjections.lagDeviceIds,
+      injectConflictForDeviceIds: faultInjections.conflictDeviceIds,
+    });
+  }, [activeScenario, faultInjections]);
+
+  // Real-Time Normalized Observation Pipeline (Runs when simulation steps or faults toggle)
   const latestObservations = useMemo(() => {
     const currentOutflowRate = calculateOutflowRate(
       simulationState.minutesElapsed,
@@ -295,7 +369,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
     const normalizedResult = ingestionPipeline.processBatch(rawObs);
     return normalizedResult.accepted;
-  }, [simulationState.nodeLoads, simulationState.minutesElapsed, activeScenario, simParams.attendance]);
+  }, [simulationState.nodeLoads, simulationState.minutesElapsed, activeScenario, simParams.attendance, faultInjections]);
 
   // Fused Zone States — Guarded hybrid fusion algorithm (DR-001)
   // Combines real-time multi-sensor fusion with legacy zoneRegistry fallback for uninstrumented zones.
@@ -361,15 +435,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     sensorStreamSimulator.initializeDefaultDevices();
   }, []);
 
-  // Update simulator scenario when activeScenario changes
-  useEffect(() => {
-    sensorStreamSimulator.setConfig({ scenarioId: activeScenario });
-  }, [activeScenario]);
-
   // Registered Devices
   const devices = useMemo(() => {
     return deviceRegistry.getAll();
-  }, [latestObservations]);
+  }, [latestObservations, faultInjections]);
 
   // Detected Spatial Hotspots
   const hotspots = useMemo(() => {
@@ -405,6 +474,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       simParams, updateSimParams,
       zones, getZoneState,
       devices, latestObservations, hotspots, cascadeResult, interventions, auditRecords,
+      faultInjections, toggleDeviceOutage, toggleDeviceLag, toggleDeviceConflict, resetFaultInjections,
+      selectedEvidenceZoneId, setSelectedEvidenceZoneId,
     }}>
       {children}
     </AppContext.Provider>
