@@ -3,11 +3,12 @@ import { useState } from "react";
 import { useApp } from "@/state/AppContext";
 import PressureIndicator from "@/components/ui/PressureIndicator";
 import ConfidenceBadge from "@/components/ui/ConfidenceBadge";
+import ZoneInputEvidencePanel from "@/components/organizer/ZoneInputEvidencePanel";
 import styles from "./capacity.module.css";
 
 export default function CapacityPage() {
   const { resources, hotels, kpis, redistributionApplied } = useApp();
-  const [activeTab, setActiveTab] = useState<"ALL" | "TRANSPORT" | "HOTELS">("ALL");
+  const [activeTab, setActiveTab] = useState<"ALL" | "TRANSPORT" | "HOTELS" | "SENSOR_EVIDENCE">("ALL");
 
   const sortedResources = [...resources].sort((a, b) => b.pressure - a.pressure);
   const sortedHotels = [...hotels].sort((a, b) => b.pressure - a.pressure);
@@ -62,7 +63,7 @@ export default function CapacityPage() {
       </div>
 
       {/* FILTER TABS */}
-      <div style={{ display: "flex", gap: 8, borderBottom: "1px solid var(--neutral)", paddingBottom: 10 }}>
+      <div style={{ display: "flex", gap: 8, borderBottom: "1px solid var(--neutral)", paddingBottom: 10, flexWrap: "wrap" }}>
         <button
           className={`btn btn-sm ${activeTab === "ALL" ? "btn-yellow" : "btn-outline"}`}
           onClick={() => setActiveTab("ALL")}
@@ -80,6 +81,13 @@ export default function CapacityPage() {
           onClick={() => setActiveTab("HOTELS")}
         >
           Hotel Partners ({hotels.length})
+        </button>
+        <button
+          className={`btn btn-sm ${activeTab === "SENSOR_EVIDENCE" ? "btn-yellow" : "btn-outline"}`}
+          onClick={() => setActiveTab("SENSOR_EVIDENCE")}
+          style={{ borderLeft: "2px solid var(--yellow-state)" }}
+        >
+          🔬 Sensor Fusion Evidence &amp; Audit
         </button>
       </div>
 
@@ -168,6 +176,11 @@ export default function CapacityPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* SENSOR INPUTS & FUSION EVIDENCE TAB */}
+      {activeTab === "SENSOR_EVIDENCE" && (
+        <ZoneInputEvidencePanel />
       )}
     </div>
   );

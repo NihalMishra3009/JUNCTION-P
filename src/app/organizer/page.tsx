@@ -7,6 +7,7 @@ import KPICard from "@/components/ui/KPICard";
 import DestinationMap from "@/components/organizer/DestinationMap";
 import ResourcePanel from "@/components/organizer/ResourcePanel";
 import ConfidenceBadge from "@/components/ui/ConfidenceBadge";
+import ZoneInputEvidencePanel from "@/components/organizer/ZoneInputEvidencePanel";
 import Link from "next/link";
 import styles from "./dashboard.module.css";
 
@@ -26,9 +27,11 @@ export default function OrganizerDashboard() {
     interventions,
     zones,
     auditRecords,
+    setSelectedEvidenceZoneId,
   } = useApp();
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [showCascade, setShowCascade] = useState(false);
+  const [showEvidencePanel, setShowEvidencePanel] = useState(false);
 
   const topRec = recommendations.find(r => r.status === "PENDING");
 
@@ -107,6 +110,11 @@ export default function OrganizerDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* SENSOR INPUT & FUSION EVIDENCE AUDIT PANEL */}
+      {showEvidencePanel && (
+        <ZoneInputEvidencePanel onClose={() => setShowEvidencePanel(false)} />
       )}
 
       {/* KPI ROW */}
@@ -193,6 +201,26 @@ export default function OrganizerDashboard() {
                 </div>
               </div>
 
+              {/* SENSOR FUSION EVIDENCE BUTTON */}
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => setShowEvidencePanel(!showEvidencePanel)}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  background: showEvidencePanel ? "var(--yellow-state)" : "var(--surface-sunken)",
+                  color: "#111111",
+                  borderColor: showEvidencePanel ? "var(--yellow-state)" : "var(--border-subtle)",
+                }}
+              >
+                🔬 {showEvidencePanel ? "Hide Sensor Evidence Panel" : "Audit Sensor Inputs & Fusion Evidence"}
+              </button>
+
               {/* LIVE ZONE PRESSURE STRIP */}
               <div className={styles.intelSection} style={{ paddingTop: 8, paddingBottom: 8 }}>
                 <div className={styles.intelSectionHeader}>
@@ -201,7 +229,26 @@ export default function OrganizerDashboard() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                   {zones.slice(0, 5).map(z => (
-                    <div key={z.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <button
+                      key={z.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedEvidenceZoneId(z.id);
+                        setShowEvidencePanel(true);
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        background: "transparent",
+                        border: "none",
+                        padding: "2px 0",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        width: "100%",
+                      }}
+                      title="Click to inspect sensor fusion calculations for this zone"
+                    >
                       <div style={{
                         width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
                         background: z.pressureLevel === "CRITICAL" ? "var(--red)" : z.pressureLevel === "HIGH" ? "var(--orange)" : z.pressureLevel === "WATCH" ? "var(--yellow-state)" : "var(--green)",
@@ -215,7 +262,7 @@ export default function OrganizerDashboard() {
                         {z.trend === "INCREASING" ? "↑" : z.trend === "DECREASING" ? "↓" : "→"}
                       </span>
                       <ConfidenceBadge source={z.source} />
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>

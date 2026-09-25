@@ -11,11 +11,11 @@ os.makedirs("assets", exist_ok=True)
 output_path = "assets/venue_entrance_validation.mp4"
 
 # Source pedestrian images
-img_path = "scratch/CS671-HACKATHON/Screenshot 2025-05-04 234449.png"
-if not os.path.exists(img_path):
-    img_path = "scratch/CS671-HACKATHON/Live_detect1.png"
-
-base_img = cv2.imread(img_path)
+img_path = "assets/sample_frame.png"
+if os.path.exists(img_path):
+    base_img = cv2.imread(img_path)
+else:
+    base_img = np.zeros((720, 1280, 3), dtype=np.uint8)
 h, w = base_img.shape[:2]
 
 target_w, target_h = 1280, 720

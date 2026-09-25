@@ -52,11 +52,11 @@ python -m pip install -r cv_bridge/requirements.txt
 ### Running Inference on a Video File
 ```bash
 python -m cv_bridge.inference \
-  --video ./assets/demo-cctv.mp4 \
+  --video ./public/videos/demo_cctv.mp4 \
   --zone-id ZONE_WANKHEDE \
   --camera-id DEV_CCTV_WANKHEDE_01 \
   --resource-id WANKHEDE_EXIT \
-  --model ./scratch/CS671-HACKATHON/yolov12n.pt \
+  --model ./models/yolo/yolov12n.pt \
   --output ./artifacts/annotated_cctv.mp4 \
   --emit-jsonl ./artifacts/cctv_observations.jsonl \
   --http-url http://localhost:3000/api/observations \
@@ -75,7 +75,7 @@ python -m cv_bridge.inference \
 | `--zone-id` | `ZONE_WANKHEDE` | Target JUNCTION operational zone |
 | `--camera-id` | `DEV_CCTV_WANKHEDE_01` | Device/Camera ID identifier |
 | `--resource-id` | `WANKHEDE_EXIT` | Physical venue gate/concourse resource |
-| `--model` | `./scratch/.../yolov12n.pt` | Path to YOLOv12 weights (`n` / `m`) |
+| `--model` | `models/yolo/yolov12n.pt` | Path to YOLOv12 weights (or `JUNCTION_YOLO_MODEL` env) |
 | `--output` | `None` | Path to export annotated MP4 video |
 | `--emit-jsonl` | `None` | Path to write observation JSONL stream |
 | `--http-url` | `None` | JUNCTION API endpoint for live ingestion |
