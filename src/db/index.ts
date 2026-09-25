@@ -16,10 +16,7 @@ declare global {
 }
 
 function getPool(): Pool {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error("DATABASE_URL environment variable is missing in .env.local.");
-  }
+  const connectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/junction_db";
 
   if (process.env.NODE_ENV === "production") {
     return new Pool({
