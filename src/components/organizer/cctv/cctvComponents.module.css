@@ -19,8 +19,8 @@
 
 .primaryCard {
   background: #0c1527;
-  border: 2px solid #0284c7;
-  box-shadow: 0 0 24px rgba(14, 165, 233, 0.2), 0 4px 16px rgba(0, 0, 0, 0.5);
+  border: 2px solid var(--yellow);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 /* ---------------- Card Header ---------------- */
@@ -59,8 +59,8 @@
 }
 
 .primaryBadge {
-  background: #0284c7;
-  color: #ffffff;
+  background: var(--yellow);
+  color: #111111;
   font-size: 0.7rem;
   font-weight: 800;
   padding: 0.2rem 0.6rem;
@@ -79,7 +79,7 @@
 
 .tagCameraId {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  color: #38bdf8;
+  color: #ffffff;
   font-weight: 600;
   background: #1e293b;
   padding: 0.15rem 0.5rem;
@@ -105,9 +105,9 @@
 
 /* ---------------- Badges ---------------- */
 .badgeSynthetic {
-  background: #4c1d95;
-  color: #e9d5ff;
-  border: 1px solid #7c3aed;
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #475569;
   font-size: 0.725rem;
   font-weight: 700;
   padding: 0.25rem 0.65rem;
@@ -117,8 +117,8 @@
 
 .badgeReplay {
   background: #1e293b;
-  color: #93c5fd;
-  border: 1px solid #3b82f6;
+  color: #e2e8f0;
+  border: 1px solid #475569;
   font-size: 0.725rem;
   font-weight: 700;
   padding: 0.25rem 0.65rem;
@@ -172,9 +172,9 @@
 }
 
 .btnSetPrimary:hover {
-  background: #0284c7;
-  border-color: #0284c7;
-  color: #ffffff;
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: #111111;
 }
 
 /* ---------------- Video Section ---------------- */
@@ -212,9 +212,9 @@
 }
 
 .overlayAnnotated {
-  background: rgba(15, 23, 42, 0.88);
-  border: 1px solid #0284c7;
-  color: #7dd3fc;
+  background: rgba(17, 17, 17, 0.92);
+  border: 1px solid var(--yellow);
+  color: var(--yellow);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.3rem 0.65rem;
@@ -315,8 +315,8 @@
 }
 
 .btnToggleActive {
-  background: #0284c7;
-  color: #ffffff;
+  background: var(--yellow);
+  color: #111111;
   font-weight: 700;
 }
 
@@ -397,7 +397,7 @@
 }
 
 .colorNormal {
-  color: #38bdf8;
+  color: #f8fafc;
 }
 
 /* ---------------- Table View ---------------- */
@@ -439,8 +439,8 @@
 
 .tableSummaryBadge {
   background: #1e293b;
-  color: #38bdf8;
-  border: 1px solid #334155;
+  color: var(--yellow);
+  border: 1px solid rgba(245, 196, 0, 0.4);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.35rem 0.75rem;
@@ -485,8 +485,8 @@
 }
 
 .tableRowPrimary {
-  background: rgba(2, 132, 199, 0.12);
-  border-left: 3px solid #0284c7;
+  background: rgba(245, 196, 0, 0.08);
+  border-left: 3px solid var(--yellow);
 }
 
 .feedCell {
@@ -513,7 +513,7 @@
 .codeCameraId {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   font-size: 0.78rem;
-  color: #38bdf8;
+  color: #ffffff;
   background: #0f172a;
   padding: 0.2rem 0.4rem;
   border-radius: 0.3rem;
@@ -534,8 +534,8 @@
 }
 
 .tableBadgeSynthetic {
-  background: #4c1d95;
-  color: #e9d5ff;
+  background: #1e293b;
+  color: #e2e8f0;
   font-size: 0.65rem;
   font-weight: 700;
   padding: 0.15rem 0.45rem;
@@ -546,8 +546,8 @@
 
 .tableBadgeReplay {
   background: #1e293b;
-  color: #93c5fd;
-  border: 1px solid #3b82f6;
+  color: #e2e8f0;
+  border: 1px solid #475569;
   font-size: 0.65rem;
   font-weight: 700;
   padding: 0.15rem 0.45rem;
@@ -571,8 +571,8 @@
 }
 
 .pillNormal {
-  background: #0284c7;
-  color: #ffffff;
+  background: #064e3b;
+  color: #a7f3d0;
 }
 
 .pillAmber {
@@ -605,17 +605,17 @@
 }
 
 .btnTableFocus:hover {
-  background: #0284c7;
-  border-color: #0284c7;
-  color: #ffffff;
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: #111111;
 }
 
 .currentPrimaryTag {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #38bdf8;
-  background: rgba(2, 132, 199, 0.15);
-  border: 1px solid #0284c7;
+  color: var(--yellow);
+  background: rgba(245, 196, 0, 0.12);
+  border: 1px solid var(--yellow);
   padding: 0.25rem 0.6rem;
   border-radius: 0.35rem;
   white-space: nowrap;
@@ -667,8 +667,8 @@
 
 .sectionBadge {
   background: #1e293b;
-  color: #38bdf8;
-  border: 1px solid #0284c7;
+  color: var(--yellow);
+  border: 1px solid rgba(245, 196, 0, 0.4);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.3rem 0.75rem;
@@ -860,7 +860,8 @@
 
 .recTypeBadge {
   background: #1e293b;
-  color: #38bdf8;
+  color: var(--yellow);
+  border: 1px solid rgba(245, 196, 0, 0.3);
   font-size: 0.65rem;
   font-weight: 700;
   padding: 0.15rem 0.45rem;
@@ -1001,7 +1002,7 @@
 .techStatusPill {
   font-size: 0.75rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
-  color: #38bdf8;
+  color: #ffffff;
   background: #0f172a;
   border: 1px solid #334155;
   padding: 0.25rem 0.6rem;
@@ -1011,7 +1012,7 @@
 .arrowIcon {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #93c5fd;
+  color: #cbd5e1;
 }
 
 .techPanelContent {
@@ -1069,7 +1070,7 @@
 }
 
 .techTable code {
-  color: #38bdf8;
+  color: var(--yellow);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   font-size: 0.78rem;
 }
@@ -1086,7 +1087,7 @@
   border: 1px solid #334155;
   border-radius: 0.4rem;
   padding: 0.65rem;
-  color: #a5f3fc;
+  color: #f8fafc;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   font-size: 0.75rem;
   line-height: 1.4;
@@ -1109,7 +1110,7 @@
 
 .btnCopy {
   background: #1e293b;
-  color: #38bdf8;
+  color: #ffffff;
   border: 1px solid #334155;
   font-size: 0.75rem;
   font-weight: 600;
@@ -1119,9 +1120,9 @@
 }
 
 .btnCopy:hover {
-  background: #0284c7;
-  color: #ffffff;
-  border-color: #0284c7;
+  background: var(--yellow);
+  color: #111111;
+  border-color: var(--yellow);
 }
 
 .jsonTerminal {
@@ -1129,7 +1130,7 @@
   border: 1px solid #1e293b;
   border-radius: 0.5rem;
   padding: 0.85rem;
-  color: #7dd3fc;
+  color: #e2e8f0;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.78rem;
   max-height: 320px;

@@ -3,13 +3,19 @@
 
 /* === DESIGN TOKENS === */
 :root {
+  /* MASTER BRAND TOKENS */
+  --junction-cream: #F6F4EE;
+  --junction-black: #111111;
+  --junction-yellow: #F5C400;
+  --junction-white: #FFFFFF;
+
   --yellow: #F5C400;
   --yellow-light: #FDF3C0;
   --ink: #111111;
   --ink-light: #333333;
   --ink-muted: #666666;
   --ink-faint: #999999;
-  --paper: #F6F5F1;
+  --paper: #F6F4EE;
   --paper-dark: #EEECE6;
   --white: #FFFFFF;
   --neutral: #E7E5DE;
@@ -223,7 +229,7 @@ ul, ol { list-style: none; }
 .pill-high { background: var(--orange-bg); color: var(--orange); }
 .pill-critical { background: var(--red-bg); color: var(--red); }
 .pill-simulated { background: var(--ink); color: var(--yellow); }
-.pill-predicted { background: var(--blue-bg); color: var(--blue); }
+.pill-predicted { background: var(--paper-dark); color: var(--ink); border: 1px solid var(--neutral-dark); }
 .pill-live { background: #DCFCE7; color: var(--green); }
 .pill-yellow { background: var(--yellow); color: var(--ink); }
 

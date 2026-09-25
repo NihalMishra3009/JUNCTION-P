@@ -7,8 +7,8 @@
 .inputRow:last-child { border-bottom: none; }
 .inputLabel { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); width: 36px; flex-shrink: 0; }
 .inputBox { font-size: 15px; font-weight: 600; color: var(--ink); }
-.orgBanner { background: var(--blue-bg); border: 1.5px solid var(--blue); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px; }
-.orgBannerIcon { font-size: 16px; color: var(--blue); flex-shrink: 0; margin-top: 2px; }
+.orgBanner { background: var(--paper); border: 1px solid var(--neutral); border-left: 4px solid var(--yellow); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px; }
+.orgBannerIcon { font-size: 16px; color: var(--ink); flex-shrink: 0; margin-top: 2px; }
 .orgBannerTitle { font-size: 13px; font-weight: 700; color: var(--ink); display: block; }
 .orgBannerMsg { font-size: 12px; color: var(--ink-muted); line-height: 1.4; }
 .routeOptions { display: flex; flex-direction: column; gap: 12px; }

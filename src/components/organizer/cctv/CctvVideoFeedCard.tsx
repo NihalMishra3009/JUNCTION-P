@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { CctvFeedConfig } from "@/types/cctv";
 import { NormalizedObservation, ZoneState } from "@/types";
+import { Video, AlertTriangle, Scan, Camera } from "lucide-react";
 import styles from "./cctvComponents.module.css";
 
 interface CctvVideoFeedCardProps {
@@ -59,7 +60,7 @@ export default function CctvVideoFeedCard({
       <div className={styles.cardHeader}>
         <div className={styles.headerLeft}>
           <div className={styles.feedTitleRow}>
-            <span className={styles.cameraIcon}>📹</span>
+            <Video size={16} className={styles.cameraIcon} />
             <h3 className={styles.feedTitle}>{feed.name}</h3>
             {isPrimary && (
               <span className={styles.primaryBadge}>PRIMARY MONITOR</span>
@@ -119,7 +120,7 @@ export default function CctvVideoFeedCard({
         <div className={styles.videoWrapper}>
           {videoError ? (
             <div className={styles.videoFallback}>
-              <div className={styles.fallbackIcon}>⚠️</div>
+              <AlertTriangle size={24} color="var(--orange)" className={styles.fallbackIcon} />
               <p className={styles.fallbackTitle}>Video Source Unavailable</p>
               <p className={styles.fallbackText}>
                 Failed to load media at <code>{currentVideoSrc}</code>
@@ -147,12 +148,12 @@ export default function CctvVideoFeedCard({
               />
               <div className={styles.videoOverlayTag}>
                 {showAnnotated && feed.annotatedVideoSrc ? (
-                  <span className={styles.overlayAnnotated}>
-                    🎯 YOLOv12 + ByteTrack Overlay Active
+                  <span className={styles.overlayAnnotated} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <Scan size={12} /> YOLOv12 + ByteTrack Overlay Active
                   </span>
                 ) : (
-                  <span className={styles.overlayRaw}>
-                    📷 Raw Video (No Overlay)
+                  <span className={styles.overlayRaw} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <Camera size={12} /> Raw Video (No Overlay)
                   </span>
                 )}
               </div>

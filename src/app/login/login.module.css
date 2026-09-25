@@ -1,3 +1,5 @@
+/* Swiss Editorial Command Center - Authentication Portal */
+
 .page {
   min-height: 100vh;
   background: var(--paper);
@@ -9,9 +11,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 28px;
-  background: var(--white);
-  border-bottom: 1px solid var(--neutral);
+  padding: 14px 28px;
+  background: var(--ink);
+  color: var(--white);
+  border-bottom: 2px solid var(--yellow);
 }
 
 .logo {
@@ -19,7 +22,7 @@
   font-size: 17px;
   font-weight: 800;
   letter-spacing: 0.12em;
-  color: var(--ink);
+  color: var(--white);
   text-decoration: none;
 }
 
@@ -45,13 +48,14 @@
 
 .title {
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
 
 .subtitle {
+  font-family: var(--font-body);
   font-size: 14px;
   color: var(--ink-muted);
   line-height: 1.5;
@@ -71,19 +75,17 @@
 
 .roleCard {
   background: var(--white);
-  border: 1.5px solid var(--neutral);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--ink);
   padding: 24px 24px 28px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  box-shadow: var(--shadow-sm);
-  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.08);
+  transition: border-color var(--t-fast);
 }
 
 .roleCard:hover {
-  border-color: var(--ink-light);
-  box-shadow: var(--shadow-md);
+  border-color: var(--ink);
 }
 
 .roleHeader {
@@ -92,41 +94,43 @@
   justify-content: space-between;
   gap: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--paper-dark);
+  border-bottom: 1px solid var(--neutral);
 }
 
 .roleBadge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-family: var(--font-display);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 2px 8px;
-  border-radius: var(--radius-pill);
 }
 
 .badgeOrganizer {
-  background: rgba(17, 17, 17, 0.08);
-  color: var(--ink);
+  background: var(--ink);
+  color: var(--white);
 }
 
 .badgePartner {
-  background: rgba(245, 196, 0, 0.18);
-  color: #856404;
+  background: var(--yellow);
+  color: var(--ink);
 }
 
 .roleTitle {
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--ink);
+  letter-spacing: -0.01em;
   margin-top: 4px;
 }
 
 .roleDesc {
-  font-size: 12.5px;
+  font-family: var(--font-body);
+  font-size: 13px;
   color: var(--ink-muted);
   line-height: 1.45;
 }
@@ -139,9 +143,10 @@
 }
 
 .demoLabel {
+  font-family: var(--font-display);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -151,19 +156,17 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--neutral);
+  border: 1px solid var(--neutral-dark);
   background: var(--paper);
   color: var(--ink);
   cursor: pointer;
-  transition: all var(--t-fast);
+  transition: background var(--t-fast), border-color var(--t-fast);
   text-align: left;
 }
 
 .demoBtn:hover {
   border-color: var(--ink);
   background: var(--white);
-  transform: translateY(-1px);
 }
 
 .demoBtnMain {
@@ -173,19 +176,21 @@
 }
 
 .demoBtnName {
-  font-size: 12.5px;
+  font-family: var(--font-display);
+  font-size: 13px;
   font-weight: 700;
   color: var(--ink);
 }
 
 .demoBtnDetail {
-  font-size: 10.5px;
+  font-family: var(--font-body);
+  font-size: 11px;
   color: var(--ink-muted);
 }
 
 .demoBtnArrow {
   font-size: 14px;
-  color: var(--ink-muted);
+  color: var(--ink);
   font-weight: 700;
 }
 
@@ -193,11 +198,12 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 11px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
   color: var(--ink-faint);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   margin: 4px 0;
 }
 
@@ -206,7 +212,7 @@
   content: "";
   flex: 1;
   height: 1px;
-  background: var(--neutral);
+  background: var(--neutral-dark);
 }
 
 .form {
@@ -222,21 +228,22 @@
 }
 
 .label {
+  font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--ink-light);
+  color: var(--ink);
 }
 
 .errorBox {
   padding: 8px 12px;
-  border-radius: var(--radius-sm);
   background: var(--red-bg);
   border: 1px solid var(--red);
   color: var(--red);
+  font-family: var(--font-display);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .submitBtn {
@@ -246,6 +253,8 @@
 
 .footerNote {
   text-align: center;
+  font-family: var(--font-body);
   font-size: 11px;
   color: var(--ink-faint);
 }
+

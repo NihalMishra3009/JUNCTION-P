@@ -1,12 +1,24 @@
 "use client";
 import { MOCK_EVENT } from "@/data/mockEvent";
+import PageHeader from "@/components/ui/PageHeader";
 import styles from "./event.module.css";
 
 export default function EventPage() {
   return (
     <div className={styles.page}>
-      <h1 className="text-page-heading">Event Details</h1>
+      <PageHeader
+        category="EVENT"
+        title="Event Operations & Venue Gates"
+        subtitle="Operational parameters, gate capacities, and attendance tracking for Wankhede Stadium matchday."
+        actions={
+          <div style={{ display: "flex", gap: 8 }}>
+            <span className="pill pill-live">● LIVE</span>
+            <span className="pill pill-simulated">SIMULATED</span>
+          </div>
+        }
+      />
       <div className={styles.grid}>
+
         <div className={styles.card}>
           <div className={styles.eventHeader}>
             <span className="pill pill-live">● LIVE</span>

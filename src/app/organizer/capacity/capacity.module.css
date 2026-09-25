@@ -1,16 +1,114 @@
+/* Swiss Editorial Command Center - Capacity Workspace */
 
-.page { padding: 28px; display: flex; flex-direction: column; gap: 20px; }
-.header { display: flex; align-items: center; justify-content: space-between; }
-.table { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); }
-.thead { display: grid; grid-template-columns: 200px 100px 90px 90px 90px 160px 100px 120px; background: var(--paper); border-bottom: 1px solid var(--neutral); padding: 10px 20px; gap: 8px; }
-.thead span { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
-.trow { display: grid; grid-template-columns: 200px 100px 90px 90px 90px 160px 100px 120px; padding: 14px 20px; border-bottom: 1px solid var(--neutral); align-items: center; gap: 8px; transition: background var(--t-fast); }
-.trow:last-child { border-bottom: none; }
-.trow:hover { background: var(--paper); }
-.nameCell { display: flex; flex-direction: column; gap: 2px; }
-.resName { font-size: 14px; font-weight: 600; color: var(--ink); }
-.resZone { font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
-.numCell { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink-light); }
-.trendUp { font-size: 12px; font-weight: 600; color: var(--red); }
-.trendDown { font-size: 12px; font-weight: 600; color: var(--green); }
-.trendStable { font-size: 12px; color: var(--ink-faint); }
+.page {
+  padding: 24px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: var(--paper);
+  min-height: calc(100vh - 54px);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.table {
+  background: var(--white);
+  border: 1px solid var(--ink);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
+}
+
+.thead {
+  display: grid;
+  grid-template-columns: 200px 100px 90px 90px 90px 160px 100px 120px;
+  background: var(--ink);
+  color: var(--white);
+  padding: 12px 20px;
+  gap: 8px;
+  align-items: center;
+}
+
+.thead span {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.trow {
+  display: grid;
+  grid-template-columns: 200px 100px 90px 90px 90px 160px 100px 120px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--neutral);
+  align-items: center;
+  gap: 8px;
+  transition: background var(--t-fast);
+}
+
+.trow:last-child {
+  border-bottom: none;
+}
+
+.trow:hover {
+  background: var(--paper);
+}
+
+.nameCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resName {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.resZone {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.numCell {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.trendUp {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--red);
+  text-transform: uppercase;
+}
+
+.trendDown {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green);
+  text-transform: uppercase;
+}
+
+.trendStable {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+

@@ -1,36 +1,154 @@
+/* Swiss Editorial Command Surface Styling for Predictions */
 
-.page { padding: 28px; display: flex; flex-direction: column; gap: 20px; }
-.header { display: flex; align-items: flex-start; justify-content: space-between; }
-.subtitle { font-size: 14px; color: var(--ink-muted); margin-top: 4px; }
-.tableCard { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); }
-.tableHeader { display: grid; grid-template-columns: 200px repeat(4, 1fr) 100px; background: var(--paper); border-bottom: 1px solid var(--neutral); padding: 10px 20px; }
-.tableHeader span { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); text-align: center; }
-.tableHeader .resourceCol { text-align: left; }
-.tableRow { display: grid; grid-template-columns: 200px repeat(4, 1fr) 100px; padding: 14px 20px; border-bottom: 1px solid var(--neutral); align-items: center; }
-.tableRow:last-child { border-bottom: none; }
-.tableRow:hover { background: var(--paper); }
-.resourceName { font-size: 14px; font-weight: 600; color: var(--ink); }
-.pressureCell { font-family: var(--font-display); font-size: 16px; font-weight: 700; text-align: center; }
-.trendCell { font-size: 12px; font-weight: 600; text-align: center; }
-.trendUp { color: var(--red); }
-.trendDown { color: var(--green); }
-.resourceCol { text-align: left; }
-.timeCol { text-align: center; }
-.trendCol { text-align: center; }
-.chartCard { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); padding: 24px; box-shadow: var(--shadow-sm); }
-.chartTitle { font-family: var(--font-display); font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-.chartNote { font-size: 12px; color: var(--ink-muted); margin-bottom: 16px; }
+.page {
+  padding: 24px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: var(--paper);
+  min-height: calc(100vh - 54px);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.subtitle {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-top: 4px;
+}
+
+/* PREDICTION MATRIX TABLE */
+.tableCard {
+  background: var(--white);
+  border: 1px solid var(--ink);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 220px repeat(4, 1fr) 110px;
+  background: var(--ink);
+  color: var(--white);
+  padding: 10px 20px;
+}
+
+.tableHeader span {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+}
+
+.tableHeader .resourceCol {
+  text-align: left;
+  color: var(--yellow);
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 220px repeat(4, 1fr) 110px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--neutral);
+  align-items: center;
+  transition: background var(--t-fast);
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+.tableRow:hover {
+  background: var(--paper);
+}
+
+.resourceName {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.pressureCell {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.trendCell {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.trendUp {
+  color: var(--red);
+}
+
+.trendDown {
+  color: var(--green);
+}
+
+.resourceCol {
+  text-align: left;
+}
+
+.timeCol {
+  text-align: center;
+}
+
+.trendCol {
+  text-align: center;
+}
+
+/* CHART CARD */
+.chartCard {
+  background: var(--white);
+  border: 1px solid var(--ink);
+  padding: 24px;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
+}
+
+.chartTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+
+.chartNote {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-bottom: 20px;
+}
 
 /* CASCADE SECTION */
 .cascadeCard {
   background: var(--white);
-  border: 1px solid var(--neutral);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--ink);
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
 }
 
 .cascadeHeader {
@@ -39,6 +157,8 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--neutral);
 }
 
 .cascadeTitle {
@@ -46,9 +166,11 @@
   font-size: 18px;
   font-weight: 700;
   color: var(--ink);
+  letter-spacing: -0.01em;
 }
 
 .cascadeSubtitle {
+  font-family: var(--font-body);
   font-size: 13px;
   color: var(--ink-muted);
   margin-top: 4px;
@@ -66,22 +188,19 @@
 
 .cascadeNodeCard {
   flex: 1;
-  min-width: 155px;
+  min-width: 165px;
   background: var(--paper);
-  border: 1px solid var(--neutral);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--neutral-dark);
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 10px;
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--t-fast), box-shadow var(--t-fast);
+  transition: border-color var(--t-fast);
 }
 
 .cascadeNodeCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border-color: var(--ink);
 }
 
 .cascadeNodeHeader {
@@ -93,10 +212,10 @@
 
 .nodeStep {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--ink-faint);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 .nodeBody {
@@ -106,6 +225,7 @@
 }
 
 .nodeName {
+  font-family: var(--font-display);
   font-size: 13px;
   font-weight: 700;
   color: var(--ink);
@@ -113,6 +233,7 @@
 }
 
 .nodeContext {
+  font-family: var(--font-body);
   font-size: 10px;
   color: var(--ink-faint);
   text-transform: uppercase;
@@ -141,26 +262,31 @@
 
 .valAfter {
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .nodeDelta {
-  font-size: 11px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
   padding: 2px 6px;
-  border-radius: 4px;
   width: fit-content;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .deltaInc {
   background: var(--red-bg);
   color: var(--red);
+  border: 1px solid rgba(239,68,68,0.2);
 }
 
 .deltaDec {
   background: var(--green-bg);
   color: var(--green);
+  border: 1px solid rgba(16,185,129,0.2);
 }
 
 .connector {
@@ -176,16 +302,18 @@
 }
 
 .connectorArrow {
-  font-size: 18px;
-  color: var(--ink-faint);
+  font-size: 16px;
+  color: var(--ink);
+  font-weight: 700;
   line-height: 1;
 }
 
 .connectorLabel {
-  font-size: 9.5px;
+  font-family: var(--font-body);
+  font-size: 9px;
   font-weight: 600;
   color: var(--ink-muted);
-  line-height: 1.25;
+  line-height: 1.2;
   margin-top: 4px;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -206,10 +334,9 @@
 }
 
 .noActionCard {
-  background: #FFF9F5;
+  background: var(--paper);
   border: 1.5px solid var(--orange);
-  border-radius: var(--radius-md);
-  padding: 18px 20px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -222,10 +349,11 @@
 }
 
 .noActionTitle {
-  font-size: 12px;
+  font-family: var(--font-display);
+  font-size: 11px;
   font-weight: 700;
   color: var(--orange);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   display: flex;
   align-items: center;
@@ -233,8 +361,9 @@
 }
 
 .noActionText {
+  font-family: var(--font-body);
   font-size: 13px;
-  color: var(--ink-light);
+  color: var(--ink);
   line-height: 1.5;
 }
 
@@ -245,30 +374,32 @@
 }
 
 .affectedItem {
+  font-family: var(--font-display);
   font-size: 11px;
   font-weight: 600;
   background: var(--white);
-  border: 1px solid var(--neutral);
+  border: 1px solid var(--neutral-dark);
   padding: 4px 8px;
-  border-radius: 4px;
   color: var(--ink);
 }
 
 .riskBanner {
-  font-size: 11px;
+  font-family: var(--font-display);
+  font-size: 10px;
   font-weight: 700;
   color: var(--orange);
   background: var(--orange-bg);
-  padding: 6px 10px;
-  border-radius: 4px;
+  padding: 4px 8px;
+  border: 1px solid rgba(249,115,22,0.3);
   width: fit-content;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .recommendCard {
   background: var(--white);
-  border: 1.5px solid var(--yellow-state);
-  border-radius: var(--radius-md);
-  padding: 18px 20px;
+  border: 1.5px solid var(--ink);
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -281,10 +412,11 @@
 }
 
 .recommendTitle {
-  font-size: 12px;
+  font-family: var(--font-display);
+  font-size: 11px;
   font-weight: 700;
-  color: var(--yellow-state);
-  letter-spacing: 0.06em;
+  color: var(--ink);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   display: flex;
   align-items: center;
@@ -292,12 +424,15 @@
 }
 
 .recActionTitle {
-  font-size: 14px;
+  font-family: var(--font-display);
+  font-size: 15px;
   font-weight: 700;
   color: var(--ink);
+  letter-spacing: -0.01em;
 }
 
 .recommendText {
+  font-family: var(--font-body);
   font-size: 13px;
   color: var(--ink-muted);
   line-height: 1.4;
@@ -311,8 +446,7 @@
 
 .impactPill {
   background: var(--paper);
-  border: 1px solid var(--neutral);
-  border-radius: 4px;
+  border: 1px solid var(--neutral-dark);
   padding: 6px 10px;
   display: flex;
   align-items: center;
@@ -321,11 +455,13 @@
 }
 
 .impactName {
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-weight: 700;
   color: var(--ink);
 }
 
 .impactValues {
+  font-family: var(--font-display);
   font-weight: 700;
   color: var(--green);
 }
@@ -339,6 +475,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 4px;
+  margin-top: 6px;
 }
+
 

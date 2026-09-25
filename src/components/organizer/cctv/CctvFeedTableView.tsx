@@ -1,8 +1,7 @@
-"use client";
-
 import React from "react";
 import { CctvFeedConfig } from "@/types/cctv";
 import { NormalizedObservation, ZoneState } from "@/types";
+import { Video } from "lucide-react";
 import styles from "./cctvComponents.module.css";
 
 interface CctvFeedTableViewProps {
@@ -82,7 +81,7 @@ export default function CctvFeedTableView({
                   {/* Feed Name */}
                   <td className={styles.tdFeedName}>
                     <div className={styles.feedCell}>
-                      <span className={styles.tableFeedIcon}>📹</span>
+                      <Video size={16} className={styles.tableFeedIcon} />
                       <div>
                         <div className={styles.tableFeedNameText}>{feed.name}</div>
                         <div className={styles.tableFeedDesc}>{feed.description}</div>

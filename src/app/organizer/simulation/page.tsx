@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useApp } from "@/state/AppContext";
 import { getPressureColor } from "@/components/ui/PressureIndicator";
 import { MVP_NETWORK_EDGES } from "@/data/mockNetworkTopology";
+import { Clock, Play, Pause, RotateCcw, Check } from "lucide-react";
+import PageHeader from "@/components/ui/PageHeader";
 import styles from "./simulation.module.css";
+
 
 const RESOURCE_NAMES: Record<string, string> = {
   CHURCHGATE: "Churchgate Station",
@@ -61,17 +64,13 @@ function SimulationContent() {
 
   return (
     <div className={styles.page}>
-      {/* HEADER */}
-      <div className={styles.header}>
-        <div>
-          <h1 className="text-page-heading">Time-Stepped Destination Simulation</h1>
-          <p className={styles.subtitle}>
-            Aggregate human cohort simulation advancing through the South Mumbai geographic network.
-            Observes real-time outflow, segment travel, node accumulation, dynamic density, and flow conservation.
-          </p>
-        </div>
-        <span className="pill pill-simulated">SIMULATED DESTINATION MODEL</span>
-      </div>
+      <PageHeader
+        category="DECISIONS"
+        title="Time-Stepped Destination Simulation"
+        subtitle="Aggregate human cohort simulation advancing through South Mumbai geographic network with real-time flow conservation."
+        actions={<span className="pill pill-simulated">SIMULATED DESTINATION MODEL</span>}
+      />
+
 
       {/* LINKED RECOMMENDATION INTERVENTION BANNER */}
       {linkedRec && (
@@ -101,7 +100,7 @@ function SimulationContent() {
               onClick={handleApproveIntervention}
               disabled={isRecommendationApproved(linkedRec.id)}
             >
-              {isRecommendationApproved(linkedRec.id) ? "✓ APPROVED" : "APPROVE THIS INTERVENTION"}
+              {isRecommendationApproved(linkedRec.id) ? "APPROVED" : "APPROVE THIS INTERVENTION →"}
             </button>
             <Link href="/organizer/recommendations" className="btn btn-outline btn-sm">
               Back to Recs
@@ -113,7 +112,7 @@ function SimulationContent() {
       {/* SIMULATION COMMAND CONSOLE */}
       <div className={styles.simConsole}>
         <div className={styles.clockGroup}>
-          <span className={styles.clockIcon}>⏱</span>
+          <Clock size={18} className={styles.clockIcon} />
           <div className={styles.clockDetails}>
             <span className={styles.clockLabel}>SIMULATION CLOCK</span>
             <span className={styles.clockTime}>{simulationState.simulationTime}</span>
@@ -123,23 +122,23 @@ function SimulationContent() {
           </div>
           <span className={`${styles.statusPill} ${isRunning ? styles.statusRunning : isPaused ? styles.statusPaused : styles.statusIdle
             }`}>
-            {isRunning ? "● RUNNING" : isPaused ? "Ⅱ PAUSED" : "○ IDLE"}
+            {isRunning ? "RUNNING" : isPaused ? "PAUSED" : "IDLE"}
           </span>
         </div>
 
         <div className={styles.consoleActions}>
           <div className={styles.btnGroup}>
             {isRunning ? (
-              <button className="btn btn-outline" onClick={pauseSimulation}>
-                Ⅱ PAUSE
+              <button className={styles.btnPause} onClick={pauseSimulation}>
+                <Pause size={14} /> PAUSE
               </button>
             ) : (
-              <button className="btn btn-yellow" onClick={playSimulation}>
-                ▶ PLAY SIMULATION
+              <button className={styles.btnPlay} onClick={playSimulation}>
+                <Play size={14} /> PLAY SIMULATION
               </button>
             )}
-            <button className="btn btn-outline" onClick={resetSimulation}>
-              ↻ RESET
+            <button className={styles.btnReset} onClick={resetSimulation}>
+              <RotateCcw size={14} /> RESET
             </button>
           </div>
 
@@ -167,7 +166,7 @@ function SimulationContent() {
         </div>
         <div className={styles.telemetryCard}>
           <span className={styles.telemetryLabel}>In-Transit on Edges</span>
-          <span className={styles.telemetryVal} style={{ color: "#2563eb" }}>
+          <span className={styles.telemetryVal} style={{ color: "var(--ink)" }}>
             {totalInTransit.toLocaleString()}
           </span>
           <span className={styles.telemetrySub}>across {activeCohorts.length} active cohorts</span>

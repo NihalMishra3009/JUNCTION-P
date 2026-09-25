@@ -1,7 +1,9 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
 import { useApp } from "@/state/AppContext";
 import { useAuth } from "@/state/AuthContext";
+import { AlertTriangle, Check } from "lucide-react";
 import styles from "./partner.module.css";
 
 export default function PartnerPage() {
@@ -112,7 +114,13 @@ export default function PartnerPage() {
 
       {/* 2. EVENT DEMAND BANNER */}
       <div className={`${styles.demandBanner} ${kpis.destinationPressure > 80 ? styles.demandHigh : styles.demandMod}`}>
-        <div className={styles.demandIcon}>{kpis.destinationPressure > 80 ? "⚠" : "●"}</div>
+        <div className={styles.demandIcon}>
+          {kpis.destinationPressure > 80 ? (
+            <AlertTriangle size={18} color="var(--orange)" />
+          ) : (
+            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--green)" }} />
+          )}
+        </div>
         <div>
           <span className={styles.demandTitle}>
             City Event Demand: {kpis.destinationPressure > 80 ? "HIGH PEAK" : "MODERATE"}
@@ -169,8 +177,8 @@ export default function PartnerPage() {
         </div>
 
         {validationError && (
-          <div style={{ padding: "10px 14px", borderRadius: "var(--radius-sm)", background: "var(--red-bg)", border: "1px solid var(--red)", color: "var(--red)", fontSize: 12, fontWeight: 700 }}>
-            ⚠ {validationError}
+          <div style={{ padding: "10px 14px", borderRadius: "var(--radius-sm)", background: "var(--red-bg)", border: "1px solid var(--red)", color: "var(--red)", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+            <AlertTriangle size={14} /> {validationError}
           </div>
         )}
 
@@ -253,8 +261,8 @@ export default function PartnerPage() {
         </div>
 
         {saved && (
-          <div className={styles.savedBanner}>
-            ✓ DATA SENT TO JUNCTION — {currentHotel.name} availability updated to {rooms} rooms! Provenance marked as PARTNER_REPORTED. Reflected in Organizer Capacity, Destination Pressure, and Attendee Stay views.
+          <div className={styles.savedBanner} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Check size={16} /> DATA SENT TO JUNCTION — {currentHotel.name} availability updated to {rooms} rooms! Provenance marked as PARTNER_REPORTED. Reflected in Organizer Capacity, Destination Pressure, and Attendee Stay views.
           </div>
         )}
       </div>

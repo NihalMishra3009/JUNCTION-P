@@ -6,10 +6,13 @@ import { SCENARIOS } from "@/data/mockScenarios";
 import { ScenarioId } from "@/types";
 import { getPressureColor, getPressureLabel, getPressureClass } from "@/components/ui/PressureIndicator";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer } from "recharts";
+import { AlertTriangle, Zap, Check } from "lucide-react";
+import PageHeader from "@/components/ui/PageHeader";
 import ConfidenceBadge from "@/components/ui/ConfidenceBadge";
 import styles from "./predictions.module.css";
 
 const TIME_LABELS = ["NOW", "+15 MIN", "+30 MIN", "+60 MIN"];
+
 
 interface CascadeStage {
   id: string;
@@ -236,18 +239,20 @@ export default function PredictionsPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1 className="text-page-heading">Pressure Forecast &amp; Cascade Analysis</h1>
-          <p className={styles.subtitle}>Predicted capacity pressure and causal bottleneck propagation across the event zone.</p>
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {redistributionApplied && (
-            <span className="pill pill-live">REDISTRIBUTION APPLIED</span>
-          )}
-          <ConfidenceBadge source="SIMULATED" />
-        </div>
-      </div>
+      <PageHeader
+        category="INTELLIGENCE"
+        title="Pressure Forecast & Cascade Analysis"
+        subtitle="Predicted capacity pressure and causal bottleneck propagation across South Mumbai monitored nodes."
+        actions={
+          <>
+            {redistributionApplied && (
+              <span className="pill pill-live">REDISTRIBUTION APPLIED</span>
+            )}
+            <ConfidenceBadge source="SIMULATED" />
+          </>
+        }
+      />
+
 
       {/* TABLE */}
       <div className={styles.tableCard}>
@@ -376,16 +381,16 @@ export default function PredictionsPage() {
           {/* LEFT: IF NO ACTION IS TAKEN */}
           <div className={styles.noActionCard}>
             <div className={styles.noActionHeader}>
-              <span className={styles.noActionTitle}>
-                <span>⚠️</span> IF NO ACTION IS TAKEN
+              <span className={styles.noActionTitle} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <AlertTriangle size={15} color="var(--orange)" /> IF NO ACTION IS TAKEN
               </span>
               <span className={styles.riskBanner}>{noAction.risk}</span>
             </div>
 
             <p className={styles.noActionText}>
               {redistributionApplied ? (
-                <span style={{ color: "var(--green)", fontWeight: 600 }}>
-                  ✓ Proactive Intervention Active: Attendee redistribution via Dadar has successfully suppressed Churchgate peak bottleneck (94% → 76%), preventing concourse safety holds and stabilizing Marine Drive traffic.
+                <span style={{ color: "var(--green)", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                  <Check size={14} /> Proactive Intervention Active: Attendee redistribution via Dadar has successfully suppressed Churchgate peak bottleneck (94% → 76%), preventing concourse safety holds and stabilizing Marine Drive traffic.
                 </span>
               ) : (
                 noAction.warning
@@ -409,11 +414,11 @@ export default function PredictionsPage() {
           {/* RIGHT: JUNCTION RECOMMENDS */}
           <div className={styles.recommendCard}>
             <div className={styles.recommendHeader}>
-              <span className={styles.recommendTitle}>
-                <span>⚡</span> JUNCTION RECOMMENDS
+              <span className={styles.recommendTitle} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <Zap size={15} color="var(--yellow)" /> JUNCTION RECOMMENDS
               </span>
               {primaryRec.status === "APPROVED" ? (
-                <span className="pill pill-live">✓ APPROVED &amp; PUBLISHED</span>
+                <span className="pill pill-live">APPROVED &amp; PUBLISHED</span>
               ) : (
                 <span className="pill pill-yellow">HUMAN APPROVAL REQUIRED</span>
               )}

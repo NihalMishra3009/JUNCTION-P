@@ -1,8 +1,12 @@
+/* Swiss Editorial Command Center - Simulation Workspace */
+
 .page {
-  padding: 28px;
+  padding: 24px 28px 40px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+  background: var(--paper);
+  min-height: calc(100vh - 54px);
 }
 
 .header {
@@ -11,10 +15,13 @@
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--ink);
 }
 
 .subtitle {
-  font-size: 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
   color: var(--ink-muted);
   margin-top: 6px;
   max-width: 680px;
@@ -23,16 +30,16 @@
 
 /* SIMULATION COMMAND CONSOLE */
 .simConsole {
-  background: var(--white);
-  border: 1px solid var(--neutral);
-  border-radius: var(--radius-md);
+  background: var(--ink);
+  color: var(--white);
+  border: 1px solid var(--ink);
   padding: 18px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.12);
 }
 
 .clockGroup {
@@ -43,7 +50,7 @@
 
 .clockIcon {
   font-size: 28px;
-  color: var(--ink-light);
+  color: var(--yellow);
 }
 
 .clockDetails {
@@ -52,26 +59,28 @@
 }
 
 .clockLabel {
+  font-family: var(--font-display);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--yellow);
 }
 
 .clockTime {
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 34px;
   font-weight: 800;
-  color: var(--ink);
+  color: var(--white);
   line-height: 1.1;
   letter-spacing: -0.02em;
 }
 
 .elapsedTag {
+  font-family: var(--font-body);
   font-size: 11px;
   font-weight: 600;
-  color: var(--ink-light);
+  color: rgba(255, 255, 255, 0.7);
   margin-top: 2px;
 }
 
@@ -80,29 +89,29 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  font-size: 11px;
+  font-family: var(--font-display);
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .statusRunning {
-  background: rgba(16, 185, 129, 0.15);
-  color: #059669;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.2);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
 }
 
 .statusPaused {
-  background: rgba(245, 158, 11, 0.15);
-  color: #d97706;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(245, 196, 0, 0.2);
+  color: var(--yellow);
+  border: 1px solid rgba(245, 196, 0, 0.4);
 }
 
 .statusIdle {
-  background: var(--paper);
-  color: var(--ink-muted);
-  border: 1px solid var(--neutral);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .consoleActions {
@@ -115,46 +124,94 @@
 .btnGroup {
   display: flex;
   gap: 8px;
+  align-items: center;
+}
+
+.btnPlay {
+  background: var(--yellow);
+  color: #111111;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border-radius: var(--radius-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border: 1px solid var(--yellow);
+  transition: all var(--t-fast);
+}
+
+.btnPlay:hover {
+  background: #E6B800;
+  border-color: #E6B800;
+}
+
+.btnPause, .btnReset {
+  background: transparent;
+  color: var(--white);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border-radius: var(--radius-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.btnPause:hover, .btnReset:hover {
+  border-color: var(--white);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--white);
 }
 
 .speedGroup {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: var(--paper);
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.1);
   padding: 3px 6px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--neutral);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .speedLabel {
+  font-family: var(--font-display);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: rgba(255, 255, 255, 0.6);
   margin-left: 4px;
 }
 
 .speedBtn {
   padding: 3px 8px;
+  font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
-  border-radius: var(--radius-pill);
   border: none;
   background: transparent;
-  color: var(--ink-muted);
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
   transition: all var(--t-fast);
 }
 
 .speedBtn:hover {
-  color: var(--ink);
+  color: var(--white);
 }
 
 .speedActive {
-  background: var(--ink) !important;
-  color: var(--white) !important;
+  background: var(--yellow) !important;
+  color: var(--ink) !important;
 }
 
 /* TELEMETRY METRIC STRIP */
@@ -164,21 +221,27 @@
   gap: 14px;
 }
 
+@media (max-width: 900px) {
+  .telemetryStrip {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .telemetryCard {
   background: var(--white);
-  border: 1px solid var(--neutral);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--ink);
   padding: 14px 18px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
 }
 
 .telemetryLabel {
+  font-family: var(--font-display);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -188,9 +251,11 @@
   font-size: 22px;
   font-weight: 800;
   color: var(--ink);
+  letter-spacing: -0.02em;
 }
 
 .telemetrySub {
+  font-family: var(--font-body);
   font-size: 11px;
   color: var(--ink-light);
 }
@@ -203,15 +268,20 @@
   align-items: start;
 }
 
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .controls {
   background: var(--white);
-  border: 1px solid var(--neutral);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--ink);
   padding: 22px;
   display: flex;
   flex-direction: column;
   gap: 18px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
 }
 
 .controlsTitle {
@@ -219,6 +289,9 @@
   font-size: 15px;
   font-weight: 700;
   color: var(--ink);
+  letter-spacing: -0.01em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--neutral);
 }
 
 .controlGroup {
@@ -228,36 +301,38 @@
 }
 
 .controlLabel {
+  font-family: var(--font-display);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--ink-light);
+  color: var(--ink);
 }
 
 .slider {
   width: 100%;
-  accent-color: var(--yellow);
+  accent-color: var(--ink);
 }
 
 .sliderRange {
   display: flex;
   justify-content: space-between;
+  font-family: var(--font-display);
   font-size: 10px;
   color: var(--ink-faint);
 }
 
 .segmented {
   display: flex;
-  border-radius: var(--radius-xs);
-  overflow: hidden;
-  border: 1.5px solid var(--neutral);
+  border: 1px solid var(--ink);
+  background: var(--paper);
 }
 
 .segBtn {
   flex: 1;
   padding: 6px 4px;
+  font-family: var(--font-display);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   background: transparent;
@@ -268,7 +343,7 @@
 }
 
 .segBtn:hover {
-  background: var(--paper);
+  background: var(--white);
   color: var(--ink);
 }
 
@@ -278,22 +353,23 @@
 }
 
 .paramNote {
+  font-family: var(--font-body);
   font-size: 11px;
-  color: var(--ink-faint);
+  color: var(--ink-muted);
   background: var(--paper);
-  padding: 8px 10px;
-  border-radius: var(--radius-xs);
+  padding: 10px 12px;
   line-height: 1.4;
-  border-left: 2px solid var(--yellow-state);
+  border-left: 3px solid var(--yellow);
+  border: 1px solid var(--neutral-dark);
+  border-left: 3px solid var(--yellow);
 }
 
 /* RESULTS & TELEMETRY SECTION */
 .results {
   background: var(--white);
-  border: 1px solid var(--neutral);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--ink);
   padding: 24px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
   display: flex;
   flex-direction: column;
   gap: 22px;
@@ -308,9 +384,10 @@
 }
 
 .sectionTitle {
+  font-family: var(--font-display);
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink);
 }
@@ -322,10 +399,15 @@
   gap: 12px;
 }
 
+@media (max-width: 900px) {
+  .nodeGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .nodeCard {
   background: var(--paper);
-  border: 1px solid var(--neutral);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--neutral-dark);
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -339,6 +421,7 @@
 }
 
 .nodeName {
+  font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
   color: var(--ink);
@@ -347,10 +430,10 @@
 }
 
 .nodePressurePill {
+  font-family: var(--font-display);
   font-size: 10px;
   font-weight: 800;
   padding: 2px 6px;
-  border-radius: var(--radius-pill);
 }
 
 .nodeMetrics {
@@ -360,20 +443,21 @@
 }
 
 .nodeLoadVal {
+  font-family: var(--font-display);
   font-size: 18px;
   font-weight: 800;
   color: var(--ink);
 }
 
 .nodeCapVal {
+  font-family: var(--font-display);
   font-size: 11px;
   color: var(--ink-faint);
 }
 
 .pressureBar {
-  height: 6px;
-  background: var(--neutral);
-  border-radius: 3px;
+  height: 4px;
+  background: var(--neutral-dark);
   overflow: hidden;
 }
 
@@ -391,8 +475,7 @@
 
 .edgeCard {
   background: var(--paper);
-  border: 1px solid var(--neutral);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--neutral-dark);
   padding: 10px 14px;
   display: flex;
   justify-content: space-between;
@@ -400,8 +483,9 @@
 }
 
 .edgeName {
+  font-family: var(--font-display);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--ink);
   max-width: 70%;
   line-height: 1.3;
@@ -414,12 +498,14 @@
 }
 
 .edgeLoadNumber {
+  font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--ink);
 }
 
 .edgeLoadLabel {
+  font-family: var(--font-display);
   font-size: 9px;
   text-transform: uppercase;
   color: var(--ink-faint);
@@ -435,25 +521,26 @@
 .cohortTable th {
   text-align: left;
   padding: 8px 10px;
+  font-family: var(--font-display);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-faint);
-  border-bottom: 1px solid var(--neutral);
+  color: var(--ink);
+  background: var(--paper);
+  border-bottom: 1px solid var(--ink);
 }
 
 .cohortTable td {
   padding: 8px 10px;
-  border-bottom: 1px solid var(--paper-dark);
+  border-bottom: 1px solid var(--neutral);
   color: var(--ink);
 }
 
 .progressBarWrap {
   width: 90px;
-  height: 6px;
-  background: var(--neutral);
-  border-radius: 3px;
+  height: 4px;
+  background: var(--neutral-dark);
   overflow: hidden;
   display: inline-block;
   vertical-align: middle;
@@ -462,6 +549,7 @@
 
 .progressBarFill {
   height: 100%;
-  background: #2563eb;
+  background: var(--ink);
   transition: width 0.3s ease;
 }
+

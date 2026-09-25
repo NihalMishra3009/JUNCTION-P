@@ -1,15 +1,114 @@
+/* Swiss Editorial Command Center - Event Details */
 
-.page { padding: 28px; display: flex; flex-direction: column; gap: 20px; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.card { background: var(--white); border: 1px solid var(--neutral); border-radius: var(--radius-md); padding: 24px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 16px; }
-.eventHeader { display: flex; gap: 8px; }
-.eventName { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--ink); }
-.eventVenue { font-size: 14px; color: var(--ink-muted); }
-.eventMeta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.metaItem { display: flex; flex-direction: column; gap: 4px; }
-.metaLabel { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
-.metaVal { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--ink); }
-.gates { display: flex; flex-direction: column; gap: 14px; }
-.gate { display: flex; flex-direction: column; gap: 4px; }
-.gateLabel { font-size: 14px; font-weight: 600; color: var(--ink); }
-.gateCap { font-size: 12px; color: var(--ink-muted); }
+.page {
+  padding: 24px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: var(--paper);
+  min-height: calc(100vh - 54px);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: var(--white);
+  border: 1px solid var(--ink);
+  padding: 24px;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.eventHeader {
+  display: flex;
+  gap: 8px;
+}
+
+.eventName {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.eventVenue {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+.eventMeta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--neutral);
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metaLabel {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.metaVal {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.gates {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 12px;
+}
+
+.gate {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--neutral);
+}
+
+.gate:last-child {
+  border-bottom: none;
+}
+
+.gateLabel {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.gateCap {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+

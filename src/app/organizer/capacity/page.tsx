@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useApp } from "@/state/AppContext";
 import PressureIndicator from "@/components/ui/PressureIndicator";
 import ConfidenceBadge from "@/components/ui/ConfidenceBadge";
+import PageHeader from "@/components/ui/PageHeader";
 import styles from "./capacity.module.css";
 
 export default function CapacityPage() {
@@ -17,20 +18,20 @@ export default function CapacityPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1 className="text-page-heading">Capacity &amp; Availability</h1>
-          <p style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 4 }}>
-            Observing real-time usable capacity across transit, venue, and hotel partner networks.
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {redistributionApplied && (
-            <span className="pill pill-live">REDISTRIBUTION APPLIED</span>
-          )}
-          <ConfidenceBadge source="SIMULATED" />
-        </div>
-      </div>
+      <PageHeader
+        category="PREDICT"
+        title="Capacity & Availability"
+        subtitle="Real-time usable capacity across transit hubs, venue gates, and hotel partner networks."
+        actions={
+          <>
+            {redistributionApplied && (
+              <span className="pill pill-live">REDISTRIBUTION APPLIED</span>
+            )}
+            <ConfidenceBadge source="SIMULATED" />
+          </>
+        }
+      />
+
 
       {/* SUMMARY STATS ROW */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>

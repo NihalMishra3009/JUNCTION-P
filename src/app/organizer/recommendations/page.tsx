@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/state/AppContext";
+import PageHeader from "@/components/ui/PageHeader";
 import ConfidenceBadge from "@/components/ui/ConfidenceBadge";
 import styles from "./recommendations.module.css";
 
@@ -21,13 +22,13 @@ export default function RecommendationsPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1 className="text-page-heading">Recommendations</h1>
-          <p className={styles.subtitle}>AI recommends. Humans decide. All actions require explicit approval.</p>
-        </div>
-        <ConfidenceBadge source="SIMULATED" />
-      </div>
+      <PageHeader
+        category="DECISIONS"
+        title="Action Recommendations"
+        subtitle="AI recommends. Humans decide. Verified operational interventions requiring explicit operator review."
+        actions={<ConfidenceBadge source="SIMULATED" />}
+      />
+
 
       <div className={styles.list}>
         {recommendations.map((rec, idx) => {

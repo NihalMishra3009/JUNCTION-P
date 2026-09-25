@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/state/AppContext";
 import { MOCK_EVENT } from "@/data/mockEvent";
+import { Compass, Hotel, UtensilsCrossed, Ticket } from "lucide-react";
 import styles from "./home.module.css";
 import showcaseStyles from "./showcase.module.css";
 
@@ -91,10 +92,10 @@ function ExistingAttendeeDashboard() {
         <span className="text-meta" style={{ marginBottom: 12, display: "block" }}>Quick Actions</span>
         <div className={styles.quickGrid}>
           {[
-            { href: "/attendee/plan", label: "Plan Journey", icon: "◇" },
-            { href: "/attendee/stay", label: "Find Stay", icon: "◈" },
-            { href: "/attendee/food", label: "Food & Services", icon: "◆" },
-            { href: "/attendee/event", label: "Event Info", icon: "★" },
+            { href: "/attendee/plan", label: "Plan Journey", icon: <Compass size={18} /> },
+            { href: "/attendee/stay", label: "Find Stay", icon: <Hotel size={18} /> },
+            { href: "/attendee/food", label: "Food & Services", icon: <UtensilsCrossed size={18} /> },
+            { href: "/attendee/event", label: "Event Info", icon: <Ticket size={18} /> },
           ].map(q => (
             <Link key={q.href} href={q.href} className={styles.quickCard}>
               <span className={styles.quickIcon}>{q.icon}</span>

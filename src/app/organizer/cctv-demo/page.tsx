@@ -9,7 +9,9 @@ import CctvVideoFeedCard from "@/components/organizer/cctv/CctvVideoFeedCard";
 import CctvFeedTableView from "@/components/organizer/cctv/CctvFeedTableView";
 import CctvOperationalActions from "@/components/organizer/cctv/CctvOperationalActions";
 import CctvTechnicalPanel from "@/components/organizer/cctv/CctvTechnicalPanel";
+import PageHeader from "@/components/ui/PageHeader";
 import styles from "./cctv.module.css";
+
 
 export default function CctvCrowdMonitoringPage() {
   const {
@@ -101,16 +103,11 @@ export default function CctvCrowdMonitoringPage() {
   return (
     <div className={styles.page}>
       {/* Top Header */}
-      <div className={styles.header}>
-        <div className={styles.titleGroup}>
-          <h1>Live Crowd & CCTV Monitoring Workspace</h1>
-          <p className={styles.subtitle}>
-            Multi-camera spatial surveillance, YOLOv12 object tracking telemetry, and automated bottleneck mitigation
-          </p>
-        </div>
-
-        {/* View Mode Toggle */}
-        <div className={styles.headerActions}>
+      <PageHeader
+        category="OBSERVE"
+        title="Live Crowd & CCTV Monitoring Workspace"
+        subtitle="Multi-camera spatial surveillance, YOLOv12 object tracking telemetry, and automated bottleneck mitigation"
+        actions={
           <div className={styles.viewSwitcher}>
             <button
               type="button"
@@ -119,7 +116,7 @@ export default function CctvCrowdMonitoringPage() {
               }`}
               onClick={() => setViewMode("CARDS")}
             >
-              <span>🖼️</span> Card View ({CCTV_FEEDS.length})
+              Card View ({CCTV_FEEDS.length})
             </button>
             <button
               type="button"
@@ -128,11 +125,11 @@ export default function CctvCrowdMonitoringPage() {
               }`}
               onClick={() => setViewMode("TABLE")}
             >
-              <span>📊</span> Table View
+              Table View
             </button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Operational Summary Ribbon */}
       <div className={styles.summaryRibbon}>

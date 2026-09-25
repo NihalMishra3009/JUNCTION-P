@@ -1,7 +1,6 @@
-"use client";
-
 import React from "react";
 import { Recommendation, Alert, HotspotPrediction, ZoneState } from "@/types";
+import { Zap, AlertTriangle, CheckCircle2, Lightbulb, ShieldCheck } from "lucide-react";
 import styles from "./cctvComponents.module.css";
 
 interface CctvOperationalActionsProps {
@@ -42,7 +41,7 @@ export default function CctvOperationalActions({
     <div className={styles.operationalSection}>
       <div className={styles.sectionHeader}>
         <div className={styles.sectionTitleGroup}>
-          <span className={styles.sectionIcon}>⚡</span>
+          <Zap size={18} className={styles.sectionIcon} />
           <div>
             <h3 className={styles.sectionTitle}>Operational Decision Support & Actions</h3>
             <p className={styles.sectionSubtitle}>
@@ -59,7 +58,9 @@ export default function CctvOperationalActions({
         {/* Left Card: Active Alerts & Bottleneck Warnings */}
         <div className={styles.actionCard}>
           <h4 className={styles.cardSubheading}>
-            <span>🚨 Active Bottlenecks & Vision Alerts</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <AlertTriangle size={15} color="var(--red)" /> Active Bottlenecks & Vision Alerts
+            </span>
             <span className={styles.badgeCount}>{activeAlerts.length} Active</span>
           </h4>
 
@@ -95,7 +96,7 @@ export default function CctvOperationalActions({
             </div>
           ) : (
             <div className={styles.emptyStateBox}>
-              <span className={styles.emptyStateIcon}>✅</span>
+              <CheckCircle2 size={24} color="var(--green)" className={styles.emptyStateIcon} />
               <p className={styles.emptyStateTitle}>All Corridors Clear</p>
               <p className={styles.emptyStateDesc}>
                 No critical vision bottlenecks or density warnings detected in active camera sectors.
@@ -106,8 +107,8 @@ export default function CctvOperationalActions({
           {/* Hotspots & Zone Pressure Summary */}
           {highPressureZones.length > 0 && (
             <div className={styles.pressureAlertBox}>
-              <strong className={styles.pressureAlertTitle}>
-                ⚠️ Elevated Zone Pressure Detected:
+              <strong className={styles.pressureAlertTitle} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <AlertTriangle size={14} color="var(--orange)" /> Elevated Zone Pressure Detected:
               </strong>
               <div className={styles.pressureZoneTags}>
                 {highPressureZones.map((z) => (
@@ -123,7 +124,9 @@ export default function CctvOperationalActions({
         {/* Right Card: Recommended Operational Interventions */}
         <div className={styles.actionCard}>
           <h4 className={styles.cardSubheading}>
-            <span>💡 Recommended Operational Interventions</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Lightbulb size={15} color="var(--yellow)" /> Recommended Operational Interventions
+            </span>
             <span className={styles.badgeActionable}>Decision Support</span>
           </h4>
 
@@ -159,7 +162,7 @@ export default function CctvOperationalActions({
                       <div className={styles.recBtnGroup}>
                         {approved ? (
                           <span className={styles.statusApproved}>
-                            ✓ Approved & Dispatched
+                            Approved & Dispatched
                           </span>
                         ) : (
                           <>
@@ -168,7 +171,7 @@ export default function CctvOperationalActions({
                               onClick={() => onApproveRec(rec.id)}
                               className={styles.btnApprove}
                             >
-                              Approve Intervention
+                              Approve Intervention →
                             </button>
                             <button
                               type="button"
@@ -187,7 +190,7 @@ export default function CctvOperationalActions({
             </div>
           ) : (
             <div className={styles.emptyStateBox}>
-              <span className={styles.emptyStateIcon}>📋</span>
+              <ShieldCheck size={24} color="var(--green)" className={styles.emptyStateIcon} />
               <p className={styles.emptyStateTitle}>No Immediate Intervention Required</p>
               <p className={styles.emptyStateDesc}>
                 Pedestrian clearance flow is operating within nominal safety thresholds.

@@ -1,31 +1,55 @@
 "use client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useApp } from "@/state/AppContext";
 import styles from "./organizer.module.css";
 import { SCENARIOS } from "@/data/mockScenarios";
 import { ScenarioId } from "@/types";
-
-const NAV = [
-  { group: "OVERVIEW", items: [{ href: "/organizer", label: "Dashboard", icon: "▣" }] },
-  { group: "DESTINATION", items: [
-    { href: "/organizer/map", label: "Live Map", icon: "◉" },
-    { href: "/organizer/cctv-demo", label: "CCTV Bridge", icon: "⎔" },
-    { href: "/organizer/capacity", label: "Capacity", icon: "◈" },
-    { href: "/organizer/predictions", label: "Predictions", icon: "◇" },
-  ]},
-  { group: "DECISIONS", items: [
-    { href: "/organizer/recommendations", label: "Recommendations", icon: "◆" },
-    { href: "/organizer/simulation", label: "Simulation", icon: "◎" },
-  ]},
-  { group: "EVENT", items: [
-    { href: "/organizer/event", label: "Event", icon: "★" },
-  ]},
-];
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/state/AuthContext";
+import {
+  LayoutDashboard,
+  Map as MapIcon,
+  Video,
+  Building2,
+  TrendingUp,
+  Zap,
+  Sliders,
+  Calendar,
+} from "lucide-react";
+
+const NAV = [
+  {
+    group: "COMMAND",
+    items: [
+      { href: "/organizer", label: "Operations Room", icon: <LayoutDashboard size={16} strokeWidth={2} /> },
+    ],
+  },
+  {
+    group: "DESTINATION",
+    items: [
+      { href: "/organizer/map", label: "Live Command Map", icon: <MapIcon size={16} strokeWidth={2} /> },
+      { href: "/organizer/cctv-demo", label: "CCTV Telemetry Lab", icon: <Video size={16} strokeWidth={2} /> },
+      { href: "/organizer/capacity", label: "Capacity & Hotels", icon: <Building2 size={16} strokeWidth={2} /> },
+      { href: "/organizer/predictions", label: "Predictions & Cascade", icon: <TrendingUp size={16} strokeWidth={2} /> },
+    ],
+  },
+  {
+    group: "DECISIONS",
+    items: [
+      { href: "/organizer/recommendations", label: "Action Recommendations", icon: <Zap size={16} strokeWidth={2} /> },
+      { href: "/organizer/simulation", label: "What-If Simulator", icon: <Sliders size={16} strokeWidth={2} /> },
+    ],
+  },
+  {
+    group: "EVENT",
+    items: [
+      { href: "/organizer/event", label: "Event Gate Info", icon: <Calendar size={16} strokeWidth={2} /> },
+    ],
+  },
+];
 
 export default function OrganizerLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -40,7 +64,6 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
       if (!isAuthenticated || !currentUser) {
         router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
       } else if (currentUser.role !== "ORGANIZER") {
-        // Partner user trying to access /organizer -> redirect to /partner
         router.replace("/partner");
       }
     }
@@ -48,10 +71,12 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
 
   if (isLoading || !isAuthenticated || currentUser?.role !== "ORGANIZER") {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--paper)" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#111111" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-          <span className="pill pill-simulated">VERIFYING COMMAND SESSION</span>
-          <p style={{ fontSize: 13, color: "var(--ink-muted)" }}>Connecting to City Operations Command...</p>
+          <span className="pill pill-yellow">VERIFYING COMMAND SESSION</span>
+          <p style={{ fontSize: 13, color: "#999999", fontFamily: "var(--font-display)" }}>
+            Connecting to City Operations Command...
+          </p>
         </div>
       </div>
     );
@@ -75,6 +100,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
             {isCollapsed ? "»" : "«"}
           </button>
         </div>
+
         <nav className={styles.sidebarNav}>
           {NAV.map(group => (
             <div key={group.group} className={styles.navGroup}>
@@ -98,13 +124,14 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
             </div>
           ))}
         </nav>
+
         <div className={`${styles.sidebarFooter} ${isCollapsed ? styles.footerCollapsedWrap : ""}`}>
           {!isCollapsed ? (
             <>
               <div className={styles.scenarioSelector}>
-                <span className={styles.scenarioLabel}>SCENARIO</span>
+                <span className={styles.scenarioLabel}>ACTIVE SCENARIO</span>
                 <select
-                  className={`select ${styles.scenarioSelect}`}
+                  className={styles.scenarioSelect}
                   value={activeScenario}
                   onChange={e => setScenario(e.target.value as ScenarioId)}
                 >
@@ -127,44 +154,51 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* MAIN */}
+      {/* MAIN COMMAND AREA */}
       <div className={styles.main}>
         {/* HEADER */}
         <header className={styles.header}>
-          <div className={styles.headerEvent}>
-            <span className={styles.headerEventName}>Mumbai Indians vs Delhi Capitals</span>
-            <span className={styles.headerEventMeta}>Wankhede Stadium · 33,000 expected attendees</span>
+          <div className={styles.headerLeft}>
+            <div className={styles.headerEvent}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className={styles.commandTag}>CITY OPERATIONS COMMAND</span>
+                <span className={styles.headerEventName}>Mumbai Indians vs Delhi Capitals</span>
+              </div>
+              <span className={styles.headerEventMeta}>Wankhede Stadium · 33,000 expected attendees</span>
+            </div>
           </div>
+
           <div className={styles.headerRight}>
             <div className={styles.headerBadges}>
-              <span className="pill pill-live">● LIVE</span>
-              <span className="pill pill-simulated">SIMULATED</span>
-              <span className={styles.headerTime}>19:30–22:30</span>
+              <span className={styles.liveTag}>
+                <span className={styles.liveDot} /> LIVE TELEMETRY
+              </span>
+              <span className={styles.timeTag}>19:30–22:30</span>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 8px", borderLeft: "1px solid var(--neutral)", borderRight: "1px solid var(--neutral)" }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink)" }}>
+            <div className={styles.userProfile}>
+              <span className={styles.userName}>
                 {currentUser?.displayName || "City Operations Command"}
               </span>
-              <span className="pill pill-simulated" style={{ fontSize: 9, padding: "1px 5px", background: "rgba(17,17,17,0.08)", color: "var(--ink)" }}>
+              <span className={styles.userRoleTag}>
                 ORGANIZER
               </span>
             </div>
 
             <button
               type="button"
-              className="btn btn-ghost btn-sm"
+              className={styles.logoutBtn}
               onClick={() => {
                 logout();
                 router.replace("/login");
               }}
-              style={{ color: "var(--red)", fontWeight: 700, fontSize: 11 }}
               title="Log out of City Operations Command"
             >
               Log Out
             </button>
           </div>
         </header>
+
         <div className={styles.content}>
           {children}
         </div>
