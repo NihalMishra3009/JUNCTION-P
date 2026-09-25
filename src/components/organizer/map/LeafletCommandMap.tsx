@@ -31,7 +31,7 @@ interface Props {
 }
 
 export interface MapThemeConfig {
-  id: "DARK" | "LIGHT";
+  id: "DARK" | "CARTO_DARK" | "LIGHT";
   name: string;
   url: string;
   attribution: string;
@@ -41,24 +41,27 @@ export interface MapThemeConfig {
 
 const cartoApiKey = typeof process !== "undefined" ? process.env.NEXT_PUBLIC_CARTO_API_KEY : undefined;
 
-export const MAP_THEMES: Record<"DARK" | "LIGHT", MapThemeConfig> = {
+export const MAP_THEMES: Record<"DARK" | "CARTO_DARK" | "LIGHT", MapThemeConfig> = {
   DARK: {
     id: "DARK",
-    name: "Apple Maps Dark Navy",
-    url: cartoApiKey
-      ? `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${cartoApiKey}`
-      : "https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    name: "Esri World Dark Gray Canvas",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    attribution: "&copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+    maxZoom: 19,
+  },
+  CARTO_DARK: {
+    id: "CARTO_DARK",
+    name: "CartoDB Dark Matter",
+    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     subdomains: "abcd",
-    maxZoom: 20,
+    maxZoom: 19,
   },
   LIGHT: {
     id: "LIGHT",
     name: "OpenStreetMap Light",
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 19,
   },
 };
@@ -88,12 +91,54 @@ export default function LeafletCommandMap({
   onSelectResource,
   selectedId,
 }: Props) {
-  // South Mumbai default coordinates
+  const [themeKey, setThemeKey] = React.useState<"DARK" | "CARTO_DARK" | "LIGHT">("DARK");
   const center: [number, number] = [18.9420, 72.8280];
-  const activeTheme = MAP_THEMES.DARK;
+  const activeTheme = MAP_THEMES[themeKey];
 
   return (
     <div className={styles.leafletWrapper}>
+      {/* 2D BASEMAP TILE SELECTOR OVERLAY */}
+      <div
+        style={{
+          position: "absolute",
+          top: 12,
+          right: 12,
+          zIndex: 1000,
+          background: "rgba(15, 23, 42, 0.88)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          borderRadius: "8px",
+          padding: "4px 8px",
+          display: "flex",
+          gap: "4px",
+          alignItems: "center",
+          boxShadow: "0 4px 14px rgba(0, 0, 0, 0.4)",
+        }}
+      >
+        <span style={{ fontSize: "10px", color: "rgba(255, 255, 255, 0.6)", fontWeight: 600, marginRight: "4px" }}>
+          BASEMAP:
+        </span>
+        {(["DARK", "CARTO_DARK", "LIGHT"] as const).map((tk) => (
+          <button
+            key={tk}
+            onClick={() => setThemeKey(tk)}
+            style={{
+              background: themeKey === tk ? "rgba(56, 189, 248, 0.25)" : "transparent",
+              color: themeKey === tk ? "#38bdf8" : "#94a3b8",
+              border: themeKey === tk ? "1px solid rgba(56, 189, 248, 0.5)" : "1px solid transparent",
+              borderRadius: "4px",
+              padding: "2px 6px",
+              fontSize: "10px",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            {tk === "DARK" ? "Esri Dark" : tk === "CARTO_DARK" ? "Carto Dark" : "OSM Light"}
+          </button>
+        ))}
+      </div>
+
       <MapContainer
         center={center}
         zoom={14}
@@ -104,6 +149,7 @@ export default function LeafletCommandMap({
       >
         <MapResizeHandler />
         <TileLayer
+          key={themeKey}
           url={activeTheme.url}
           attribution={activeTheme.attribution}
           subdomains={activeTheme.subdomains || "abc"}

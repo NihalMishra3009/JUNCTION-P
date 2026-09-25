@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Resource, RoadEdge } from "@/types";
@@ -7,26 +8,36 @@ import { getRoadNetwork } from "@/data/mockRoadNetwork";
 import { getCrowdFlows } from "@/data/mockCrowdFlows";
 import { getPredictedHotspots } from "@/data/mockHotspotService";
 import { getRestaurants } from "@/data/mockRestaurants";
+import { useMapStore } from "@/store/mapStore";
 import styles from "./DestinationMap.module.css";
 
-// Dynamic import of LeafletCommandMap with SSR disabled (Leaflet requires browser window)
-const LeafletCommandMap = dynamic(() => import("./map/LeafletCommandMap"), {
+// Dynamic imports with SSR disabled for browser-only map libraries
+const InvestigationMap = dynamic(() => import("./map/InvestigationMap"), {
   ssr: false,
   loading: () => (
     <div className={styles.mapLoading}>
       <div className="spinner" />
-      <span>Loading 2D Leaflet Operational Map...</span>
+      <span>Loading SECRET MapLibre 3D Vector Engine...</span>
     </div>
   ),
 });
 
-// Dynamic import of CesiumCommandMap with SSR disabled (Cesium WebGL requires browser window)
 const CesiumCommandMap = dynamic(() => import("./map/CesiumCommandMap"), {
   ssr: false,
   loading: () => (
     <div className={styles.mapLoading}>
       <div className="spinner" />
       <span>Initializing Cesium 3D Engine...</span>
+    </div>
+  ),
+});
+
+const LeafletCommandMap = dynamic(() => import("./map/LeafletCommandMap"), {
+  ssr: false,
+  loading: () => (
+    <div className={styles.mapLoading}>
+      <div className="spinner" />
+      <span>Loading 2D Leaflet Operational Map...</span>
     </div>
   ),
 });
@@ -64,17 +75,20 @@ export default function DestinationMap({
     resetSimulation,
     setSimulationSpeed,
     simParams,
-    devices,
     latestObservations,
   } = useApp();
 
-  const staleObs = useMemo(() => latestObservations.filter(o => o.qualityStatus === "STALE"), [latestObservations]);
-  const conflictingObs = useMemo(() => latestObservations.filter(o => o.qualityStatus === "CONFLICTING"), [latestObservations]);
+  const { worldProvider, setWorldProvider } = useMapStore();
+
+  const staleObs = useMemo(() => latestObservations.filter((o) => o.qualityStatus === "STALE"), [latestObservations]);
+  const conflictingObs = useMemo(() => latestObservations.filter((o) => o.qualityStatus === "CONFLICTING"), [latestObservations]);
 
   const isRunning = simulationState.status === "PLAYING";
   const isPaused = simulationState.status === "PAUSED";
   const [showLegend, setShowLegend] = useState(true);
-  const [mapRenderer, setMapRenderer] = useState<"2D" | "3D">("3D");
+  
+  // MAP ENGINE TOGGLE: SECRET 3D Map (default) vs 2D Operational Map
+  const [mapEngine, setMapEngine] = useState<"MAPLIBRE" | "LEAFLET">("MAPLIBRE");
 
   // Multi-layer simultaneous composability - all operational layers enabled by default
   const [activeLayers, setActiveLayers] = useState<Set<string>>(
@@ -92,7 +106,7 @@ export default function DestinationMap({
   );
 
   const toggleLayer = (layerName: string) => {
-    setActiveLayers(prev => {
+    setActiveLayers((prev) => {
       const next = new Set(prev);
       if (next.has(layerName)) {
         next.delete(layerName);
@@ -103,7 +117,6 @@ export default function DestinationMap({
     });
   };
 
-  // Pure domain-derived road network reacting dynamically to simulation edge loads
   const roads = useMemo(() => {
     const baseRoads = getRoadNetwork(activeScenario, redistributionApplied);
     if (simulationState.minutesElapsed > 0) {
@@ -114,7 +127,7 @@ export default function DestinationMap({
         ROAD_CENTRAL_SPINE: "EDGE_CENTRAL_SPINE",
       };
 
-      return baseRoads.map(road => {
+      return baseRoads.map((road) => {
         const topologyEdgeId = edgeLoadMap[road.id];
         if (topologyEdgeId && simulationState.edgeLoads[topologyEdgeId] !== undefined) {
           const load = simulationState.edgeLoads[topologyEdgeId];
@@ -144,20 +157,9 @@ export default function DestinationMap({
     simulationState.edgeLoads,
   ]);
 
-  const flows = useMemo(
-    () => getCrowdFlows(activeScenario, redistributionApplied),
-    [activeScenario, redistributionApplied]
-  );
-
-  const hotspots = useMemo(
-    () => getPredictedHotspots(resources, activeScenario),
-    [resources, activeScenario]
-  );
-
-  const restaurants = useMemo(
-    () => getRestaurants(activeScenario),
-    [activeScenario]
-  );
+  const flows = useMemo(() => getCrowdFlows(activeScenario, redistributionApplied), [activeScenario, redistributionApplied]);
+  const hotspots = useMemo(() => getPredictedHotspots(resources, activeScenario), [resources, activeScenario]);
+  const restaurants = useMemo(() => getRestaurants(activeScenario), [activeScenario]);
 
   // Exact conservation metrics derived from SimulationState
   const totalModeled = simParams.attendance || 33000;
@@ -168,29 +170,35 @@ export default function DestinationMap({
 
   return (
     <div className={styles.mapWrap}>
-      {/* 8-LAYER OPERATIONAL TOGGLE BAR WITH RENDERER SWITCHER */}
+      {/* OPERATIONAL LAYER TOGGLE BAR */}
       <div className={styles.layerBar}>
-        {/* RENDERER MODE TOGGLE BUTTONS */}
-        <div style={{ display: "flex", gap: "2px", background: "var(--paper-dark)", padding: "2px", borderRadius: "20px", marginRight: "8px" }}>
+        {/* 3D vs 2D MAP ENGINE TOGGLE BUTTONS */}
+        <div style={{ display: "flex", gap: "2px", background: "rgba(15, 23, 42, 0.85)", padding: "2px", borderRadius: "16px", marginRight: "8px", border: "1px solid rgba(255,255,255,0.12)" }}>
           <button
-            className={`${styles.layerBtn} ${mapRenderer === "2D" ? styles.layerActive : ""}`}
-            onClick={() => setMapRenderer("2D")}
-            title="Switch to Leaflet 2D Operational Map"
-            style={{ borderRadius: "12px 0 0 12px", padding: "3px 8px" }}
+            className={`${styles.layerBtn} ${mapEngine === "MAPLIBRE" ? styles.layerActive : ""}`}
+            onClick={() => {
+              setMapEngine("MAPLIBRE");
+              setWorldProvider("maplibre-extrusion");
+            }}
+            title="SECRET 3D Vector Map Engine"
+            style={{ borderRadius: "12px 0 0 12px", padding: "3px 10px" }}
+          >
+            🏙️ SECRET 3D Map
+          </button>
+
+          <button
+            className={`${styles.layerBtn} ${mapEngine === "LEAFLET" ? styles.layerActive : ""}`}
+            onClick={() => {
+              setMapEngine("LEAFLET");
+            }}
+            title="2D Operational Map View"
+            style={{ borderRadius: "0 12px 12px 0", padding: "3px 10px" }}
           >
             🗺️ 2D Map
           </button>
-          <button
-            className={`${styles.layerBtn} ${mapRenderer === "3D" ? styles.layerActive : ""}`}
-            onClick={() => setMapRenderer("3D")}
-            title="Switch to Cesium 3D Command Globe"
-            style={{ borderRadius: "0 12px 12px 0", padding: "3px 8px" }}
-          >
-            🌐 3D Globe
-          </button>
         </div>
 
-        {LAYER_CONFIG.map(layer => {
+        {LAYER_CONFIG.map((layer) => {
           const isActive = activeLayers.has(layer.name);
           return (
             <button
@@ -216,13 +224,12 @@ export default function DestinationMap({
         <div className={styles.simBarLeft}>
           <span className={styles.simClockIcon}>⏱</span>
           <span className={styles.simClockTime}>{simulationState.simulationTime}</span>
-          <span className={`${styles.simStatusPill} ${isRunning ? styles.simRunning : isPaused ? styles.simPaused : styles.simIdle
-            }`}>
+          <span className={`${styles.simStatusPill} ${isRunning ? styles.simRunning : isPaused ? styles.simPaused : styles.simIdle}`}>
             {isRunning ? "● SIMULATING" : isPaused ? "Ⅱ PAUSED" : "○ IDLE"}
           </span>
           <span className={styles.simElapsed}>+{simulationState.minutesElapsed}m</span>
           <span className={styles.telemetryEnvBadge}>
-            {mapRenderer === "3D" ? "CESIUM 3D ACTIVE" : "LEAFLET 2D ACTIVE"}
+            {mapEngine === "MAPLIBRE" ? "SECRET 3D MAPLIBRE ACTIVE" : "LEAFLET 2D ACTIVE"}
           </span>
           {staleObs.length > 0 && (
             <span className="pill pill-watch" style={{ fontSize: 9 }} title={`${staleObs.length} sensor observations exceed freshness threshold`}>
@@ -250,7 +257,7 @@ export default function DestinationMap({
             ↻ Reset
           </button>
           <div className={styles.simSpeedGroup}>
-            {([1, 5, 10] as const).map(s => (
+            {([1, 5, 10] as const).map((s) => (
               <button
                 key={s}
                 className={`${styles.simSpeedBtn} ${simulationState.speed === s ? styles.simSpeedActive : ""}`}
@@ -260,32 +267,15 @@ export default function DestinationMap({
               </button>
             ))}
           </div>
-          <button
-            className={styles.simControlBtn}
-            onClick={() => setShowLegend(prev => !prev)}
-            title="Toggle Map Legend"
-          >
+          <button className={styles.simControlBtn} onClick={() => setShowLegend((prev) => !prev)} title="Toggle Map Legend">
             {showLegend ? "Legend ▾" : "Legend ▸"}
           </button>
         </div>
       </div>
 
-      {/* GEOGRAPHIC COMMAND MAP CONTAINER (DYNAMIC RENDERER) */}
+      {/* GEOGRAPHIC COMMAND MAP CONTAINER */}
       <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
-        {mapRenderer === "3D" ? (
-          <CesiumCommandMap
-            resources={resources}
-            hotels={hotels}
-            restaurants={restaurants}
-            roads={roads}
-            flows={flows}
-            hotspots={hotspots}
-            simulationState={simulationState}
-            activeLayers={activeLayers}
-            onSelectResource={onSelectResource}
-            selectedId={selectedId}
-          />
-        ) : (
+        {mapEngine === "LEAFLET" ? (
           <LeafletCommandMap
             resources={resources}
             hotels={hotels}
@@ -299,8 +289,20 @@ export default function DestinationMap({
             onSelectResource={onSelectResource}
             selectedId={selectedId}
           />
+        ) : (
+          <InvestigationMap
+            resources={resources}
+            hotels={hotels}
+            restaurants={restaurants}
+            roads={roads}
+            flows={flows}
+            hotspots={hotspots}
+            simulationState={simulationState}
+            activeLayers={activeLayers}
+            onSelectResource={onSelectResource}
+            selectedId={selectedId}
+          />
         )}
-
 
         {/* COMPACT MAP LEGEND OVERLAY */}
         {showLegend && (
@@ -381,15 +383,10 @@ export default function DestinationMap({
         </div>
 
         <div className={styles.telemetryBadgeWrap}>
-          <span className={styles.telemetryConservedPill}>
-            ✓ Flow Conserved
-          </span>
-          <span className={styles.telemetryEnvBadge}>
-            MODEL SIMULATION
-          </span>
+          <span className={styles.telemetryConservedPill}>✓ Flow Conserved</span>
+          <span className={styles.telemetryEnvBadge}>MODEL SIMULATION</span>
         </div>
       </div>
     </div>
   );
 }
-
