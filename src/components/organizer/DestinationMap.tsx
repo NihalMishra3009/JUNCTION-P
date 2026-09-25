@@ -68,6 +68,7 @@ export default function DestinationMap({
   const {
     activeScenario,
     hotels,
+    devices,
     redistributionApplied,
     simulationState,
     playSimulation,

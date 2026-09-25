@@ -1,19 +1,13 @@
 "use client";
+
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useAuth } from "@/state/AuthContext";
+import { useUser, UserButton } from "@clerk/nextjs";
 import styles from "./landing.module.css";
 
 export default function LandingPage() {
-  const { currentUser, isAuthenticated, logout } = useAuth();
-
-  const organizerRoute = isAuthenticated && currentUser?.role === "ORGANIZER" ? "/organizer" : "/login?redirect=/organizer";
-  const partnerRoute = isAuthenticated && currentUser?.role === "PARTNER" ? "/partner" : "/login?redirect=/partner";
-  const primaryCtaRoute = isAuthenticated && currentUser ? currentUser.defaultRoute : "/login";
-  const primaryCtaLabel = isAuthenticated && currentUser
-    ? `ENTER ${currentUser.role === "ORGANIZER" ? "OPERATIONS" : "PORTAL"} →`
-    : "ENTER JUNCTION →";
+  const { isSignedIn, isLoaded } = useUser();
 
   return (
     <main className={styles.page}>
@@ -27,28 +21,34 @@ export default function LandingPage() {
           <a href="#platform" className={styles.navLink}>PLATFORM</a>
           <a href="#about" className={styles.navLink}>ABOUT</a>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {isAuthenticated && currentUser ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 38 }}>
+          {isLoaded && isSignedIn ? (
             <>
-              <span className="pill pill-yellow" style={{ fontSize: 9, padding: "2px 7px" }}>
-                {currentUser.role}: {currentUser.displayName}
-              </span>
-              <Link href={currentUser.defaultRoute} className={`btn btn-primary ${styles.navCta}`}>
-                OPEN PORTAL →
+              <Link href="/organizer" className={`btn btn-primary ${styles.navCta}`}>
+                OPEN COMMAND CENTER →
               </Link>
-              <button
-                type="button"
-                onClick={logout}
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: 11, color: "var(--red)", fontWeight: 700 }}
-              >
-                Sign Out
-              </button>
+              <UserButton
+                appearance={{
+                  elements: {
+                    userButtonAvatarBox: {
+                      width: 34,
+                      height: 34,
+                      border: "2px solid #F5C400",
+                      borderRadius: "4px",
+                    },
+                  },
+                }}
+              />
             </>
           ) : (
-            <Link href="/login" className={`btn btn-primary ${styles.navCta}`}>
-              ENTER JUNCTION →
-            </Link>
+            <>
+              <Link href="/login" className="btn btn-outline btn-sm" style={{ fontWeight: 700, letterSpacing: "0.04em", padding: "7px 14px" }}>
+                SIGN IN
+              </Link>
+              <Link href="/sign-up" className={`btn btn-primary ${styles.navCta}`}>
+                SIGN UP →
+              </Link>
+            </>
           )}
         </div>
       </nav>
@@ -96,9 +96,15 @@ export default function LandingPage() {
             </p>
 
             <div className={styles.heroCtas}>
-              <Link href={primaryCtaRoute} className={styles.ctaPrimary}>
-                {primaryCtaLabel}
-              </Link>
+              {isLoaded && isSignedIn ? (
+                <Link href="/organizer" className={styles.ctaPrimary}>
+                  ENTER OPERATIONS →
+                </Link>
+              ) : (
+                <Link href="/login" className={styles.ctaPrimary}>
+                  ENTER JUNCTION →
+                </Link>
+              )}
               <Link href="#solution" className={styles.ctaSecondary}>
                 SEE HOW IT WORKS
               </Link>
@@ -150,12 +156,12 @@ export default function LandingPage() {
           <h2 className={styles.portalsHeading}>Built for every stakeholder.</h2>
         </div>
         <div className={styles.portalsGrid}>
-          <Link href={organizerRoute} className={styles.portalCard}>
+          <Link href="/organizer" className={styles.portalCard}>
             <div className={styles.portalIcon}>⌘</div>
             <h3 className={styles.portalTitle}>Organizer Command Center</h3>
             <p className={styles.portalDesc}>Destination map, pressure analytics, cascade tracing, what-if simulation, and recommendation approval.</p>
             <span className={styles.portalCta}>
-              {isAuthenticated && currentUser?.role === "ORGANIZER" ? "Open Dashboard →" : "Sign In to Access →"}
+              {isLoaded && isSignedIn ? "Open Command Center →" : "Sign In to Access →"}
             </span>
           </Link>
           <Link href="/attendee" className={styles.portalCard}>
@@ -164,12 +170,12 @@ export default function LandingPage() {
             <p className={styles.portalDesc}>Personalised route planning, accommodation recommendations, real-time alerts, food &amp; services guidance.</p>
             <span className={styles.portalCta}>Open Platform →</span>
           </Link>
-          <Link href={partnerRoute} className={styles.portalCard}>
+          <Link href="/partner" className={styles.portalCard}>
             <div className={styles.portalIcon}>◈</div>
             <h3 className={styles.portalTitle}>Partner Portal</h3>
             <p className={styles.portalDesc}>Hotels, restaurants, and service operators update availability and receive event demand signals.</p>
             <span className={styles.portalCta}>
-              {isAuthenticated && currentUser?.role === "PARTNER" ? "Open Portal →" : "Sign In to Access →"}
+              {isLoaded && isSignedIn ? "Open Partner Portal →" : "Sign In to Access →"}
             </span>
           </Link>
         </div>

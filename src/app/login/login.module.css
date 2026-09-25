@@ -1,4 +1,4 @@
-/* Swiss Editorial Command Center - Authentication Portal */
+/* JUNCTION — Authentication Portal */
 
 .page {
   min-height: 100vh;
@@ -26,6 +26,29 @@
   text-decoration: none;
 }
 
+.backBtn {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--white);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 6px 14px;
+  background: transparent;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.backBtn:hover {
+  border-color: var(--yellow);
+  color: var(--yellow);
+  background: rgba(245, 196, 0, 0.08);
+}
+
 .main {
   flex: 1;
   max-width: 960px;
@@ -34,21 +57,23 @@
   width: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 32px;
 }
 
 .titleArea {
   text-align: center;
-  max-width: 600px;
+  max-width: 620px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
 }
 
 .title {
   font-family: var(--font-display);
-  font-size: 36px;
+  font-size: 34px;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--ink);
@@ -61,34 +86,40 @@
   line-height: 1.5;
 }
 
-.rolesGrid {
+/* Two-Entry Selection Grid */
+.entryGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
+  width: 100%;
+  max-width: 860px;
+  margin-top: 8px;
 }
 
 @media (max-width: 768px) {
-  .rolesGrid {
+  .entryGrid {
     grid-template-columns: 1fr;
   }
 }
 
-.roleCard {
+.entryCard {
   background: var(--white);
   border: 1px solid var(--ink);
-  padding: 24px 24px 28px;
+  box-shadow: 4px 4px 0px var(--ink);
+  padding: 28px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  box-shadow: 2px 2px 0px rgba(0,0,0,0.08);
-  transition: border-color var(--t-fast);
+  justify-content: space-between;
+  gap: 20px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.roleCard:hover {
-  border-color: var(--ink);
+.entryCard:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px var(--ink);
 }
 
-.roleHeader {
+.entryHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -97,7 +128,7 @@
   border-bottom: 1px solid var(--neutral);
 }
 
-.roleBadge {
+.entryBadge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -106,7 +137,7 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 2px 8px;
+  padding: 3px 8px;
 }
 
 .badgeOrganizer {
@@ -114,141 +145,104 @@
   color: var(--white);
 }
 
-.badgePartner {
+.badgeRestaurant {
   background: var(--yellow);
   color: var(--ink);
 }
 
-.roleTitle {
-  font-family: var(--font-display);
+.entryIcon {
   font-size: 20px;
-  font-weight: 700;
   color: var(--ink);
-  letter-spacing: -0.01em;
-  margin-top: 4px;
 }
 
-.roleDesc {
+.entryTitle {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin-top: 8px;
+}
+
+.entryDesc {
   font-family: var(--font-body);
   font-size: 13px;
   color: var(--ink-muted);
-  line-height: 1.45;
+  line-height: 1.5;
+  margin-top: 6px;
 }
 
-.demoShortcuts {
+.entryFeatures {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 4px;
-}
-
-.demoLabel {
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.demoBtn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border: 1px solid var(--neutral-dark);
+  padding: 12px 14px;
   background: var(--paper);
-  color: var(--ink);
-  cursor: pointer;
-  transition: background var(--t-fast), border-color var(--t-fast);
-  text-align: left;
+  border: 1px solid var(--neutral);
 }
 
-.demoBtn:hover {
-  border-color: var(--ink);
-  background: var(--white);
-}
-
-.demoBtnMain {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.demoBtnName {
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.demoBtnDetail {
-  font-family: var(--font-body);
-  font-size: 11px;
-  color: var(--ink-muted);
-}
-
-.demoBtnArrow {
-  font-size: 14px;
-  color: var(--ink);
-  font-weight: 700;
-}
-
-.divider {
+.featureItem {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--ink-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin: 4px 0;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--ink-light);
+  font-weight: 500;
 }
 
-.divider::before,
-.divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--neutral-dark);
+.featureDot {
+  width: 5px;
+  height: 5px;
+  background: var(--yellow);
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.form {
+.entryBtn {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.label {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ink);
-}
-
-.errorBox {
-  padding: 8px 12px;
-  background: var(--red-bg);
-  border: 1px solid var(--red);
-  color: var(--red);
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
   font-family: var(--font-display);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: all 0.15s ease;
 }
 
-.submitBtn {
-  margin-top: 4px;
+.btnOrganizer {
+  background: var(--ink);
+  color: var(--white);
+  border: 1px solid var(--ink);
+  box-shadow: 2px 2px 0px var(--yellow);
+}
+
+.btnOrganizer:hover {
+  background: #2E2E2E;
+}
+
+.btnRestaurant {
+  background: var(--yellow);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  box-shadow: 2px 2px 0px var(--ink);
+}
+
+.btnRestaurant:hover {
+  background: #E5B700;
+}
+
+.authContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   width: 100%;
+  margin-top: 8px;
 }
 
 .footerNote {
@@ -256,5 +250,5 @@
   font-family: var(--font-body);
   font-size: 11px;
   color: var(--ink-faint);
+  margin-top: 12px;
 }
-

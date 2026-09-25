@@ -2,16 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { useApp } from "@/state/AppContext";
-import { useAuth } from "@/state/AuthContext";
+import { useUser } from "@clerk/nextjs";
 import { AlertTriangle, Check } from "lucide-react";
 import styles from "./partner.module.css";
 
 export default function PartnerPage() {
   const { activeScenario, hotels, updateHotelAvailability, kpis } = useApp();
-  const { currentUser } = useAuth();
+  const { user } = useUser();
 
-  // Property is strictly derived from authenticated session
-  const propertyId = currentUser?.propertyId || "H4";
+  // Property is bound to partner portal
+  const propertyId = "H4";
   const currentHotel = hotels.find(h => h.id === propertyId) || hotels[0];
 
   const [rooms, setRooms] = useState(currentHotel.availableRooms);
@@ -65,6 +65,20 @@ export default function PartnerPage() {
     // Effective available rooms reported into destination model
     updateHotelAvailability(propertyId, rooms, checkins, checkouts);
 
+    // Persist inventory update to PostgreSQL database
+    fetch("/api/partner/inventory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        restaurantId: "R1",
+        availableTables: Math.max(1, Math.round(rooms / 4)),
+        availableCovers: rooms,
+        expectedCovers: checkins,
+        outOfOrderTables: unavailable,
+        notes: `Operational report from partner portal`,
+      }),
+    }).catch(err => console.warn("Failed to persist to PostgreSQL:", err));
+
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     setLastUpdated(timeStr);
     setSaved(true);
@@ -82,7 +96,7 @@ export default function PartnerPage() {
           <span className="text-meta">Hotel / Service Partner · Property Operations</span>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span className="pill pill-yellow" style={{ fontSize: 10, fontWeight: 800 }}>
-              ACCOUNT: {currentUser?.username.toUpperCase()}
+              ACCOUNT: {user?.fullName?.toUpperCase() || user?.primaryEmailAddress?.emailAddress?.toUpperCase() || "AUTHENTICATED"}
             </span>
             <span className="pill pill-simulated" style={{ fontSize: 10 }}>
               PROPERTY ID: {propertyId}

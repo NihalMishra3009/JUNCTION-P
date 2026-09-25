@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useApp } from "@/state/AppContext";
 import styles from "./organizer.module.css";
 import { SCENARIOS } from "@/data/mockScenarios";
 import { ScenarioId } from "@/types";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/state/AuthContext";
+import { useUser, UserButton } from "@clerk/nextjs";
 import {
   LayoutDashboard,
   Map as MapIcon,
@@ -55,21 +54,17 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const { activeScenario, setScenario } = useApp();
-  const { currentUser, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, isLoaded, isSignedIn } = useUser();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Auth protection guard
   useEffect(() => {
-    if (!isLoading) {
-      if (!isAuthenticated || !currentUser) {
-        router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
-      } else if (currentUser.role !== "ORGANIZER") {
-        router.replace("/partner");
-      }
+    if (isLoaded && !isSignedIn) {
+      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
     }
-  }, [isLoading, isAuthenticated, currentUser, router, pathname]);
+  }, [isLoaded, isSignedIn, router, pathname]);
 
-  if (isLoading || !isAuthenticated || currentUser?.role !== "ORGANIZER") {
+  if (!isLoaded || !isSignedIn) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#111111" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
@@ -81,6 +76,8 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
       </div>
     );
   }
+
+  const userDisplayName = user?.fullName || user?.primaryEmailAddress?.emailAddress || "City Operations Command";
 
   return (
     <div className={styles.shell}>
@@ -178,24 +175,25 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
 
             <div className={styles.userProfile}>
               <span className={styles.userName}>
-                {currentUser?.displayName || "City Operations Command"}
+                {userDisplayName}
               </span>
               <span className={styles.userRoleTag}>
                 ORGANIZER
               </span>
             </div>
 
-            <button
-              type="button"
-              className={styles.logoutBtn}
-              onClick={() => {
-                logout();
-                router.replace("/login");
+            <UserButton
+              appearance={{
+                elements: {
+                  userButtonAvatarBox: {
+                    width: 32,
+                    height: 32,
+                    border: "2px solid #F5C400",
+                    borderRadius: "4px",
+                  },
+                },
               }}
-              title="Log out of City Operations Command"
-            >
-              Log Out
-            </button>
+            />
           </div>
         </header>
 

@@ -1,46 +1,37 @@
 "use client";
+
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { useAuth } from "@/state/AuthContext";
+import { useUser, UserButton } from "@clerk/nextjs";
 import { useApp } from "@/state/AppContext";
 import styles from "./partner.module.css";
 
 export default function PartnerLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { currentUser, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, isLoaded, isSignedIn } = useUser();
   const { hotels } = useApp();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (!isAuthenticated || !currentUser) {
-        router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
-      } else if (currentUser.role !== "PARTNER") {
-        // Organizer trying to access /partner -> redirect to /organizer
-        router.replace("/organizer");
-      }
+    if (isLoaded && !isSignedIn) {
+      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
     }
-  }, [isLoading, isAuthenticated, currentUser, router, pathname]);
+  }, [isLoaded, isSignedIn, router, pathname]);
 
-  if (isLoading || !isAuthenticated || currentUser?.role !== "PARTNER") {
+  if (!isLoaded || !isSignedIn) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--paper)" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-          <span className="pill pill-simulated">VERIFYING PARTNER SESSION</span>
-          <p style={{ fontSize: 13, color: "var(--ink-muted)" }}>Connecting to hotel operations...</p>
+          <span className="pill pill-yellow">VERIFYING PARTNER SESSION</span>
+          <p style={{ fontSize: 13, color: "var(--ink-muted)", fontFamily: "var(--font-display)" }}>Connecting to hotel operations...</p>
         </div>
       </div>
     );
   }
 
-  // Find bound hotel property
-  const boundHotel = hotels.find(h => h.id === currentUser.propertyId) || hotels[0];
-
-  const handleLogout = () => {
-    logout();
-    router.replace("/login");
-  };
+  // Bound hotel property (defaults to Ramada Dadar for partner portal)
+  const boundHotel = hotels.find(h => h.id === "H4") || hotels[0];
 
   return (
     <div className={styles.page}>
@@ -61,18 +52,22 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
               {boundHotel.name}
             </span>
             <span className="pill pill-yellow" style={{ fontSize: 9, padding: "1px 6px" }}>
-              PARTNER ACCOUNT
+              {user?.fullName || user?.primaryEmailAddress?.emailAddress || "PARTNER"}
             </span>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={handleLogout}
-            style={{ color: "var(--red)", fontWeight: 700, fontSize: 11 }}
-          >
-            Log Out
-          </button>
+          <UserButton
+            appearance={{
+              elements: {
+                userButtonAvatarBox: {
+                  width: 32,
+                  height: 32,
+                  border: "2px solid #F5C400",
+                  borderRadius: "4px",
+                },
+              },
+            }}
+          />
         </div>
       </header>
 
