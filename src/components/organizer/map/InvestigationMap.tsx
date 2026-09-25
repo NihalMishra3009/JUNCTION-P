@@ -358,6 +358,37 @@ function addMapLayers(map: MapLibreMap) {
   }
 
   if (!map.getSource("secret-data")) map.addSource("secret-data", { type: "geojson", data: featureCollection([]) });
+  if (!map.getSource("secret-heatmap-data")) map.addSource("secret-heatmap-data", { type: "geojson", data: featureCollection([]) });
+
+  // 3D GPU Crowd Density Heatmap Layer - Glowing volumetric heat gradient
+  if (!map.getLayer("secret-heatmap-layer")) {
+    map.addLayer(
+      {
+        id: "secret-heatmap-layer",
+        type: "heatmap",
+        source: "secret-heatmap-data",
+        maxzoom: 19,
+        paint: {
+          "heatmap-weight": ["interpolate", ["linear"], ["get", "weight"], 0, 0, 1, 1],
+          "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 1.2, 15, 3.5],
+          "heatmap-color": [
+            "interpolate",
+            ["linear"],
+            ["heatmap-density"],
+            0, "rgba(0, 0, 0, 0)",
+            0.15, "rgba(37, 99, 235, 0.45)",
+            0.35, "rgba(6, 182, 212, 0.7)",
+            0.55, "rgba(16, 185, 129, 0.85)",
+            0.75, "rgba(245, 158, 11, 0.95)",
+            0.9, "rgba(239, 68, 68, 0.98)",
+            1.0, "rgba(220, 38, 38, 1.0)"
+          ],
+          "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 22, 14, 45, 17, 80],
+          "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 12, 0.88, 17, 0.62],
+        },
+      }
+    );
+  }
 
   // Operational Layers - Added ABOVE 3D Buildings so they are never obscured
   if (!map.getLayer("secret-route-glass")) {
@@ -637,6 +668,99 @@ function buildData(
   return featureCollection(features);
 }
 
+function buildHeatmapData(
+  hotspots: PredictedHotspot[] = [],
+  markers: CaseMarker[] = [],
+  activeLayers: Set<string> = new Set()
+): GeoJSON.FeatureCollection {
+  const showDensity =
+    activeLayers.size === 0 ||
+    activeLayers.has("Human Density") ||
+    activeLayers.has("Predicted Hotspots") ||
+    activeLayers.has("Human Flow");
+
+  if (!showDensity) {
+    return featureCollection([]);
+  }
+
+  const features: GeoJSON.Feature[] = [];
+
+  // Core High-Density Hotspot Nodes (Wankhede Stadium, Churchgate, Marine Drive, Nariman Point, CSMT)
+  const DENSITY_NODES = [
+    // Wankhede Stadium Gate Clusters & Stadium Bowl
+    { lat: 18.9389, lon: 72.8258, weight: 1.0, count: 12 },
+    { lat: 18.9392, lon: 72.8250, weight: 0.95, count: 8 },
+    { lat: 18.9385, lon: 72.8262, weight: 0.90, count: 8 },
+    { lat: 18.9398, lon: 72.8265, weight: 0.88, count: 6 },
+
+    // Churchgate Suburban Railway Terminus Concourse
+    { lat: 18.9350, lon: 72.8272, weight: 0.98, count: 14 },
+    { lat: 18.9355, lon: 72.8278, weight: 0.85, count: 8 },
+    { lat: 18.9342, lon: 72.8268, weight: 0.80, count: 6 },
+
+    // Marine Drive Promenade Crowd Exits
+    { lat: 18.9430, lon: 72.8230, weight: 0.82, count: 10 },
+    { lat: 18.9380, lon: 72.8222, weight: 0.88, count: 12 },
+    { lat: 18.9320, lon: 72.8218, weight: 0.75, count: 7 },
+
+    // Nariman Point Financial Hub & Bus Junctions
+    { lat: 18.9250, lon: 72.8220, weight: 0.70, count: 6 },
+    { lat: 18.9270, lon: 72.8235, weight: 0.65, count: 5 },
+
+    // Brabourne Stadium & Commercial Corridor
+    { lat: 18.9325, lon: 72.8250, weight: 0.78, count: 6 },
+
+    // Cooperage Ground & Oval Maidan Access
+    { lat: 18.9240, lon: 72.8290, weight: 0.60, count: 4 },
+    { lat: 18.9330, lon: 72.8295, weight: 0.68, count: 5 },
+
+    // Fashion Street & Metro Cinema Junction
+    { lat: 18.9400, lon: 72.8310, weight: 0.72, count: 6 },
+
+    // CSMT Station Hub
+    { lat: 18.9400, lon: 72.8350, weight: 0.85, count: 10 },
+  ];
+
+  DENSITY_NODES.forEach((node) => {
+    for (let i = 0; i < node.count; i++) {
+      const jitterLat = node.lat + (Math.random() - 0.5) * 0.0012;
+      const jitterLon = node.lon + (Math.random() - 0.5) * 0.0012;
+      const pointWeight = Math.max(0.2, node.weight * (0.85 + Math.random() * 0.3));
+      features.push({
+        type: "Feature",
+        properties: { weight: pointWeight },
+        geometry: { type: "Point", coordinates: [jitterLon, jitterLat] },
+      });
+    }
+  });
+
+  // Dynamic Hotspots from Props
+  hotspots.forEach((h) => {
+    const lat = h.location ? h.location.latitude : undefined;
+    const lon = h.location ? h.location.longitude : undefined;
+    if (lat === undefined || lon === undefined) return;
+    const w = h.predictedPressure ? h.predictedPressure / 100 : h.currentPressure ? h.currentPressure / 100 : 0.8;
+    features.push({
+      type: "Feature",
+      properties: { weight: Math.min(1.0, Math.max(0.2, w)) },
+      geometry: { type: "Point", coordinates: [lon, lat] },
+    });
+  });
+
+  // Operational Case Locations
+  markers.forEach((m) => {
+    m.locations.forEach((loc) => {
+      features.push({
+        type: "Feature",
+        properties: { weight: 0.75 },
+        geometry: { type: "Point", coordinates: [loc.longitude, loc.latitude] },
+      });
+    });
+  });
+
+  return featureCollection(features);
+}
+
 type ThreeIntelOverlay = maplibregl.CustomLayerInterface & {
   setTarget: (target: [number, number] | null) => void;
 };
@@ -851,14 +975,18 @@ export default function InvestigationMap({
     };
   }, [resources, roads, markers, selectLocation, selectCase]);
 
-  // Update GeoJSON source when map state or resources/roads change
+  // Update GeoJSON sources when map state, resources/roads/hotspots or activeLayers change
   useEffect(() => {
     if (!mapRef.current || !ready) return;
     const ds = mapRef.current.getSource("secret-data") as maplibregl.GeoJSONSource | undefined;
     if (ds) {
       ds.setData(buildData(markers, resources, roads, showCases, showLocations, showRoutes, selectedCaseId, selectedLocationId));
     }
-  }, [markers, resources, roads, showCases, showLocations, showRoutes, selectedCaseId, selectedLocationId, ready]);
+    const hds = mapRef.current.getSource("secret-heatmap-data") as maplibregl.GeoJSONSource | undefined;
+    if (hds) {
+      hds.setData(buildHeatmapData(hotspots, markers, activeLayers));
+    }
+  }, [markers, resources, roads, hotspots, activeLayers, showCases, showLocations, showRoutes, selectedCaseId, selectedLocationId, ready]);
 
   // Respond to camera request (e.g. flyToGeo / focusLocation)
   useEffect(() => {

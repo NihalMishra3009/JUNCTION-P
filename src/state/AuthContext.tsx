@@ -11,7 +11,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Restore session from sessionStorage on client mount
+  // Restore session from sessionStorage on client mount (defaulting to demo organizer if empty)
   useEffect(() => {
     try {
       if (typeof window !== "undefined") {
@@ -20,11 +20,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const parsed = JSON.parse(stored) as AuthUser;
           if (parsed && parsed.id && parsed.role) {
             setCurrentUser(parsed);
+          } else {
+            setCurrentUser(MOCK_DEMO_USERS[0] as AuthUser);
           }
+        } else {
+          setCurrentUser(MOCK_DEMO_USERS[0] as AuthUser);
         }
       }
     } catch {
-      // Ignore sessionStorage errors
+      setCurrentUser(MOCK_DEMO_USERS[0] as AuthUser);
     } finally {
       setIsLoading(false);
     }
