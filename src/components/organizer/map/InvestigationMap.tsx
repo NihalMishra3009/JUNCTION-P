@@ -84,34 +84,8 @@ const MAP_COLORS = {
   textHalo: "#050816",
 };
 
-function curvedRoute(points: number[][]): number[][] {
-  if (points.length < 2) return points;
-  const coordinates: number[][] = [];
-  for (let index = 0; index < points.length - 1; index += 1) {
-    const start = points[index];
-    const end = points[index + 1];
-    const dx = end[0] - start[0];
-    const dy = end[1] - start[1];
-    const distance = Math.hypot(dx, dy);
-    const bulge = Math.min(3.2, Math.max(0.18, distance * 0.075));
-    const normalX = distance ? -dy / distance : 0;
-    const normalY = distance ? dx / distance : 0;
-    const control: [number, number] = [
-      (start[0] + end[0]) / 2 + normalX * bulge,
-      (start[1] + end[1]) / 2 + normalY * bulge,
-    ];
-    for (let step = 0; step <= 18; step += 1) {
-      if (index > 0 && step === 0) continue;
-      const t = step / 18;
-      const inverse = 1 - t;
-      coordinates.push([
-        inverse * inverse * start[0] + 2 * inverse * t * control[0] + t * t * end[0],
-        inverse * inverse * start[1] + 2 * inverse * t * control[1] + t * t * end[1],
-      ]);
-    }
-  }
-  return coordinates;
-}
+// Note: All operational routes and case geometries are strictly road-network constrained
+// via getRoadSnappedPath() and buildRoadConstrainedPath() from osmRoadNetwork.ts.
 
 const BUILDING_COLOR: maplibregl.ExpressionSpecification = [
   "interpolate", ["linear"], BUILDING_HEIGHT,

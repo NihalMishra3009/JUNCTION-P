@@ -73,6 +73,43 @@ export const restaurantInventory = pgTable("restaurant_inventory", {
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// 5. AUDIT EVENTS (Immutable security & decision trail)
+export const auditEvents = pgTable("audit_events", {
+  id: text("id").primaryKey(),
+  actorId: text("actor_id").notNull(),
+  actorRole: text("actor_role").notNull(),
+  category: text("category").notNull(),
+  targetEntityType: text("target_entity_type").notNull(),
+  targetEntityId: text("target_entity_id").notNull(),
+  changeSummary: text("change_summary").notNull(),
+  rationale: text("rationale"),
+  previousStateJson: text("previous_state_json"),
+  newStateJson: text("new_state_json"),
+  isSimulatedScenario: boolean("is_simulated_scenario").notNull().default(true),
+  timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// 6. OPERATIONAL INTERVENTIONS (Stateful recommendations lifecycle)
+export const operationalInterventions = pgTable("operational_interventions", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  targetZoneId: text("target_zone_id").notNull(),
+  status: text("status").notNull().default("PROPOSED"),
+  urgency: text("urgency").notNull().default("MEDIUM"),
+  requiresApproval: boolean("requires_approval").notNull().default(true),
+  approvalRoleRequired: text("approval_role_required"),
+  rationale: text("rationale").notNull(),
+  confidenceScore: doublePrecision("confidence_score").notNull().default(0.8),
+  expectedPressureReductionPercent: integer("expected_pressure_reduction_percent").notNull().default(0),
+  proposedAt: timestamp("proposed_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  approvedByUserId: text("approved_by_user_id"),
+  rejectionReason: text("rejection_reason"),
+});
+
 // TypeScript Types
 export type Profile = typeof profiles.$inferSelect;
 export type NewProfile = typeof profiles.$inferInsert;
@@ -82,3 +119,7 @@ export type RestaurantMembership = typeof restaurantMemberships.$inferSelect;
 export type NewRestaurantMembership = typeof restaurantMemberships.$inferInsert;
 export type RestaurantInventory = typeof restaurantInventory.$inferSelect;
 export type NewRestaurantInventory = typeof restaurantInventory.$inferInsert;
+export type AuditEvent = typeof auditEvents.$inferSelect;
+export type NewAuditEvent = typeof auditEvents.$inferInsert;
+export type DbOperationalIntervention = typeof operationalInterventions.$inferSelect;
+export type NewDbOperationalIntervention = typeof operationalInterventions.$inferInsert;

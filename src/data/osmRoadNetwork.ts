@@ -6,6 +6,7 @@ export interface OsmRoadSegment {
   type: "PRIMARY" | "SECONDARY" | "TERTIARY" | "LOCAL" | "RAIL";
   geometry: GeoLocation[];
   oneWay?: boolean;
+  congestion?: number; // 0 (empty) to 100 (gridlock)
 }
 
 /**

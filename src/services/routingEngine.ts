@@ -7,11 +7,14 @@ export interface RouteResult {
   path: GeoLocation[];
   roadNames: string[];
   segments: OsmRoadSegment[];
+  isValidRoute: boolean;
+  congestionFactor: number; // 1.0 (free flow) to 3.5 (gridlock)
+  warning?: string;
 }
 
 export interface RoutingProvider {
-  getRoute(start: GeoLocation, end: GeoLocation): Promise<RouteResult>;
-  getMultiPointRoute(waypoints: GeoLocation[]): Promise<RouteResult>;
+  getRoute(start: GeoLocation, end: GeoLocation, congestionOverrides?: Record<string, number>): Promise<RouteResult>;
+  getMultiPointRoute(waypoints: GeoLocation[], congestionOverrides?: Record<string, number>): Promise<RouteResult>;
 }
 
 /**
@@ -210,21 +213,51 @@ export function buildRoadConstrainedPath(
  * OpenStreetMap Real Road Routing Provider implementation
  */
 export class OsmRoadRoutingProvider implements RoutingProvider {
-  async getRoute(start: GeoLocation, end: GeoLocation): Promise<RouteResult> {
-    return this.getMultiPointRoute([start, end]);
+  async getRoute(start: GeoLocation, end: GeoLocation, congestionOverrides?: Record<string, number>): Promise<RouteResult> {
+    return this.getMultiPointRoute([start, end], congestionOverrides);
   }
 
-  async getMultiPointRoute(waypoints: GeoLocation[]): Promise<RouteResult> {
+  async getMultiPointRoute(waypoints: GeoLocation[], congestionOverrides?: Record<string, number>): Promise<RouteResult> {
     if (!waypoints || waypoints.length === 0) {
-      return { distanceKm: 0, estimatedTimeMin: 0, path: [], roadNames: [], segments: [] };
+      return {
+        distanceKm: 0,
+        estimatedTimeMin: 0,
+        path: [],
+        roadNames: [],
+        segments: [],
+        isValidRoute: false,
+        congestionFactor: 1.0,
+        warning: "No waypoints provided for path calculation.",
+      };
     }
 
     const path = buildRoadConstrainedPath(waypoints, OSM_SOUTH_MUMBAI_ROADS);
+    if (path.length === 0) {
+      return {
+        distanceKm: 0,
+        estimatedTimeMin: 0,
+        path: [],
+        roadNames: [],
+        segments: [],
+        isValidRoute: false,
+        congestionFactor: 1.0,
+        warning: "Unable to find connected road network path between specified points.",
+      };
+    }
+
     const roadNamesSet = new Set<string>();
+    let totalCongestion = 0;
+    let countedSegments = 0;
 
     waypoints.forEach((wp) => {
       const snap = snapPointToNearestRoad(wp, OSM_SOUTH_MUMBAI_ROADS);
-      if (snap.segment) roadNamesSet.add(snap.segment.name);
+      if (snap.segment) {
+        roadNamesSet.add(snap.segment.name);
+        const override = congestionOverrides?.[snap.segment.id];
+        const segCongestion = override !== undefined ? override : (snap.segment.congestion || 30);
+        totalCongestion += segCongestion;
+        countedSegments++;
+      }
     });
 
     let totalMeters = 0;
@@ -233,7 +266,11 @@ export class OsmRoadRoutingProvider implements RoutingProvider {
     }
 
     const distanceKm = Number((totalMeters / 1000).toFixed(2));
-    const estimatedTimeMin = Math.max(1, Math.round(distanceKm * 2.5));
+    const avgCongestion = countedSegments > 0 ? totalCongestion / countedSegments : 30;
+    // Congestion multiplier: 1.0 (0% congestion) to 3.0 (100% gridlock)
+    const congestionFactor = Number((1.0 + (avgCongestion / 100) * 2.0).toFixed(2));
+    const baseTimeMin = distanceKm * 2.5; // ~24 km/h baseline urban speed
+    const estimatedTimeMin = Math.max(1, Math.round(baseTimeMin * congestionFactor));
 
     return {
       distanceKm,
@@ -241,6 +278,8 @@ export class OsmRoadRoutingProvider implements RoutingProvider {
       path,
       roadNames: Array.from(roadNamesSet),
       segments: OSM_SOUTH_MUMBAI_ROADS,
+      isValidRoute: true,
+      congestionFactor,
     };
   }
 }

@@ -9,6 +9,7 @@ export type RecommendationLifecycleStatus =
   | "REJECTED"
   | "SCHEDULED"
   | "EXECUTING"
+  | "EXECUTED"
   | "COMPLETED"
   | "EXPIRED"
   | "ROLLED_BACK"

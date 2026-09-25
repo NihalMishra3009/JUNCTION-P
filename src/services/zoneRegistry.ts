@@ -2,6 +2,7 @@ import {
   ZoneDefinition,
   ZoneState,
   ZoneTier,
+  ZoneCoverageProfile,
   MonitoringStatus,
   Resource,
   Hotel,
@@ -12,7 +13,7 @@ import { getPressureLevel } from "@/data/mockResources";
 import { SCENARIOS } from "@/data/mockScenarios";
 
 // ============================================================
-// JUNCTION - Tiered Zone Registry
+// JUNCTION - Tiered Zone Registry & Explicit Coverage Contracts
 // ============================================================
 
 export const OPERATIONAL_ZONES: ZoneDefinition[] = [
@@ -123,6 +124,126 @@ export const OPERATIONAL_ZONES: ZoneDefinition[] = [
   },
 ];
 
+export const ZONE_COVERAGE_PROFILES: Record<string, ZoneCoverageProfile> = {
+  ZONE_WANKHEDE: {
+    zoneId: "ZONE_WANKHEDE",
+    displayName: "Wankhede Stadium & Perimeter Concourse",
+    coverageStatus: "FULL",
+    dataSource: "SENSOR_FUSED",
+    registeredDeviceCount: 6,
+    deviceModalities: ["LIDAR", "TURNSTILE_GATE", "CCTV_CAMERA"],
+    maxPermittedConfidence: 1.0,
+    fallbackBehavior: "NONE",
+    freshnessMaxAgeSeconds: 30,
+    canTriggerOperationalRecommendations: true,
+    assumptions: "Complete optical LiDAR and turnstile hardware instrumentation on egress gates 1-7.",
+  },
+  ZONE_CHURCHGATE: {
+    zoneId: "ZONE_CHURCHGATE",
+    displayName: "Churchgate Western Railway Terminal Hub",
+    coverageStatus: "FULL",
+    dataSource: "SENSOR_FUSED",
+    registeredDeviceCount: 8,
+    deviceModalities: ["TURNSTILE_GATE", "CCTV_CAMERA", "WIFI_PROBE", "BLE_BEACON"],
+    maxPermittedConfidence: 1.0,
+    fallbackBehavior: "NONE",
+    freshnessMaxAgeSeconds: 30,
+    canTriggerOperationalRecommendations: true,
+    assumptions: "Full turnstile bank, CCTV optical density, and passenger probe tracking on subsurface concourses.",
+  },
+  ZONE_TAXI_STAGING: {
+    zoneId: "ZONE_TAXI_STAGING",
+    displayName: "South Stadium Taxi & Rideshare Staging Zone",
+    coverageStatus: "FULL",
+    dataSource: "SENSOR_FUSED",
+    registeredDeviceCount: 4,
+    deviceModalities: ["CCTV_CAMERA", "BLE_BEACON", "GPS_FLEET"],
+    maxPermittedConfidence: 1.0,
+    fallbackBehavior: "NONE",
+    freshnessMaxAgeSeconds: 30,
+    canTriggerOperationalRecommendations: true,
+    assumptions: "Curbside CCTV queue estimation and beacon array for dispatch flow measurement.",
+  },
+  ZONE_MARINE_LINES: {
+    zoneId: "ZONE_MARINE_LINES",
+    displayName: "Marine Lines Station & North Concourse",
+    coverageStatus: "PARTIAL",
+    dataSource: "SENSOR_FUSED",
+    registeredDeviceCount: 2,
+    deviceModalities: ["CCTV_CAMERA", "ENTRANCE_COUNTER"],
+    maxPermittedConfidence: 0.85,
+    fallbackBehavior: "TOPOLOGY_PROPAGATION",
+    freshnessMaxAgeSeconds: 45,
+    canTriggerOperationalRecommendations: true,
+    assumptions: "Concourse optical monitoring with platform load inferred from corridor flow.",
+  },
+  ZONE_CSMT: {
+    zoneId: "ZONE_CSMT",
+    displayName: "CSMT Central & Harbour Terminal Hub",
+    coverageStatus: "UNINSTRUMENTED",
+    dataSource: "REGIONAL_BASELINE",
+    registeredDeviceCount: 0,
+    deviceModalities: [],
+    maxPermittedConfidence: 0.50,
+    fallbackBehavior: "REGIONAL_BASELINE",
+    freshnessMaxAgeSeconds: 120,
+    canTriggerOperationalRecommendations: false,
+    assumptions: "Regional baseline schedule extrapolation. Direct measurements unavailable without field nodes.",
+  },
+  ZONE_HOTELS_SOUTH: {
+    zoneId: "ZONE_HOTELS_SOUTH",
+    displayName: "Nariman Point & Marine Drive Hospitality Corridor",
+    coverageStatus: "PARTIAL",
+    dataSource: "PARTNER_ESTIMATE",
+    registeredDeviceCount: 3,
+    deviceModalities: ["HOTEL_INVENTORY", "BLE_BEACON"],
+    maxPermittedConfidence: 0.80,
+    fallbackBehavior: "PARTNER_ESTIMATE",
+    freshnessMaxAgeSeconds: 300,
+    canTriggerOperationalRecommendations: true,
+    assumptions: "Partner-reported reservation occupancy and curbside BLE cluster estimation.",
+  },
+  ZONE_DADAR: {
+    zoneId: "ZONE_DADAR",
+    displayName: "Dadar Artery & Transit Interchange Hub",
+    coverageStatus: "UNINSTRUMENTED",
+    dataSource: "REGIONAL_BASELINE",
+    registeredDeviceCount: 0,
+    deviceModalities: [],
+    maxPermittedConfidence: 0.50,
+    fallbackBehavior: "REGIONAL_BASELINE",
+    freshnessMaxAgeSeconds: 120,
+    canTriggerOperationalRecommendations: false,
+    assumptions: "Regional transit baseline extrapolation. Uninstrumented; requires operator manual confirmation for major actions.",
+  },
+  WANKHEDE_EXIT: {
+    zoneId: "WANKHEDE_EXIT",
+    displayName: "Wankhede Concourse Exit Gates Subzone",
+    coverageStatus: "FULL",
+    dataSource: "SENSOR_FUSED",
+    registeredDeviceCount: 3,
+    deviceModalities: ["TURNSTILE_GATE", "CCTV_CAMERA"],
+    maxPermittedConfidence: 1.0,
+    fallbackBehavior: "NONE",
+    freshnessMaxAgeSeconds: 30,
+    canTriggerOperationalRecommendations: true,
+    assumptions: "Egress throughput concourse monitoring at stadium gates 1–7 with flow rate metering.",
+  },
+  ZONE_MAHAPALIKA: {
+    zoneId: "ZONE_MAHAPALIKA",
+    displayName: "Mahapalika Marg Evacuation & Transfer Corridor",
+    coverageStatus: "PARTIAL",
+    dataSource: "TOPOLOGY_PROPAGATION",
+    registeredDeviceCount: 1,
+    deviceModalities: ["CCTV_CAMERA"],
+    maxPermittedConfidence: 0.70,
+    fallbackBehavior: "TOPOLOGY_PROPAGATION",
+    freshnessMaxAgeSeconds: 60,
+    canTriggerOperationalRecommendations: true,
+    assumptions: "Pedestrian arterial corridor between Churchgate and CSMT concourses.",
+  },
+};
+
 const ZONE_MAP = new Map<string, ZoneDefinition>(
   OPERATIONAL_ZONES.map(z => [z.id, z])
 );
@@ -137,6 +258,28 @@ export function getZoneById(id: string): ZoneDefinition | undefined {
 
 export function getZonesByTier(tier: ZoneTier): ZoneDefinition[] {
   return OPERATIONAL_ZONES.filter(z => z.tier === tier);
+}
+
+export function getZoneCoverageProfile(zoneId: string): ZoneCoverageProfile {
+  return (
+    ZONE_COVERAGE_PROFILES[zoneId] || {
+      zoneId,
+      displayName: zoneId,
+      coverageStatus: "UNKNOWN",
+      dataSource: "UNKNOWN",
+      registeredDeviceCount: 0,
+      deviceModalities: [],
+      maxPermittedConfidence: 0.3,
+      fallbackBehavior: "REGIONAL_BASELINE",
+      freshnessMaxAgeSeconds: 60,
+      canTriggerOperationalRecommendations: false,
+      assumptions: "Unregistered zone profile.",
+    }
+  );
+}
+
+export function getAllZoneCoverageProfiles(): ZoneCoverageProfile[] {
+  return Object.values(ZONE_COVERAGE_PROFILES);
 }
 
 /**

@@ -9,6 +9,27 @@ import type { GeoLocation, PressureLevel, Trend, ConfidenceSource } from "./inde
 
 export type ZoneTier = "TIER_1_CRITICAL" | "TIER_2_SUPPORTING" | "TIER_3_PERIPHERAL";
 
+export type ZoneCoverageStatus =
+  | "FULL"
+  | "PARTIAL"
+  | "UNINSTRUMENTED"
+  | "TEMPORARILY_OFFLINE"
+  | "UNKNOWN";
+
+export interface ZoneCoverageProfile {
+  zoneId: string;
+  displayName: string;
+  coverageStatus: ZoneCoverageStatus;
+  dataSource: string;
+  registeredDeviceCount: number;
+  deviceModalities: string[];
+  maxPermittedConfidence: number;
+  fallbackBehavior: "NONE" | "REGIONAL_BASELINE" | "TOPOLOGY_PROPAGATION" | "PARTNER_ESTIMATE";
+  freshnessMaxAgeSeconds: number;
+  canTriggerOperationalRecommendations: boolean;
+  assumptions?: string;
+}
+
 export type MonitoringStatus =
   | "CONTINUOUS"
   | "ADAPTIVE"

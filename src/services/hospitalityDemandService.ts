@@ -1,18 +1,38 @@
 // ============================================================
-// JUNCTION - Hospitality Demand Propagation & Partner Sync (Steps 16, 17, 18)
+// JUNCTION - Hospitality Demand Propagation & Partner Sync
 // ============================================================
 
 import {
   Hotel,
   Restaurant,
-  ExtendedHotel,
-  ExtendedRestaurant,
   HospitalityDemandSignal,
+  OperationalIntervention,
   PressureLevel,
 } from "@/types";
 import { getPressureLevel } from "@/data/mockResources";
+import { persistenceService } from "./persistenceService";
+
+export interface HospitalityDemandConfig {
+  surgePressureThreshold: number; // e.g. 80% or 85%
+  enableDynamicVouchers: boolean;
+  voucherDiscountPercent: number; // e.g. 20%
+}
 
 export class HospitalityDemandService {
+  private config: HospitalityDemandConfig = {
+    surgePressureThreshold: 80,
+    enableDynamicVouchers: true,
+    voucherDiscountPercent: 20,
+  };
+
+  public setConfig(update: Partial<HospitalityDemandConfig>): void {
+    this.config = { ...this.config, ...update };
+  }
+
+  public getConfig(): HospitalityDemandConfig {
+    return { ...this.config };
+  }
+
   /**
    * Propagates crowd egress into hotel search/check-in demand and restaurant seating pressure
    * based on walking distance, time-of-day, and transport connectivity.
@@ -26,12 +46,15 @@ export class HospitalityDemandService {
     updatedHotels: Hotel[];
     updatedRestaurants: Restaurant[];
     demandSignals: HospitalityDemandSignal[];
+    recommendedVoucherInterventions: OperationalIntervention[];
   } {
     const demandSignals: HospitalityDemandSignal[] = [];
+    const recommendedVoucherInterventions: OperationalIntervention[] = [];
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 45 * 60_000).toISOString();
 
     // 1. Hotel Demand Propagation
     const updatedHotels = hotels.map(hotel => {
-      // Closer hotels with excellent transit take higher surge portion
       const proximityFactor = Math.max(0.2, 1 - (hotel.travelTimeToVenue / 45));
       const incomingCheckIns = Math.round((venueExitLoad * 0.04) * proximityFactor);
       
@@ -39,7 +62,7 @@ export class HospitalityDemandService {
       const pressure = Math.min(100, Math.round((totalDemandedRooms / hotel.totalRooms) * 100));
       const pressureLevel: PressureLevel = getPressureLevel(pressure);
 
-      if (pressure >= 85) {
+      if (pressure >= this.config.surgePressureThreshold) {
         demandSignals.push({
           targetType: "HOTEL",
           zoneId: hotel.zone,
@@ -72,7 +95,7 @@ export class HospitalityDemandService {
       const pressure = Math.min(100, Math.round((occupancy / restaurant.capacity) * 100));
       const pressureLevel: PressureLevel = getPressureLevel(pressure);
 
-      if (pressure >= 85) {
+      if (pressure >= this.config.surgePressureThreshold) {
         demandSignals.push({
           targetType: "RESTAURANT",
           zoneId: restaurant.zone,
@@ -81,6 +104,37 @@ export class HospitalityDemandService {
           estimatedArrivalTime: new Date(Date.now() + 20 * 60_000).toISOString(),
           expectedDurationMinutes: 60,
         });
+
+        // If restaurant has available table capacity in a secondary commercial zone, propose diversion voucher
+        if (restaurant.availableTables >= 4 && this.config.enableDynamicVouchers) {
+          const intervention: OperationalIntervention = {
+            id: `INT_HOSPITALITY_VOUCHER_${restaurant.id}_${now.getTime()}`,
+            type: "HOSPITALITY_DEMAND_SIGNAL",
+            title: `Activate ${this.config.voucherDiscountPercent}% Crowd Diversion Vouchers at ${restaurant.name}`,
+            description: `Offer attendee app digital dining vouchers to divert foot traffic away from congested transit stations into ${restaurant.name} (${restaurant.availableTables} tables available).`,
+            targetZoneId: restaurant.zone,
+            targetResourceId: restaurant.id,
+            status: "PROPOSED",
+            urgency: "MEDIUM",
+            requiresApproval: true,
+            approvalRoleRequired: "ORGANIZER",
+            rationale: `Station concourse load is high while ${restaurant.name} has ${restaurant.availableTables} open tables (~${restaurant.availableTables * 4} covers).`,
+            contributingSignals: [
+              `Restaurant open tables: ${restaurant.availableTables}`,
+              `Current occupancy: ${occupancy}/${restaurant.capacity}`,
+              `Demand cohort: ${dinersSeekingTables} diners nearby`,
+            ],
+            expectedPressureReductionPercent: 15,
+            timeToEffectMinutes: 15,
+            confidenceScore: 0.88,
+            proposedAt: now.toISOString(),
+            expiresAt,
+            rollbackFeasible: true,
+            rollbackPlan: "Deactivate voucher broadcast in attendee application.",
+          };
+          recommendedVoucherInterventions.push(intervention);
+          persistenceService.persistIntervention(intervention).catch(() => {});
+        }
       }
 
       return {
@@ -97,6 +151,7 @@ export class HospitalityDemandService {
       updatedHotels,
       updatedRestaurants,
       demandSignals,
+      recommendedVoucherInterventions,
     };
   }
 }
