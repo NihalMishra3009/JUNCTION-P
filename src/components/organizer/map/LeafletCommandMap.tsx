@@ -41,14 +41,11 @@ const cartoApiKey = typeof process !== "undefined" ? process.env.NEXT_PUBLIC_CAR
 export const MAP_THEMES: Record<"DARK" | "LIGHT", MapThemeConfig> = {
   DARK: {
     id: "DARK",
-    name: "Apple Maps Dark Navy",
-    url: cartoApiKey
-      ? `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${cartoApiKey}`
-      : "https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png",
+    name: "Esri World Dark Gray Canvas",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
     attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: "abcd",
-    maxZoom: 20,
+      "&copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+    maxZoom: 19,
   },
   LIGHT: {
     id: "LIGHT",
