@@ -144,8 +144,8 @@ export class CctvCameraCvProvider implements SensorInputProvider {
       });
     }
 
-    // 4. Inflow Rate Observation
-    if (device.supportedCapabilities.includes("FLOW_RATE") && cvObs.inflowRatePerMin > 0) {
+    // 4. Inflow Rate Observation — always emit when FLOW_RATE supported (show 0, not blank)
+    if (device.supportedCapabilities.includes("FLOW_RATE")) {
       observations.push({
         id: `OBS_INFLOW_${device.id}_${now.getTime()}`,
         sourceId: device.id,
@@ -156,6 +156,25 @@ export class CctvCameraCvProvider implements SensorInputProvider {
         observedAt: observedTimestamp,
         receivedAt: now.toISOString(),
         value: cvObs.inflowRatePerMin,
+        unit: "persons_per_min",
+        confidence: cvObs.confidenceScore,
+        qualityStatus,
+        derivationType: "SIMULATED",
+        freshnessSeconds: isLagged ? 120 : 0,
+        schemaVersion: "1.0.0",
+      });
+
+      // 5. Outflow Rate Observation — was missing, added here
+      observations.push({
+        id: `OBS_OUTFLOW_${device.id}_${now.getTime()}`,
+        sourceId: device.id,
+        sourceProvider: device.provider || this.providerId,
+        metricType: "OUTFLOW_RATE",
+        zoneId: device.zoneId,
+        resourceId: device.resourceId,
+        observedAt: observedTimestamp,
+        receivedAt: now.toISOString(),
+        value: cvObs.outflowRatePerMin,
         unit: "persons_per_min",
         confidence: cvObs.confidenceScore,
         qualityStatus,
