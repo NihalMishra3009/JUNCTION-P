@@ -1070,6 +1070,7 @@ export default function InvestigationMap({
 
     map.on("load", applyStyleTheme);
     map.once("idle", applyStyleTheme);
+    map.on("styledata", applyStyleTheme);
 
     const onMove = (event: MapMouseEvent) => {
       const feature = eventFeatures(event)[0];
