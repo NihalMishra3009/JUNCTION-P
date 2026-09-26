@@ -67,18 +67,6 @@ export async function getCurrentProfile(
     })
     .returning();
 
-  // If newly provisioned as RESTAURANT_PARTNER, assign default restaurant membership (R1 Trishna)
-  if (initialRole === "RESTAURANT_PARTNER") {
-    await db
-      .insert(restaurantMemberships)
-      .values({
-        profileId: newProfile.id,
-        restaurantId: "R1",
-        role: "MANAGER",
-      })
-      .onConflictDoNothing();
-  }
-
   return newProfile;
 }
 

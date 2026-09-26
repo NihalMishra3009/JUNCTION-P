@@ -98,8 +98,8 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Link href="/login/restaurant" className={`${styles.entryBtn} ${styles.btnRestaurant}`}>
-              Continue as Restaurant Partner →
+            <Link href="/login/partner" className={`${styles.entryBtn} ${styles.btnRestaurant}`}>
+              Partner Sign In →
             </Link>
           </div>
         </div>

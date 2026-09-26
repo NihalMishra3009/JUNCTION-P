@@ -7,7 +7,7 @@ import styles from "./organizer.module.css";
 import { SCENARIOS } from "@/data/mockScenarios";
 import { ScenarioId } from "@/types";
 import { useState, useEffect } from "react";
-import { useUser, UserButton } from "@clerk/nextjs";
+import { useUser, UserButton, useClerk } from "@clerk/nextjs";
 import {
   LayoutDashboard,
   Map as MapIcon,
@@ -17,6 +17,7 @@ import {
   Zap,
   Sliders,
   Calendar,
+  ShieldAlert,
 } from "lucide-react";
 
 const NAV = [
@@ -55,12 +56,13 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const { activeScenario, setScenario } = useApp();
   const { user, isLoaded, isSignedIn } = useUser();
+  const { signOut } = useClerk();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Auth protection guard
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+      router.replace(`/login/organizer?redirect=${encodeURIComponent(pathname)}`);
     }
   }, [isLoaded, isSignedIn, router, pathname]);
 
@@ -72,6 +74,47 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
           <p style={{ fontSize: 13, color: "#999999", fontFamily: "var(--font-display)" }}>
             Connecting to City Operations Command...
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Strict Role Check: Must be ORGANIZER
+  const junctionRole = user.publicMetadata?.junctionRole as string | undefined;
+  if (junctionRole !== "ORGANIZER") {
+    const isPartner = junctionRole === "RESTAURANT_PARTNER";
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a0a", padding: 24 }}>
+        <div style={{ background: "#141414", border: "1.5px solid #dc2626", padding: "40px 32px", maxWidth: 520, width: "100%", textAlign: "center" }}>
+          <ShieldAlert size={36} color="#dc2626" style={{ margin: "0 auto 16px" }} />
+          <div style={{ fontSize: 20, fontWeight: 800, color: "#dc2626", fontFamily: "var(--font-display)", marginBottom: 8, letterSpacing: "-0.01em" }}>
+            Access Denied: Role Mismatch
+          </div>
+          <p style={{ color: "#cccccc", fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
+            {isPartner
+              ? "This account is configured as a Restaurant Partner, not a JUNCTION Organizer."
+              : "This account is not configured as a JUNCTION Organizer."}
+          </p>
+          <p style={{ color: "#888888", fontSize: 12, marginBottom: 24 }}>
+            Authenticated Account: <strong style={{ color: "#ffffff" }}>{user.fullName || user.primaryEmailAddress?.emailAddress}</strong>
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <button
+              onClick={() => signOut({ redirectUrl: "/login" })}
+              className="btn"
+              style={{ background: "#262626", color: "#ffffff", border: "1px solid #404040", fontWeight: 700 }}
+            >
+              Sign Out
+            </button>
+            <Link href="/login" className="btn" style={{ background: "#262626", color: "#ffffff", border: "1px solid #404040", fontWeight: 700 }}>
+              Return to Role Selection
+            </Link>
+            {isPartner && (
+              <Link href="/partner" className="btn btn-yellow" style={{ fontWeight: 800 }}>
+                Go to Partner Portal →
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     );

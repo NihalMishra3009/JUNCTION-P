@@ -35,29 +35,81 @@
 }
 
 .main {
-  max-width: 840px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 32px 24px 60px;
+  padding: 32px 28px 60px;
   display: flex;
   flex-direction: column;
   gap: 24px;
   width: 100%;
+  box-sizing: border-box;
+}
+
+/* Loading & Empty/Unassigned State Boxes */
+.stateBox {
+  background: var(--white);
+  border: 1.5px solid var(--ink);
+  padding: 48px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  margin: 40px auto;
+  max-width: 540px;
+  width: 100%;
+  box-shadow: 3px 3px 0px rgba(0,0,0,0.08);
+}
+
+.spinIcon {
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.stateTitle {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.stateMsg {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+  margin: 0;
 }
 
 .portalHeader {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-bottom: 16px;
+  gap: 10px;
+  padding-bottom: 20px;
   border-bottom: 2px solid var(--ink);
+}
+
+.portalHeaderTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .portalTitle {
   font-family: var(--font-display);
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--ink);
   letter-spacing: -0.02em;
+  margin: 0;
 }
 
 .portalSub {
@@ -111,19 +163,14 @@
   margin-top: 2px;
 }
 
-.statsGrid {
+/* KPI Cards Row */
+.kpiRow {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
 }
 
-@media (max-width: 768px) {
-  .statsGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.statCard {
+.kpiCard {
   background: var(--white);
   border: 1px solid var(--ink);
   padding: 16px;
@@ -133,7 +180,7 @@
   box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
 }
 
-.statLabel {
+.kpiLabel {
   font-family: var(--font-display);
   font-size: 10px;
   font-weight: 700;
@@ -142,7 +189,7 @@
   color: var(--ink-faint);
 }
 
-.statValue {
+.kpiValue {
   font-family: var(--font-display);
   font-size: 28px;
   font-weight: 800;
@@ -150,28 +197,109 @@
   letter-spacing: -0.02em;
 }
 
-.statNote {
+.kpiNote {
   font-family: var(--font-body);
   font-size: 11px;
   color: var(--ink-faint);
 }
 
+/* Two-column layout grid */
+.contentGrid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.contentLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.contentRight {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Panels & Operational State Display */
+.panel {
+  background: var(--white);
+  border: 1px solid var(--ink);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
+}
+
+.panelTitle {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--neutral-dark, #e2e8f0);
+}
+
+.stateRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.stateKey {
+  font-family: var(--font-body);
+  color: var(--ink-muted);
+}
+
+.stateVal {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.pressureBarLabel {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+/* Form & Update Card */
 .updateCard {
   background: var(--white);
   border: 1px solid var(--ink);
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
   box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
 }
 
 .updateTitle {
   font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--ink);
   letter-spacing: -0.01em;
+  margin: 0;
 }
 
 .updateNote {
@@ -208,17 +336,20 @@
 }
 
 .savedBanner {
-  background: var(--green-bg);
-  border: 1px solid rgba(16,185,129,0.3);
+  background: var(--green-bg, #f0fdf4);
+  border: 1px solid rgba(16,185,129,0.4);
   padding: 12px 14px;
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
-  color: var(--green);
+  color: var(--green, #059669);
+  margin-top: 8px;
 }
 
 .footer {
   display: flex;
   justify-content: center;
+  padding-top: 16px;
 }
+
 
