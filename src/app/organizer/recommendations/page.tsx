@@ -17,6 +17,7 @@ export default function RecommendationsPage() {
     auditRecords,
     recommendationSource,
     aiPlanSummary,
+    aiModelUsed,
     isGeneratingAiPlan,
     regenerateAiRecommendations
   } = useApp();
@@ -44,9 +45,9 @@ export default function RecommendationsPage() {
               style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em" }}
             >
               {recommendationSource === "AI"
-                ? "⚡ AI PLANNER (GEMINI FLASH)"
+                ? `⚡ AI PLANNER (${aiModelUsed?.toUpperCase() || "GEMINI FLASH"})`
                 : recommendationSource === "CACHED_AI"
-                ? "⚡ CACHED AI RECOMMENDATION"
+                ? `⚡ CACHED AI (${aiModelUsed?.toUpperCase() || "GEMINI FLASH"})`
                 : "⚙ DETERMINISTIC FALLBACK"}
             </span>
             <button
@@ -80,7 +81,7 @@ export default function RecommendationsPage() {
             <span>{aiPlanSummary}</span>
           </div>
           <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--ink-faint)" }}>
-            SOURCE: {recommendationSource}
+            SOURCE: {recommendationSource}{aiModelUsed && recommendationSource !== "DETERMINISTIC_FALLBACK" ? ` · ${aiModelUsed}` : ""}
           </span>
         </div>
       )}

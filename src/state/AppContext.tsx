@@ -36,6 +36,7 @@ interface AppContextValue {
   recommendations: Recommendation[];
   recommendationSource: "AI" | "CACHED_AI" | "DETERMINISTIC_FALLBACK";
   aiPlanSummary: string;
+  aiModelUsed?: string;
   isGeneratingAiPlan: boolean;
   regenerateAiRecommendations: () => Promise<void>;
   approveRecommendation: (id: string) => void;
@@ -108,6 +109,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [recommendations, setRecommendations] = useState<Recommendation[]>(MOCK_RECOMMENDATIONS);
   const [recommendationSource, setRecommendationSource] = useState<"AI" | "CACHED_AI" | "DETERMINISTIC_FALLBACK">("AI");
   const [aiPlanSummary, setAiPlanSummary] = useState<string>("Synthesizing live operational intelligence...");
+  const [aiModelUsed, setAiModelUsed] = useState<string | undefined>("gemini-3.8-flash");
   const [isGeneratingAiPlan, setIsGeneratingAiPlan] = useState<boolean>(false);
 
   const [attendeeSelectedRouteId, setAttendeeSelectedRouteId] = useState<string | null>(null);
@@ -561,6 +563,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
         setRecommendationSource(plan.source);
         setAiPlanSummary(plan.planSummary);
+        if (plan.modelUsed) {
+          setAiModelUsed(plan.modelUsed);
+        }
       }
     } catch (err) {
       console.warn("[AppContext] AI plan fetch failed:", err);
@@ -581,7 +586,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       activeScenario, setScenario,
-      recommendations, recommendationSource, aiPlanSummary, isGeneratingAiPlan, regenerateAiRecommendations,
+      recommendations, recommendationSource, aiPlanSummary, aiModelUsed, isGeneratingAiPlan, regenerateAiRecommendations,
       approveRecommendation, rejectRecommendation, isRecommendationApproved,
       attendeeSelectedRouteId, selectAttendeeRoute,
       hasAttendeeRecommendation, attendeeRecommendationMessage,

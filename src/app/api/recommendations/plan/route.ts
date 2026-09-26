@@ -18,6 +18,7 @@ const SERVER_COOLDOWN_MS = 60_000; // 60 seconds cooldown between external Gemin
 const CACHE_TTL_MS = 180_000; // 3 minutes cache retention
 let lastGeminiCallTimestamp = 0;
 let rateLimitBackoffUntil = 0;
+let lastSuccessfulAiPlan: AiRecommendationPlan | null = null;
 const cachedPlans = new Map<string, { plan: AiRecommendationPlan; timestamp: number }>();
 
 /**
@@ -150,29 +151,44 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 2. Server-Side Rate Limit / Backoff Protection
-  if (nowMs < rateLimitBackoffUntil) {
+  // 2. Server-Side Rate Limit / Backoff Protection (only block if not forceRefresh)
+  if (nowMs < rateLimitBackoffUntil && !body.forceRefresh) {
+    if (lastSuccessfulAiPlan) {
+      return NextResponse.json({
+        success: true,
+        plan: {
+          ...lastSuccessfulAiPlan,
+          source: "CACHED_AI",
+          isCached: true,
+          cooldownRemainingSeconds: Math.ceil((rateLimitBackoffUntil - nowMs) / 1000),
+        },
+      });
+    }
     const fallbackPlan = buildDeterministicFallback(body, "Gemini rate-limit backoff active (protecting API quota)");
     return NextResponse.json({ success: true, plan: fallbackPlan });
   }
 
-  // 3. Cooldown check if not forced
+  // If backoff window has elapsed, reset it
+  if (nowMs >= rateLimitBackoffUntil) {
+    rateLimitBackoffUntil = 0;
+  }
+
+  // 3. Cooldown check if not forced: return cached AI plan if available
   const elapsedSinceLastCall = nowMs - lastGeminiCallTimestamp;
   if (elapsedSinceLastCall < SERVER_COOLDOWN_MS && !body.forceRefresh) {
-    if (cachedEntry) {
+    const planToReturn = cachedEntry?.plan || lastSuccessfulAiPlan;
+    if (planToReturn) {
       const remainingCooldown = Math.ceil((SERVER_COOLDOWN_MS - elapsedSinceLastCall) / 1000);
       return NextResponse.json({
         success: true,
         plan: {
-          ...cachedEntry.plan,
+          ...planToReturn,
           source: "CACHED_AI",
           isCached: true,
           cooldownRemainingSeconds: remainingCooldown,
         },
       });
     }
-    const fallbackPlan = buildDeterministicFallback(body, "Cooldown period active");
-    return NextResponse.json({ success: true, plan: fallbackPlan });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -234,14 +250,16 @@ ${JSON.stringify(SUPPORTED_ACTION_CATALOGUE, null, 2)}
 Generate a concise, high-priority operational plan (2-3 recommendations) addressing the most critical bottlenecks.`;
 
     const candidateModels = [
-      "gemini-3.8-flash",
       "gemini-3.5-flash",
-      "gemini-flash-latest",
       "gemini-3.1-flash-lite",
+      "gemini-flash-lite-latest",
+      "gemini-2.5-flash-lite",
+      "gemini-3.8-flash",
     ];
     let response: any = null;
-    let successfulModel = "gemini-3.8-flash";
+    let successfulModel = candidateModels[0];
     let lastError: Error | null = null;
+    let anyRateLimited = false;
 
     for (const modelName of candidateModels) {
       try {
@@ -326,15 +344,18 @@ Generate a concise, high-priority operational plan (2-3 recommendations) address
       } catch (err: any) {
         lastError = err;
         console.warn(`[API /recommendations/plan] Model ${modelName} call failed:`, err.message);
-        // If rate-limited / quota exhausted, trigger 2-minute backoff
         if (err.message?.includes("429") || err.message?.includes("RESOURCE_EXHAUSTED") || err.message?.includes("quota")) {
-          rateLimitBackoffUntil = Date.now() + 120_000;
-          break;
+          anyRateLimited = true;
         }
+        // Continue to test the next candidate model
+        continue;
       }
     }
 
     if (!response) {
+      if (anyRateLimited) {
+        rateLimitBackoffUntil = Date.now() + 120_000;
+      }
       throw lastError || new Error("All candidate Gemini models failed");
     }
 
@@ -383,6 +404,7 @@ Generate a concise, high-priority operational plan (2-3 recommendations) address
     }
 
     lastGeminiCallTimestamp = Date.now();
+    rateLimitBackoffUntil = 0;
 
     const aiPlan: AiRecommendationPlan = {
       planId: `PLAN_AI_${Date.now()}`,
@@ -400,6 +422,7 @@ Generate a concise, high-priority operational plan (2-3 recommendations) address
 
     // Cache the plan server-side
     cachedPlans.set(fingerprint, { plan: aiPlan, timestamp: Date.now() });
+    lastSuccessfulAiPlan = aiPlan;
 
     return NextResponse.json({ success: true, plan: aiPlan });
   } catch (error: any) {

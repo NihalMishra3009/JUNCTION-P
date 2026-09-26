@@ -161,21 +161,21 @@ export class AiRecommendationPlannerService {
     const isSameFingerprint = this.lastFingerprint === context.fingerprint;
     const isWithinCooldown = now - this.lastFetchTimestamp < this.COOLDOWN_MS;
 
-    // Fast-path: Return client-side cached plan if fingerprint is identical and not forced
-    if (!forceRefresh && isSameFingerprint && this.lastFetchedPlan) {
+    // Fast-path: Return client-side cached AI plan if fingerprint is identical and not forced
+    if (!forceRefresh && isSameFingerprint && this.lastFetchedPlan && this.lastFetchedPlan.source !== "DETERMINISTIC_FALLBACK") {
       return {
         ...this.lastFetchedPlan,
-        source: this.lastFetchedPlan.source === "AI" ? "CACHED_AI" : this.lastFetchedPlan.source,
+        source: "CACHED_AI",
         isCached: true,
         cooldownRemainingSeconds: this.getRemainingCooldownSeconds(),
       };
     }
 
-    // Cooldown protection: If within cooldown and not explicitly forced, return cached plan
-    if (!forceRefresh && isWithinCooldown && this.lastFetchedPlan) {
+    // Cooldown protection: If within cooldown and not explicitly forced, return cached AI plan if one exists
+    if (!forceRefresh && isWithinCooldown && this.lastFetchedPlan && this.lastFetchedPlan.source !== "DETERMINISTIC_FALLBACK") {
       return {
         ...this.lastFetchedPlan,
-        source: this.lastFetchedPlan.source === "AI" ? "CACHED_AI" : this.lastFetchedPlan.source,
+        source: "CACHED_AI",
         isCached: true,
         cooldownRemainingSeconds: this.getRemainingCooldownSeconds(),
       };
@@ -194,10 +194,12 @@ export class AiRecommendationPlannerService {
 
       const data = await res.json();
       if (data.success && data.plan) {
-        this.lastFetchedPlan = data.plan;
-        this.lastFingerprint = context.fingerprint;
-        if (data.plan.source === "AI") {
-          this.lastFetchTimestamp = now;
+        if (data.plan.source === "AI" || data.plan.source === "CACHED_AI") {
+          this.lastFetchedPlan = data.plan;
+          this.lastFingerprint = context.fingerprint;
+          if (data.plan.source === "AI") {
+            this.lastFetchTimestamp = now;
+          }
         }
         return data.plan;
       }
