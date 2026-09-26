@@ -1,134 +1,307 @@
-/* Swiss Editorial Command Center Layout Composition */
+/* ============================================================
+   JUNCTION — Operations Room (Command Center)
+   Swiss editorial layout. Strong typography. Clear hierarchy.
+   ============================================================ */
 
 .page {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 24px 28px 40px;
+  padding: 24px 28px 56px;
   background: var(--paper);
   min-height: calc(100vh - 54px);
   overflow-y: auto;
 }
 
-/* 1. EDITORIAL OPERATIONAL STATEMENT HERO BANNER */
-.heroBanner {
-  background: var(--white);
-  border: 1px solid var(--ink);
-  padding: 24px 28px;
+/* ── 1. PIPELINE ─────────────────────────────────────────── */
+.pipeline {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 24px;
-  box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
+  background: #111111;
+  border-radius: var(--radius-sm);
+  border: 1px solid #222222;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  overflow-x: auto;
+  gap: 0;
 }
 
-@media (max-width: 900px) {
-  .heroBanner {
-    flex-direction: column;
-    align-items: flex-start;
+.pipeNode {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 18px;
+  flex: 1;
+  min-width: 120px;
+  border-right: 1px solid #242424;
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--t-fast);
+  cursor: pointer;
+}
+
+.pipeNode:last-child {
+  border-right: none;
+}
+
+.pipeNode:hover {
+  background: #1a1a1a;
+}
+
+.pipeNodeActive {
+  background: rgba(245, 196, 0, 0.05);
+}
+
+.pipeArrow {
+  color: #444;
+  font-size: 14px;
+  padding: 0 2px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.pipeStage {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--junction-yellow);
+}
+
+.pipeValue {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+/* ── 2. CURRENT SITUATION HERO ─────────────────────────── */
+.situationConsole {
+  background: var(--white);
+  border: 1.5px solid var(--ink);
+  box-shadow: 3px 3px 0px rgba(0,0,0,0.08);
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 0;
+}
+
+@media (max-width: 960px) {
+  .situationConsole {
+    grid-template-columns: 1fr;
   }
 }
 
-.heroMain {
+.situationMain {
+  padding: 24px 28px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
+  border-right: 1px solid var(--neutral);
 }
 
-.heroEyebrow {
+@media (max-width: 960px) {
+  .situationMain {
+    border-right: none;
+    border-bottom: 1px solid var(--neutral);
+  }
+}
+
+.situationEyebrow {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
-.heroTag {
+.scenarioPill {
   font-family: var(--font-display);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ink);
   background: var(--yellow);
+  color: var(--ink);
   padding: 3px 8px;
+  border-radius: 2px;
 }
 
-.heroEventLabel {
+.eventContextTag {
   font-family: var(--font-display);
   font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+.situationHeadline {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.situationDriversList {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--neutral);
+}
+
+@media (max-width: 680px) {
+  .situationDriversList {
+    grid-template-columns: 1fr;
+  }
+}
+
+.driverItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.driverLabel {
+  font-family: var(--font-display);
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
-.heroStatement {
+.driverVal {
   font-family: var(--font-display);
-  font-size: clamp(24px, 2.8vw, 36px);
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--ink);
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin: 2px 0;
 }
 
-.heroMetaRow {
+.driverDesc {
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 11px;
   color: var(--ink-muted);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
-.heroMetricBox {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background: var(--paper);
-  border: 1px solid var(--neutral-dark);
-  padding: 16px 22px;
-  flex-shrink: 0;
-}
-
-.heroMetricValue {
-  font-family: var(--font-display);
-  font-size: 48px;
-  font-weight: 800;
-  color: var(--red);
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-
-.heroMetricLabel {
+/* Wankhede gate compact context bar */
+.gateContextBar {
+  border-top: 1px solid var(--neutral);
+  padding-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
 }
 
-.heroMetricSub {
+.gateContextLabel {
   font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 9px;
+  font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 
-.heroMetricTrend {
+.gateContextRows {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.gateContextRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--paper);
+  border: 1px solid var(--neutral-dark);
+  padding: 6px 12px;
+  border-radius: var(--radius-xs);
+}
+
+.gateContextName {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  min-width: 72px;
+}
+
+.gateContextPressure {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* Right side: pressure number + forward indicator */
+.situationMetricsSide {
+  padding: 24px;
+  background: #FAF9F5;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.pressureGaugeRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pressureValBig {
+  font-family: var(--font-display);
+  font-size: 54px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.pressureStatusMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.forecastPeakLine {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--neutral-dark);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.predictionsLink {
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
-  color: var(--red);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  text-decoration: none;
   text-transform: uppercase;
+  border-bottom: 1px solid var(--neutral);
+  padding-bottom: 2px;
+  align-self: flex-end;
+  transition: color var(--t-fast);
 }
 
-/* CLOSED LOOP ORCHESTRATION BANNER */
+.predictionsLink:hover {
+  color: var(--ink);
+}
+
+/* Redistribution banner */
 .closedLoopBanner {
   background: var(--green-bg);
-  border: 1px solid rgba(16,185,129,0.3);
+  border: 1px solid rgba(16,185,129,0.4);
   padding: 12px 20px;
   display: flex;
   justify-content: space-between;
@@ -155,33 +328,111 @@
   color: var(--ink);
 }
 
-/* 2. SPATIAL CANVAS WORKSPACE (MAP AREA) */
-.spatialCanvasContainer {
+/* ── 3. ACTION STRIP ────────────────────────────────────── */
+.actionStrip {
+  background: var(--ink);
+  color: var(--white);
+  border: 1.5px solid var(--ink);
+  box-shadow: 3px 3px 0px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.actionStripLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 240px;
+}
+
+.actionStepBadge {
+  background: var(--yellow);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.actionTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.actionTitle {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: -0.01em;
+}
+
+.actionSubtitle {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
+}
+
+.actionStripRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.actionSecondaryLink {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.5);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color var(--t-fast);
+  white-space: nowrap;
+}
+
+.actionSecondaryLink:hover {
+  color: var(--yellow);
+}
+
+/* ── 4. SPATIAL COMMAND MAP ─────────────────────────────── */
+.spatialSection {
   background: var(--white);
   border: 1px solid var(--ink);
-  position: relative;
   box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
   display: flex;
   flex-direction: column;
   height: 480px;
-  min-height: 440px;
+  min-height: 420px;
 }
 
 .spatialHud {
-  padding: 12px 18px;
+  padding: 10px 16px;
   background: var(--ink);
   color: var(--white);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  z-index: 10;
-  border-bottom: 1px solid var(--ink);
+  border-bottom: 1px solid #222222;
+  flex-shrink: 0;
 }
 
 .hudLeft {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .hudTitle {
@@ -195,18 +446,12 @@
 
 .hudBadge {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--yellow);
-  background: rgba(245, 196, 0, 0.15);
-  padding: 2px 8px;
+  background: rgba(245,196,0,0.15);
+  padding: 2px 6px;
   letter-spacing: 0.08em;
-}
-
-.hudRight {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .hudBtn {
@@ -216,7 +461,7 @@
   letter-spacing: 0.05em;
   background: transparent;
   color: var(--yellow);
-  border: 1px solid rgba(245, 196, 0, 0.3);
+  border: 1px solid rgba(245,196,0,0.3);
   padding: 4px 10px;
   cursor: pointer;
   transition: all var(--t-fast);
@@ -234,230 +479,226 @@
   width: 100%;
 }
 
-/* 3. LOWER SPLIT GRID (CCTV & FORECAST) */
-.lowerGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+/* ── 5. LIVE SIGNAL HEALTH ──────────────────────────────── */
+.signalStrip {
+  background: var(--white);
+  border: 1px solid var(--neutral-dark);
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-@media (max-width: 980px) {
-  .lowerGrid {
+.signalStripHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--neutral);
+  padding-bottom: 8px;
+}
+
+.signalStripTitle {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.signalViewAllLink {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color var(--t-fast);
+}
+
+.signalViewAllLink:hover {
+  color: var(--ink);
+}
+
+.signalRows {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border: 1px solid var(--neutral);
+}
+
+@media (max-width: 800px) {
+  .signalRows {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.signalRow {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 14px;
+  border-right: 1px solid var(--neutral);
+}
+
+.signalRow:last-child {
+  border-right: none;
+}
+
+.signalName {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.signalValue {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.signalStatus {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.signalDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+
+/* ── 6. VISUAL VERIFICATION ─────────────────────────────── */
+.verificationSection {
+  background: var(--white);
+  border: 1px solid var(--neutral-dark);
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.verificationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--neutral);
+  padding-bottom: 8px;
+}
+
+.verificationTitle {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.verificationOpenLink {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color var(--t-fast);
+}
+
+.verificationOpenLink:hover {
+  color: var(--ink);
+}
+
+.verificationGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .verificationGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .verificationGrid {
     grid-template-columns: 1fr;
   }
 }
 
-.gridColumn {
-  background: var(--white);
-  border: 1px solid var(--ink);
-  padding: 20px;
-  box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
+.verificationTile {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.columnHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--neutral);
-}
-
-.columnTitle {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink);
-}
-
-.forecastCard {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.timelineRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--paper);
+  gap: 0;
   border: 1px solid var(--neutral-dark);
-  padding: 16px 20px;
-}
-
-.timeNode {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.timeLabel {
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.timeVal {
-  font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.timeArrow {
-  font-size: 16px;
-  color: var(--ink-faint);
-  font-weight: 700;
-}
-
-.cascadeSummary {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--neutral);
-}
-
-.cascadeTitle {
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-}
-
-.cascadeList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.cascadeRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
   background: var(--paper);
-  border: 1px solid var(--neutral-dark);
-  font-size: 12px;
+  overflow: hidden;
 }
 
-.cascadeNodeName {
-  font-family: var(--font-display);
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.cascadeLead {
-  font-family: var(--font-body);
-  font-size: 11px;
-  color: var(--ink-muted);
-}
-
-.cascadePress {
-  font-family: var(--font-display);
-  font-weight: 700;
-  color: var(--red);
-}
-
-/* 4. RECOMMENDED ACTION COMMAND SURFACE */
-.actionSurface {
+.verificationTileHeader {
+  padding: 6px 10px;
   background: var(--ink);
-  color: var(--white);
-  border: 1px solid var(--ink);
-  padding: 22px 28px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  gap: 24px;
-  box-shadow: 2px 2px 0px rgba(0,0,0,0.12);
+  gap: 6px;
 }
 
-@media (max-width: 900px) {
-  .actionSurface {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-
-.actionLeft {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.actionBadge {
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--yellow);
-}
-
-.actionHeadline {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--white);
-  letter-spacing: -0.01em;
-}
-
-.actionProblem {
-  font-family: var(--font-body);
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.actionRight {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-shrink: 0;
-}
-
-.actionImpactBox {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.impactLabel {
+.verificationZoneName {
   font-family: var(--font-display);
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--white);
+  line-height: 1.2;
+  flex: 1;
 }
 
-.impactValue {
+.verificationCamId {
   font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--green);
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.4);
+  white-space: nowrap;
 }
 
-.actionBtnGroup {
-  display: flex;
-  gap: 10px;
+.verificationVideoWrapper {
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  background: #111;
+  position: relative;
 }
 
-/* MODAL OVERLAY WHEN MAP RESOURCE CLICKED */
+.verificationVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── MODAL OVERLAY ──────────────────────────────────────── */
 .resourceModalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(17, 17, 17, 0.7);
+  background: rgba(17,17,17,0.7);
   backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
@@ -473,4 +714,3 @@
   border: 1px solid var(--ink);
   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
 }
-

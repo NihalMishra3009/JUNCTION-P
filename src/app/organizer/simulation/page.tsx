@@ -65,11 +65,53 @@ function SimulationContent() {
   return (
     <div className={styles.page}>
       <PageHeader
-        category="DECISIONS"
+        category="SIMULATE"
         title="Time-Stepped Destination Simulation"
         subtitle="Aggregate human cohort simulation advancing through South Mumbai geographic network with real-time flow conservation."
         actions={<span className="pill pill-simulated">SIMULATED DESTINATION MODEL</span>}
       />
+
+      {/* 1. SCENARIO SUMMARY — WHAT AM I TESTING? WHAT HAPPENED? DID IT HELP? */}
+      <div className={styles.scenarioSummaryCard}>
+        <div className={styles.scenarioSummaryBlock}>
+          <span className={styles.scenarioSummaryStepTag}>WHAT AM I TESTING?</span>
+          <span className={styles.scenarioSummaryTitle}>
+            {linkedRec ? linkedRec.title : `Scenario: ${activeScenario.replace(/_/g, " ")}`}
+          </span>
+          <span className={styles.scenarioSummarySub}>
+            {linkedRec ? `Recommendation intervention alters downstream cohort distribution at runtime.` : `Full cohort simulation across South Mumbai destination network.`}
+          </span>
+          {linkedRec && (
+            <span className="pill pill-yellow" style={{ width: "fit-content", fontSize: 10 }}>INTERVENTION LINKED</span>
+          )}
+        </div>
+
+        <div className={styles.scenarioSummaryBlock}>
+          <span className={styles.scenarioSummaryStepTag}>WHAT HAPPENED?</span>
+          <span className={styles.scenarioSummaryTitle}>
+            {simulationState.status === "IDLE" ? "Not Started" : `${Math.round(simulationState.minutesElapsed)} min Elapsed`}
+          </span>
+          <span className={styles.scenarioSummaryValue} style={{ color: simulationState.status === "PLAYING" ? "var(--green)" : "var(--ink)" }}>
+            {simulationState.totalExitedVenue.toLocaleString()} exited venue
+          </span>
+          <span className={styles.scenarioSummarySub}>{activeCohorts.length} cohorts currently in transit</span>
+        </div>
+
+        <div className={styles.scenarioSummaryBlock}>
+          <span className={styles.scenarioSummaryStepTag}>DID IT HELP?</span>
+          <span className={styles.scenarioSummaryTitle}>
+            {totalAccumulated > 6000 ? "High queue accumulation" : totalAccumulated > 0 ? "Moderate flow" : "Awaiting simulation"}
+          </span>
+          <span className={styles.scenarioSummaryValue} style={{ color: totalAccumulated > 6000 ? "var(--red)" : "var(--green)" }}>
+            {totalAccumulated > 0 ? `${totalAccumulated.toLocaleString()} queued` : "—"}
+          </span>
+          <span className={styles.scenarioSummarySub}>
+            {simulationState.status === "IDLE"
+              ? "Press PLAY to begin the simulation"
+              : `Flow conservation: ${totalInTransit.toLocaleString()} + ${totalAccumulated.toLocaleString()} + ${Math.round(simulationState.totalCleared).toLocaleString()} cleared`}
+          </span>
+        </div>
+      </div>
 
 
       {/* LINKED RECOMMENDATION INTERVENTION BANNER */}
@@ -366,8 +408,16 @@ function SimulationContent() {
               <span className="text-meta">Aggregate Movement Stream</span>
             </div>
             {activeCohorts.length === 0 ? (
-              <div style={{ padding: "20px 0", textAlign: "center", color: "var(--ink-faint)", fontSize: 13 }}>
-                No cohorts currently moving. Press [▶ PLAY] to start the simulation clock.
+              <div className={styles.idleState}>
+                <span style={{ fontSize: 28 }}>▶</span>
+                <span className={styles.idleStateTitle}>
+                  {simulationState.status === "IDLE" ? "Simulation Ready — Press PLAY to Deploy Cohorts" : "Simulation Paused"}
+                </span>
+                <span className={styles.idleStateSub}>
+                  {simulationState.status === "IDLE"
+                    ? `33,000 attendees will be released from Wankhede exit gates and tracked through South Mumbai infrastructure nodes. All cohort physics are pre-configured for scenario: ${activeScenario.replace(/_/g, " ")}.`
+                    : "Resume or reset the simulation to continue cohort tracking."}
+                </span>
               </div>
             ) : (
               <div style={{ overflowX: "auto", marginTop: 10 }}>

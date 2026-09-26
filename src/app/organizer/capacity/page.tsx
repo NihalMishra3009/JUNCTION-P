@@ -20,7 +20,7 @@ export default function CapacityPage() {
   return (
     <div className={styles.page}>
       <PageHeader
-        category="PREDICT"
+        category="ASSESS — CURRENT CAPACITY"
         title="Capacity & Availability"
         subtitle="Real-time usable capacity across transit hubs, venue gates, and hotel partner networks."
         actions={
@@ -33,20 +33,19 @@ export default function CapacityPage() {
         }
       />
 
-
-      {/* SUMMARY STATS ROW */}
+      {/* PRIMARY: OPERATIONAL SUMMARY (answer the operational question FIRST) */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-        <div style={{ background: "var(--white)", border: "1px solid var(--neutral)", borderRadius: "var(--radius-md)", padding: "14px 18px", boxShadow: "var(--shadow-sm)" }}>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-faint)" }}>Transit &amp; Venue Spare Capacity</span>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--ink)", marginTop: 4 }}>
+        <div style={{ background: "var(--white)", border: "1.5px solid var(--ink)", padding: "14px 18px", boxShadow: "2px 2px 0 rgba(0,0,0,0.06)" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-faint)" }}>Transit & Venue Spare Capacity</span>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "var(--ink)", marginTop: 4 }}>
             {resources.reduce((sum, r) => sum + r.availableCapacity, 0).toLocaleString()}
           </div>
           <span style={{ fontSize: 11, color: "var(--ink-muted)" }}>available across 7 monitored nodes</span>
         </div>
 
-        <div style={{ background: "var(--white)", border: "1.5px solid var(--yellow-state)", borderRadius: "var(--radius-md)", padding: "14px 18px", boxShadow: "var(--shadow-sm)" }}>
+        <div style={{ background: "var(--white)", border: "1.5px solid var(--yellow-state)", padding: "14px 18px", boxShadow: "2px 2px 0 rgba(0,0,0,0.06)" }}>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-faint)" }}>Usable Hotel Rooms</span>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: "var(--ink)", marginTop: 4 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "var(--ink)", marginTop: 4 }}>
             {totalUsableRooms} <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink-muted)" }}>of {totalRawRooms} raw available</span>
           </div>
           <span style={{ fontSize: 11, color: "var(--yellow-state)", fontWeight: 600 }}>
@@ -54,9 +53,9 @@ export default function CapacityPage() {
           </span>
         </div>
 
-        <div style={{ background: "var(--white)", border: "1px solid var(--neutral)", borderRadius: "var(--radius-md)", padding: "14px 18px", boxShadow: "var(--shadow-sm)" }}>
+        <div style={{ background: "var(--white)", border: "1.5px solid var(--ink)", padding: "14px 18px", boxShadow: "2px 2px 0 rgba(0,0,0,0.06)" }}>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-faint)" }}>Accommodation Pressure</span>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: kpis.avgHotelPressure >= 85 ? "var(--red)" : kpis.avgHotelPressure >= 70 ? "var(--orange)" : "var(--green)", marginTop: 4 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: kpis.avgHotelPressure >= 85 ? "var(--red)" : kpis.avgHotelPressure >= 70 ? "var(--orange)" : "var(--green)", marginTop: 4 }}>
             {kpis.avgHotelPressure}%
           </div>
           <span style={{ fontSize: 11, color: "var(--ink-muted)" }}>average across Zone A, B, and C properties</span>

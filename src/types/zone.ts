@@ -61,6 +61,8 @@ export interface ZoneDefinition {
   nominalPedestrianCapacity: number;
   nominalTransitCapacity: number;
   description: string;
+  parentZoneId?: string;
+  subZoneIds?: string[];
 }
 
 export interface ContributingSensorSummary {
@@ -151,6 +153,8 @@ export interface ZoneState {
   missingSensors?: string[];
   /** Full mathematical and provenance breakdown for the evaluator */
   fusionDiagnostics?: FusionDiagnostics;
+  parentZoneId?: string;
+  subZoneIds?: string[];
 }
 
 export interface SensorObservation {

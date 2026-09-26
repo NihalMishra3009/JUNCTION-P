@@ -124,9 +124,9 @@ export default function CctvCrowdMonitoringPage() {
     <div className={styles.page}>
       {/* Top Header */}
       <PageHeader
-        category="VISUAL VERIFICATION & DIAGNOSTICS"
-        title="Recorded CCTV & YOLO Computer Vision Suite"
-        subtitle="Independent multi-channel visual surveillance wall, YOLOv12 person detection, ByteTrack trajectory linking, and tripwire analytics."
+        category="OBSERVE — SENSOR INPUT"
+        title="CCTV & Computer Vision Feeds"
+        subtitle="One of four sensor inputs feeding JUNCTION's zone pressure model. YOLOv12 person detection, ByteTrack trajectory linking, and tripwire analytics."
         actions={
           <div className={styles.viewSwitcher}>
             <button
@@ -166,18 +166,19 @@ export default function CctvCrowdMonitoringPage() {
         }
       />
 
-      {/* Subsystem Boundary & Architectural Disclosure Ribbon */}
+      {/* Signal Role Boundary Ribbon */}
       <div className={styles.subsystemBanner}>
         <div className={styles.subsystemBannerLeft}>
           <ShieldCheck size={18} className={styles.subsystemIcon} />
           <div>
-            <strong>Independent Subsystem Boundary:</strong> CCTV &amp; YOLO telemetry operates strictly as a visual verification and diagnostic tool. Video observations carry <code>sourceProvider: &quot;JUNCTION_VIDEO_CV&quot;</code> and do <strong>not</strong> overwrite the venue-wide sensor-fusion operational simulation or total attendance.
+            <strong>Input Signal Role:</strong> CCTV &amp; YOLO telemetry provides localized visual crowd density verification. It operates as <em>one of four inputs</em> into the sensor fusion engine — alongside Railway, Road, and Hospitality data. Video observations carry <code>sourceProvider: &quot;JUNCTION_VIDEO_CV&quot;</code> and do <strong>not</strong> overwrite the full operational simulation.
           </div>
         </div>
         <div className={styles.subsystemTag}>
           <span>9 RECORDED ASSETS</span>
         </div>
       </div>
+
 
       {/* Operational Summary Ribbon */}
       <div className={styles.summaryRibbon}>

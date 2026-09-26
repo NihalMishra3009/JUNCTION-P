@@ -94,7 +94,7 @@ export default function ResourcePanel({ resource, scenario, onClose }: Props) {
 
       <div className={styles.panelFooter}>
         <ConfidenceBadge source={resource.source} />
-        <Link href="/organizer/predictions" className="btn btn-outline btn-sm">View Cascade →</Link>
+        <Link href="/organizer/predictions" className="btn btn-outline btn-sm">View Predictions →</Link>
       </div>
     </div>
   );

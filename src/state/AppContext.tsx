@@ -162,11 +162,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Play / Pause / Reset / Speed Controls
   const playSimulation = useCallback(() => {
-    setSimulationState(prev => ({ ...prev, status: "PLAYING" }));
-  }, []);
+    setSimulationState(prev => {
+      if (prev.status === "PLAYING") return prev;
+      if (prev.status === "COMPLETE") {
+        const initial = createInitialSimulationState(activeScenario, simParams.attendance);
+        return { ...initial, status: "PLAYING" };
+      }
+      return { ...prev, status: "PLAYING" };
+    });
+  }, [activeScenario, simParams.attendance]);
 
   const pauseSimulation = useCallback(() => {
-    setSimulationState(prev => ({ ...prev, status: "PAUSED" }));
+    setSimulationState(prev => {
+      if (prev.status !== "PLAYING") return prev;
+      return { ...prev, status: "PAUSED" };
+    });
   }, []);
 
   const resetSimulation = useCallback(() => {
@@ -175,7 +185,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [activeScenario, simParams.attendance]);
 
   const setSimulationSpeed = useCallback((speed: SimulationSpeed) => {
-    setSimulationState(prev => ({ ...prev, speed }));
+    setSimulationState(prev => {
+      if (prev.speed === speed) return prev;
+      return { ...prev, speed };
+    });
   }, []);
 
   const updateSimParams = useCallback((p: Partial<SimulationParams>) => {
@@ -277,9 +290,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const timer = setInterval(() => {
       setSimulationState(prev => {
         if (prev.status !== "PLAYING") return prev;
+
+        const delta = 1 * prev.speed;
+        const targetMinutes = prev.minutesElapsed + delta;
+
+        // Completion boundary check at 60 minutes
+        if (targetMinutes >= 60) {
+          const stepDelta = Math.max(0, 60 - prev.minutesElapsed);
+          const finalState = stepDelta > 0
+            ? nextSimulationState(prev, stepDelta, activeScenario, simParams.attendance, activeInterventions)
+            : prev;
+          return {
+            ...finalState,
+            status: "COMPLETE",
+          };
+        }
+
         return nextSimulationState(
           prev,
-          1 * prev.speed,
+          delta,
           activeScenario,
           simParams.attendance,
           activeInterventions

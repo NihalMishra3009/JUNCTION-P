@@ -211,7 +211,7 @@ export interface SimulationResult {
   recommendations: string[]; summary: string;
 }
 
-export type SimulationStatus = 'IDLE' | 'PLAYING' | 'PAUSED';
+export type SimulationStatus = 'IDLE' | 'PLAYING' | 'PAUSED' | 'COMPLETE';
 export type SimulationSpeed = 1 | 5 | 10;
 
 export interface HumanCohort {

@@ -228,11 +228,17 @@ export default function CctvVideoFeedCard({
           }
         }}
       >
-        {/* Tile Header */}
+        {/* Tile Header — Zone-First Labelling */}
         <div className={styles.tileHeader}>
           <div className={styles.tileHeaderLeft}>
-            <span className={styles.tileCameraId}>{feed.cameraId}</span>
-            <span className={styles.tileRecordedBadge}>RECORDED CCTV</span>
+            <span className={styles.tileCameraId}>
+              {feed.operationalZoneGroup
+                ? feed.subZoneName
+                  ? `${feed.operationalZoneGroup} · ${feed.subZoneName}`
+                  : feed.operationalZoneGroup
+                : feed.zoneName || feed.cameraId}
+            </span>
+            <span className={styles.tileRecordedBadge}>{feed.cameraId}</span>
           </div>
           <div className={styles.tileHeaderRight}>
             <span className={styles.tileOrientationBadge}>{orientationBadge}</span>
@@ -341,7 +347,11 @@ export default function CctvVideoFeedCard({
           <div className={styles.feedSubtitle}>
             <span className={styles.tagCameraId}>{feed.cameraId}</span>
             <span className={styles.tagDivider}>•</span>
-            <span className={styles.tagZone}>{feed.zoneName}</span>
+            <span className={styles.tagZone}>
+              {feed.operationalZoneGroup && feed.subZoneName
+                ? `${feed.operationalZoneGroup} · ${feed.subZoneName}`
+                : feed.zoneName}
+            </span>
             <span className={styles.tagDivider}>•</span>
             <span className={styles.tagSpec}>{orientationBadge} ({feed.resolution} @ {feed.fps}fps)</span>
           </div>

@@ -1,12 +1,12 @@
 "use client";
-import React, { useMemo } from "react";
+
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/state/AppContext";
 import { forecastingService } from "@/services/forecastingService";
-import { ScenarioId, ResourcePrediction } from "@/types";
+import { ResourcePrediction } from "@/types";
 import { getPressureColor, getPressureLabel, getPressureClass } from "@/components/ui/PressureIndicator";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer } from "recharts";
-import { AlertTriangle, Zap, Check } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import ConfidenceBadge from "@/components/ui/ConfidenceBadge";
 import styles from "./predictions.module.css";
@@ -14,59 +14,14 @@ import styles from "./predictions.module.css";
 const TIME_LABELS = ["NOW", "+15 MIN", "+30 MIN", "+60 MIN"];
 
 const TARGET_PREDICTION_NODES = [
-  { id: "CHURCHGATE", name: "Churchgate Station", color: "#EF4444", zoneId: "ZONE_CHURCHGATE" },
-  { id: "WANKHEDE_EXIT", name: "Wankhede Exit", color: "#F97316", zoneId: "ZONE_WANKHEDE" },
-  { id: "TAXI_ZONE", name: "Taxi Zone", color: "#F5C400", zoneId: "ZONE_TAXI_STAGING" },
-  { id: "CSMT", name: "CSMT", color: "#3B82F6", zoneId: "ZONE_CSMT" },
-  { id: "DADAR", name: "Dadar Station", color: "#22C55E", zoneId: "ZONE_DADAR" },
-  { id: "ROAD_MARINE_DR", name: "Marine Drive", color: "#8B5CF6", zoneId: "ZONE_MARINE_LINES" },
+  { id: "CHURCHGATE", name: "Churchgate Station", color: "#EF4444", zoneId: "ZONE_CHURCHGATE", role: "Transit Hub" },
+  { id: "WANKHEDE_GATE_1", name: "Wankhede Gate 1", color: "#F97316", zoneId: "ZONE_WANKHEDE_GATE_1", role: "Stadium Exit Gate 1" },
+  { id: "WANKHEDE_GATE_2", name: "Wankhede Gate 2", color: "#FB923C", zoneId: "ZONE_WANKHEDE_GATE_2", role: "Stadium Exit Gate 2" },
+  { id: "TAXI_ZONE", name: "Taxi Zone", color: "#F5C400", zoneId: "ZONE_TAXI_STAGING", role: "Rideshare Staging" },
+  { id: "CSMT", name: "CSMT", color: "#3B82F6", zoneId: "ZONE_CSMT", role: "Secondary Rail" },
+  { id: "DADAR", name: "Dadar Station", color: "#22C55E", zoneId: "ZONE_DADAR", role: "Diversion Terminal" },
+  { id: "ROAD_MARINE_DR", name: "Marine Drive", color: "#8B5CF6", zoneId: "ZONE_MARINE_LINES", role: "Egress Arterial" },
 ];
-
-interface CascadeStage {
-  id: string;
-  step: string;
-  name: string;
-  context: string;
-  beforeStr: string;
-  afterStr: string;
-  deltaStr: string;
-  isIncrease: boolean;
-  pressureForColor: number;
-  consequenceToNext?: string;
-}
-
-const NO_ACTION_MESSAGES: Record<ScenarioId, { warning: string; affected: string[]; risk: string }> = {
-  NORMAL: {
-    warning: "Steady egress will progressively concentrate 10,000+ attendees toward Churchgate Station. Inflow is projected to reach high pressure within ~30 minutes, producing platform dwell delays and curbside taxi queuing.",
-    affected: ["Churchgate (Peak)", "Taxi Zone (Peak)", "Marine Drive (Peak)"],
-    risk: "Unmitigated Inflow Delay: +15 min · Risk: WATCH",
-  },
-  POST_EVENT_SURGE: {
-    warning: "Simultaneous 33,000 attendee exit will overwhelm Churchgate Station in ~15–20 minutes. Concourse overcrowding will force safety gate holds, causing diverted commuters to flood Marine Drive and pushing Taxi Zone wait times beyond 45 minutes.",
-    affected: ["Churchgate (CRITICAL)", "Taxi Zone (CRITICAL)", "Marine Drive (HIGH)", "Exit Gates (HIGH)"],
-    risk: "Unmitigated Bottleneck: +30–45 min · Safety Risk: HIGH",
-  },
-  TRANSPORT_DISRUPTION: {
-    warning: "Western Railway signal failure halts train departures. Trapped crowds at Churchgate will back up onto approach roads. Taxi and rideshare demand will instantly spike, creating severe cascading gridlock across South Mumbai.",
-    affected: ["Churchgate (CRITICAL)", "Taxi Zone (CRITICAL)", "CSMT Terminal (HIGH)", "Marine Drive (HIGH)"],
-    risk: "Transit Suspension Hold: +40+ min · Severity: CRITICAL",
-  },
-  HEAVY_RAIN: {
-    warning: "Monsoon downpour eliminates walking viability to Marine Lines and Churchgate. Exiting spectators will converge heavily on curbside taxi pickup bays, resulting in curb gridlock and 2.0x vehicular travel delay.",
-    affected: ["Taxi Zone (CRITICAL)", "Pickup Bays (CRITICAL)", "Marine Drive (HIGH)", "Churchgate (HIGH)"],
-    risk: "Monsoon Curb Gridlock: +25–35 min · Severity: HIGH",
-  },
-  ACCOMMODATION_SATURATION: {
-    warning: "Zone A hotels reach high occupancy with limited spare rooms. Late-booking attendees face immediate room shortages, resulting in localized vehicle circling around Nariman Point and increased transit frustration.",
-    affected: ["Zone A Hotels (CRITICAL)", "Churchgate Station (HIGH)", "Taxi Zone (HIGH)"],
-    risk: "Hospitality Exhaustion · Severity: HIGH",
-  },
-  EVENT_DELAY: {
-    warning: "Match delayed by 30 minutes. Premature spectator arrival will congest stadium perimeter gates and local dining if attendees are not notified to stagger departure from surrounding transit hubs.",
-    affected: ["Wankhede Gates (WATCH)", "Churchgate Station (WATCH)", "Taxi Zone (WATCH)"],
-    risk: "Premature Gate Inflow · Severity: WATCH",
-  },
-};
 
 export default function PredictionsPage() {
   const {
@@ -78,7 +33,9 @@ export default function PredictionsPage() {
     simulationState,
   } = useApp();
 
-  // Dynamic Live Forecasting computed from live resources, zones, and simulation progression
+  const [showAuditDetails, setShowAuditDetails] = useState<boolean>(false);
+
+  // 1. Compute dynamic forward predictions for each monitored node
   const predictions: ResourcePrediction[] = useMemo(() => {
     return TARGET_PREDICTION_NODES.map(node => {
       const res = resources.find(r => r.id === node.id);
@@ -120,7 +77,7 @@ export default function PredictionsPage() {
     });
   }, [resources, zones, activeScenario, simulationState.minutesElapsed, simulationState.nodeLoads]);
 
-  // Transform live predictions into Recharts series data
+  // 2. Chart data matrix
   const chartData = useMemo(() => {
     return TIME_LABELS.map((label, i) => {
       const obj: Record<string, number | string> = { time: label };
@@ -131,171 +88,148 @@ export default function PredictionsPage() {
     });
   }, [predictions]);
 
-  // Live Dynamic Cascade Stages linked to live node pressures and forward forecasts
-  const { stages, cascadeTimeLabel, isCritical } = useMemo(() => {
-    const exitPred = predictions.find(p => p.resourceId === "WANKHEDE_EXIT");
-    const roadPred = predictions.find(p => p.resourceId === "ROAD_MARINE_DR");
-    const cgPred = predictions.find(p => p.resourceId === "CHURCHGATE");
-    const taxiPred = predictions.find(p => p.resourceId === "TAXI_ZONE");
+  // 3. Dynamic headline derived strictly from actual forecast data (Consistency Check)
+  const headlineData = useMemo(() => {
+    const primary = predictions.find(p => p.resourceId === "CHURCHGATE") || predictions[0];
+    if (!primary) {
+      return {
+        title: "Pressure Expected to Remain Stable",
+        subtitle: "Monitored zones operating within nominal parameters.",
+        peakVal: 50,
+        peakTime: "NOW",
+        isCritical: false,
+        isHigh: false,
+      };
+    }
 
-    const exitBefore = exitPred?.current ?? 88;
-    const exitAfter = exitPred?.points[1]?.pressure ?? exitBefore;
-    const exitDelta = exitAfter - exitBefore;
+    // Find actual peak point across primary node's timeline
+    let peakPt = primary.points[0];
+    for (const pt of primary.points) {
+      if (pt.pressure > peakPt.pressure) {
+        peakPt = pt;
+      }
+    }
 
-    const roadBefore = roadPred?.current ?? 82;
-    const roadAfter = roadPred?.points[1]?.pressure ?? roadBefore;
-    const roadDelta = roadAfter - roadBefore;
+    const current = primary.current;
+    const peakVal = peakPt.pressure;
+    const delta = peakVal - current;
+    const peakMinutes = peakPt.minutesFromNow;
 
-    const baseDelay = activeScenario === "TRANSPORT_DISRUPTION" ? 8 : activeScenario === "HEAVY_RAIN" ? 7 : activeScenario === "POST_EVENT_SURGE" ? 5 : 4;
-    const delayDelta = Math.round((cgPred?.current ?? 80) * 0.12);
-    const predDelay = baseDelay + delayDelta;
+    const highestAcrossAll = Math.max(...predictions.map(p => Math.max(...p.points.map(pt => pt.pressure))));
+    const isCritical = peakVal >= 85 || highestAcrossAll >= 90;
+    const isHigh = peakVal >= 75 || highestAcrossAll >= 75;
 
-    const cgBefore = cgPred?.current ?? 94;
-    const cgAfter = cgPred?.points[1]?.pressure ?? cgBefore;
-    const cgDelta = cgAfter - cgBefore;
+    let title = "";
+    if (delta > 2) {
+      title = peakMinutes > 0
+        ? `Pressure Expected to Rise in ~${peakMinutes} Minutes`
+        : `Elevated Peak Pressure Active`;
+    } else if (delta < -2) {
+      title = `Pressure Expected to Ease in ~15 Minutes`;
+    } else {
+      if (current >= 85) {
+        title = `Critical Pressure Persisting Across Monitored Corridor`;
+      } else if (current >= 75) {
+        title = `Elevated Pressure Persisting Across Monitored Corridor`;
+      } else {
+        title = `Pressure Expected to Remain Stable`;
+      }
+    }
 
-    const taxiBefore = taxiPred?.current ?? 91;
-    const taxiAfter = taxiPred?.points[1]?.pressure ?? taxiBefore;
-    const taxiDelta = taxiAfter - taxiBefore;
+    let subtitle = "";
+    if (delta > 2) {
+      subtitle = `${primary.resourceName} at ${current}% now → projected to reach peak ${peakVal}% at +${peakMinutes} min. Monitored corridor demand rising under ${activeScenario.replace(/_/g, " ").toLowerCase()} scenario.`;
+    } else if (delta < -2) {
+      subtitle = `${primary.resourceName} at ${current}% now → projected to ease to ${peakVal}% at +${peakMinutes} min as corridor egress stabilizes.`;
+    } else {
+      subtitle = `${primary.resourceName} at ${current}% now with steady demand across +30 min horizon. No abrupt surge detected under current signals.`;
+    }
 
-    const pickupBefore = Math.min(98, Math.round(taxiBefore * 0.95));
-    const pickupAfter = Math.min(99, Math.round(taxiAfter * 1.02));
-    const pickupDelta = pickupAfter - pickupBefore;
-
-    const liveStages: CascadeStage[] = [
-      {
-        id: "WANKHEDE_EXIT",
-        step: "STAGE 01",
-        name: "Wankhede Exit",
-        context: "Stadium gates dispersal",
-        beforeStr: `${exitBefore}%`,
-        afterStr: `${exitAfter}%`,
-        deltaStr: `${exitDelta >= 0 ? `+${exitDelta}%` : `${exitDelta}%`} pressure`,
-        isIncrease: exitDelta >= 0,
-        pressureForColor: exitAfter,
-        consequenceToNext: `+${Math.round(exitAfter * 0.1)} min road congestion`,
-      },
-      {
-        id: "ROAD_PRESSURE",
-        step: "STAGE 02",
-        name: "Road Pressure",
-        context: "Marine Drive corridor",
-        beforeStr: `${roadBefore}%`,
-        afterStr: `${roadAfter}%`,
-        deltaStr: `${roadDelta >= 0 ? `+${roadDelta}%` : `${roadDelta}%`} pressure`,
-        isIncrease: roadDelta >= 0,
-        pressureForColor: roadAfter,
-        consequenceToNext: `+${delayDelta} min transport delay`,
-      },
-      {
-        id: "TRANSPORT_DELAY",
-        step: "STAGE 03",
-        name: "Transport Delay",
-        context: "Western rail dwell",
-        beforeStr: `+${baseDelay} min`,
-        afterStr: `+${predDelay} min`,
-        deltaStr: `+${delayDelta} min delay`,
-        isIncrease: true,
-        pressureForColor: Math.min(98, Math.round(predDelay * 4.4)),
-        consequenceToNext: activeScenario === "TRANSPORT_DISRUPTION" ? "Signal fault concourse hold" : "Inflow surges (+35%)",
-      },
-      {
-        id: "CHURCHGATE",
-        step: "STAGE 04",
-        name: "Churchgate",
-        context: "Terminus platform load",
-        beforeStr: `${cgBefore}%`,
-        afterStr: `${cgAfter}%`,
-        deltaStr: `${cgDelta >= 0 ? `+${cgDelta}%` : `${cgDelta}%`} pressure`,
-        isIncrease: cgDelta >= 0,
-        pressureForColor: cgAfter,
-        consequenceToNext: cgAfter >= 85 ? "Over-capacity diverts to cabs" : "Egress manageable",
-      },
-      {
-        id: "TAXI_DEMAND",
-        step: "STAGE 05",
-        name: "Taxi Demand",
-        context: "Rideshare hail spike",
-        beforeStr: `${taxiBefore}%`,
-        afterStr: `${taxiAfter}%`,
-        deltaStr: `${taxiDelta >= 0 ? `+${taxiDelta}%` : `${taxiDelta}%`} pressure`,
-        isIncrease: taxiDelta >= 0,
-        pressureForColor: taxiAfter,
-        consequenceToNext: "Queue bay overflow",
-      },
-      {
-        id: "PICKUP_ZONE",
-        step: "STAGE 06",
-        name: "Pickup Zone",
-        context: "South stadium pickup bay",
-        beforeStr: `${pickupBefore}%`,
-        afterStr: `${pickupAfter}%`,
-        deltaStr: `${pickupDelta >= 0 ? `+${pickupDelta}%` : `${pickupDelta}%`} pressure`,
-        isIncrease: pickupDelta >= 0,
-        pressureForColor: pickupAfter,
-      },
-    ];
-
-    const maxPressure = Math.max(...liveStages.map(s => s.pressureForColor));
-    const isCrit = maxPressure >= 85;
-    const timeLabel = isCrit ? "Critical in ~15–20 min" : "Projected cascade: ~25–30 min";
-
-    return { stages: liveStages, cascadeTimeLabel: timeLabel, isCritical: isCrit };
+    return {
+      title,
+      subtitle,
+      peakVal,
+      peakTime: peakPt.label,
+      isCritical,
+      isHigh,
+    };
   }, [predictions, activeScenario]);
 
-  const noAction = NO_ACTION_MESSAGES[activeScenario] || NO_ACTION_MESSAGES.NORMAL;
-  const primaryRec = recommendations.find(r => r.id === "REC1") || recommendations[0];
+  // 4. Compact Key Forecast Changes
+  const keyChanges = useMemo(() => {
+    return predictions.map(p => {
+      const nodeMeta = TARGET_PREDICTION_NODES.find(n => n.id === p.resourceId);
+      const current = p.current;
+      const p15 = p.points[1]?.pressure ?? current;
+      const delta = p15 - current;
+
+      return {
+        id: p.resourceId,
+        name: p.resourceName,
+        role: nodeMeta?.role || "Infrastructure",
+        current,
+        p15,
+        delta,
+        statusLabel: getPressureLabel(p15),
+        statusClass: getPressureClass(p15),
+        color: p.color,
+      };
+    });
+  }, [predictions]);
+
+  // Top pending recommendation for the next-action transition
+  const primaryRec = recommendations.find(r => r.status === "PENDING") || recommendations[0];
 
   return (
     <div className={styles.page}>
-      <PageHeader
-        category="INTELLIGENCE"
-        title="Pressure Forecast & Cascade Analysis"
-        subtitle="Predicted capacity pressure and causal bottleneck propagation across South Mumbai monitored nodes."
-        actions={
-          <>
+
+      {/* FORECAST HEADLINE HERO — DERIVED DIRECTLY FROM DATA */}
+      <div className={styles.forecastHeadlineBanner}>
+        <div className={styles.headlineMain}>
+          <div className={styles.headlineTagRow}>
+            <span className="pill pill-critical" style={{ fontSize: 10 }}>FORWARD FORECAST</span>
             {simulationState.minutesElapsed > 0 && (
               <span className="pill pill-live">SIM: +{Math.round(simulationState.minutesElapsed)} MIN</span>
             )}
             {redistributionApplied && (
-              <span className="pill pill-live">REDISTRIBUTION APPLIED</span>
+              <span className="pill pill-live">REDISTRIBUTION ACTIVE</span>
             )}
             <ConfidenceBadge source="SIMULATED" />
-          </>
-        }
-      />
-
-
-      {/* TABLE */}
-      <div className={styles.tableCard}>
-        <div className={styles.tableHeader}>
-          <span className={styles.resourceCol}>RESOURCE</span>
-          {TIME_LABELS.map(l => <span key={l} className={styles.timeCol}>{l}</span>)}
-          <span className={styles.trendCol}>TREND</span>
-        </div>
-        {predictions.map(p => (
-          <div key={p.resourceId} className={styles.tableRow}>
-            <span className={styles.resourceName}>{p.resourceName}</span>
-            {p.points.map((pt, i) => (
-              <span
-                key={i}
-                className={styles.pressureCell}
-                style={{ color: pt.pressure >= 95 ? "var(--red)" : pt.pressure >= 85 ? "var(--orange)" : pt.pressure >= 70 ? "var(--yellow-state)" : "var(--green)" }}
-              >
-                {pt.pressure}%
-              </span>
-            ))}
-            <span className={`${styles.trendCell} ${p.points[3].pressure > p.points[0].pressure + 10 ? styles.trendUp : styles.trendDown}`}>
-              {p.points[3].pressure > p.points[0].pressure + 5 ? "↑ Rising" : "→ Stable"}
-            </span>
           </div>
-        ))}
+          <h1 className={styles.headlineTitle}>{headlineData.title}</h1>
+          <p className={styles.headlineSubtitle}>{headlineData.subtitle}</p>
+        </div>
+
+        <div className={styles.headlineMetricBox}>
+          <span className={styles.headlineMetricSub}>PEAK FORECAST</span>
+          <span
+            className={styles.headlineMetricVal}
+            style={{
+              color: headlineData.peakVal >= 85 ? "var(--red)" : headlineData.peakVal >= 70 ? "var(--yellow-state)" : "var(--green)",
+            }}
+          >
+            {headlineData.peakVal}%
+          </span>
+          <span className={styles.headlineMetricSub}>AT {headlineData.peakTime}</span>
+        </div>
       </div>
 
-      {/* CHART */}
+      <PageHeader
+        category="PREDICT"
+        title="Predictions"
+        subtitle="Forward-looking capacity demand, key zone shifts, and intervention pathways."
+        actions={<></>}
+      />
+
+      {/* 01 · FORECAST CHART — VISUAL CORE */}
       <div className={styles.chartCard}>
-        <h3 className={styles.chartTitle}>Pressure Over Time ("When will pressure peak?")</h3>
-        <p className={styles.chartNote}>Forward-looking timeline showing baseline to +60 min projections across monitored infrastructure.</p>
+        <div className={styles.sectionHeaderRow}>
+          <h2 className={styles.sectionHeaderTitle}>01 · PROJECTED PRESSURE OVER TIME</h2>
+          <span className="text-meta">Now → +60 Min Horizon</span>
+        </div>
+        <p className={styles.chartNote}>
+          Forward demand trajectory across monitored transport and perimeter nodes based on rolling-window egress rates.
+        </p>
         <ResponsiveContainer width="100%" height={320}>
           <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E7E5DE" />
@@ -313,168 +247,153 @@ export default function PredictionsPage() {
         </ResponsiveContainer>
       </div>
 
-      {/* UPGRADED CASCADE EFFECT SECTION */}
-      <div className={styles.cascadeCard}>
-        <div className={styles.cascadeHeader}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <h2 className={styles.cascadeTitle}>Capacity Cascade Effect ("How does pressure propagate?")</h2>
-              <span className="pill pill-predicted">PREDICTED CASCADE</span>
-              <span className={`pill ${isCritical ? "pill-critical" : "pill-watch"}`}>
-                {cascadeTimeLabel}
-              </span>
-            </div>
-            <p className={styles.cascadeSubtitle}>
-              Simulated causal propagation: Venue exit surge triggers road queuing, creating transit dwell delays and downstream taxi zone overflow.
-            </p>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span className="simulated-env-label">
-              <span className="simulated-dot" />
-              Scenario: {activeScenario.replace(/_/g, " ")}
-            </span>
-          </div>
+      {/* 02 · KEY FORECAST CHANGES — COMPACT SCANNABLE ROWS */}
+      <div className={styles.changesCard}>
+        <div className={styles.sectionHeaderRow}>
+          <h2 className={styles.sectionHeaderTitle}>02 · KEY FORECAST CHANGES</h2>
+          <span className="text-meta">Immediate Shift (+15 Min)</span>
         </div>
 
-        {/* CASCADE STAGES */}
-        <div className={styles.cascadeFlowContainer}>
-          {stages.map((stage, idx) => {
-            const label = getPressureLabel(stage.pressureForColor);
-            const pClass = getPressureClass(stage.pressureForColor);
-            const color = getPressureColor(stage.pressureForColor);
+        <div className={styles.changesTable}>
+          <div className={styles.changesHeaderRow}>
+            <span>MONITORED ZONE</span>
+            <span>NOW</span>
+            <span>+15 MIN</span>
+            <span>CHANGE</span>
+            <span className={styles.statusColHide}>STATUS</span>
+          </div>
+
+          {keyChanges.map(zone => {
+            const deltaClass = zone.delta > 0 ? styles.deltaInc : zone.delta < 0 ? styles.deltaDec : styles.deltaStable;
 
             return (
-              <div key={stage.id} style={{ display: "flex", alignItems: "center" }}>
-                <div
-                  className={styles.cascadeNodeCard}
-                  style={{
-                    borderTop: `3px solid ${color}`,
-                  }}
-                >
-                  <div className={styles.cascadeNodeHeader}>
-                    <span className={styles.nodeStep}>{stage.step}</span>
-                    <span className={`pill ${pClass}`} style={{ fontSize: 9, padding: "2px 6px" }}>
-                      {label}
-                    </span>
-                  </div>
+              <div key={zone.id} className={styles.changesRow}>
+                <div className={styles.zoneNameCell}>
+                  <span className={styles.zoneNameText}>{zone.name}</span>
+                  <span className={styles.zoneRoleText}>{zone.role}</span>
+                </div>
 
-                  <div className={styles.nodeBody}>
-                    <span className={styles.nodeName}>{stage.name}</span>
-                    <span className={styles.nodeContext}>{stage.context}</span>
-                    <div className={styles.nodeValuesRow}>
-                      <span className={styles.valBefore}>{stage.beforeStr}</span>
-                      <span className={styles.valArrow}>→</span>
-                      <span className={styles.valAfter} style={{ color }}>
-                        {stage.afterStr}
-                      </span>
-                    </div>
-                  </div>
+                <span className={styles.valCell} style={{ color: getPressureColor(zone.current) }}>
+                  {zone.current}%
+                </span>
 
-                  <span className={`${styles.nodeDelta} ${stage.isIncrease ? styles.deltaInc : styles.deltaDec}`}>
-                    {stage.deltaStr}
+                <span className={styles.valCell} style={{ color: getPressureColor(zone.p15) }}>
+                  {zone.p15}%
+                </span>
+
+                <div>
+                  <span className={`${styles.deltaBadge} ${deltaClass}`}>
+                    {zone.delta > 0 ? `+${zone.delta}% Rise` : zone.delta < 0 ? `${zone.delta}% Ease` : "Stable (±0%)"}
                   </span>
                 </div>
 
-                {idx < stages.length - 1 && (
-                  <div className={styles.connector}>
-                    <div className={styles.connectorArrow}>→</div>
-                    <span className={styles.connectorLabel}>
-                      {stage.consequenceToNext}
-                    </span>
-                  </div>
-                )}
+                <div className={styles.statusColHide}>
+                  <span className={`pill ${zone.statusClass}`} style={{ fontSize: 9, padding: "2px 6px" }}>
+                    {zone.statusLabel}
+                  </span>
+                </div>
               </div>
             );
           })}
         </div>
+      </div>
 
-        {/* DECISION GRID: IF NO ACTION vs JUNCTION RECOMMENDS */}
-        <div className={styles.decisionGrid}>
-          {/* LEFT: IF NO ACTION IS TAKEN */}
-          <div className={styles.noActionCard}>
-            <div className={styles.noActionHeader}>
-              <span className={styles.noActionTitle} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <AlertTriangle size={15} color="var(--orange)" /> IF NO ACTION IS TAKEN
-              </span>
-              <span className={styles.riskBanner}>{noAction.risk}</span>
-            </div>
+      {/* 03 · NEXT ACTION CTA — FOCUSED TRANSITION */}
+      <div className={styles.nextActionCard}>
+        <div className={styles.nextActionContent}>
+          <span className={styles.nextActionTag}>NEXT STEP · SIMULATE &amp; DECIDE</span>
+          <h3 className={styles.nextActionTitle}>Test Counterfactual Interventions</h3>
+          <p className={styles.nextActionDesc}>
+            Evaluate gate hold, train schedule, or taxi redistribution interventions against these forward demand curves before issuing operational orders.
+          </p>
+        </div>
 
-            <p className={styles.noActionText}>
-              {redistributionApplied ? (
-                <span style={{ color: "var(--green)", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-                  <Check size={14} /> Proactive Intervention Active: Attendee redistribution via Dadar has successfully suppressed Churchgate peak bottleneck (94% → 76%), preventing concourse safety holds and stabilizing Marine Drive traffic.
-                </span>
-              ) : (
-                noAction.warning
-              )}
-            </p>
-
-            <div>
-              <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: "var(--ink-faint)", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>
-                Projected Bottleneck Nodes (Without Intervention)
-              </span>
-              <div className={styles.affectedList}>
-                {noAction.affected.map(res => (
-                  <span key={res} className={styles.affectedItem}>
-                    {res}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT: JUNCTION RECOMMENDS */}
-          <div className={styles.recommendCard}>
-            <div className={styles.recommendHeader}>
-              <span className={styles.recommendTitle} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <Zap size={15} color="var(--yellow)" /> JUNCTION RECOMMENDS
-              </span>
-              {primaryRec.status === "APPROVED" ? (
-                <span className="pill pill-live">APPROVED &amp; PUBLISHED</span>
-              ) : (
-                <span className="pill pill-yellow">HUMAN APPROVAL REQUIRED</span>
-              )}
-            </div>
-
-            <div>
-              <h4 className={styles.recActionTitle}>{primaryRec.title}</h4>
-              <p className={styles.recommendText} style={{ marginTop: 4 }}>
-                {primaryRec.action}
-              </p>
-            </div>
-
-            <div>
-              <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: "var(--ink-faint)", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>
-                Expected Impact on Cascade Bottlenecks
-              </span>
-              <div className={styles.impactGrid}>
-                {primaryRec.expectedImpact.map(imp => (
-                  <div key={imp.resourceName} className={styles.impactPill}>
-                    <span className={styles.impactName}>{imp.resourceName}</span>
-                    <span className={styles.impactValues}>{imp.before}% → {imp.after}%</span>
-                    <span className={styles.impactDelta}>
-                      ({imp.after - imp.before > 0 ? `+${imp.after - imp.before}%` : `${imp.after - imp.before}%`})
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ fontSize: 11, color: "var(--ink-muted)" }}>
-              <strong>Trade-off:</strong> {primaryRec.tradeOff}
-            </div>
-
-            <div className={styles.actionRow}>
-              <Link href={`/organizer/simulation?rec=${primaryRec.id}`} className="btn btn-yellow btn-sm">
-                SIMULATE IMPACT →
-              </Link>
-              <Link href="/organizer/recommendations" className="btn btn-outline btn-sm">
-                Review in Recommendations
-              </Link>
-            </div>
-          </div>
+        <div className={styles.nextActionButtons}>
+          <Link
+            href={`/organizer/simulation?rec=${primaryRec?.id || "REC1"}`}
+            className="btn btn-yellow btn-md"
+            style={{ fontWeight: 700 }}
+          >
+            TEST AN INTERVENTION →
+          </Link>
+          <Link
+            href="/organizer/recommendations"
+            className={styles.nextActionSecondaryLink}
+          >
+            VIEW RECOMMENDATIONS →
+          </Link>
         </div>
       </div>
+
+      {/* 04 · COLLAPSIBLE AUDIT & METHODOLOGY ACCORDION (SECONDARY) */}
+      <div className={styles.auditAccordion}>
+        <button
+          type="button"
+          className={styles.auditToggle}
+          onClick={() => setShowAuditDetails(!showAuditDetails)}
+          aria-expanded={showAuditDetails}
+        >
+          <span className={styles.auditToggleLabel}>
+            {showAuditDetails ? "▼ Hide Technical Data & Methodology" : "▶ View Detailed Data Matrix & Forecast Methodology"}
+          </span>
+          <span className="text-meta">Audit / Analytical Provenance</span>
+        </button>
+
+        {showAuditDetails && (
+          <div className={styles.auditBody}>
+            {/* FULL DATA MATRIX */}
+            <div className={styles.tableWrap}>
+              <div className={styles.tableHeader}>
+                <span className={styles.resourceCol}>RESOURCE</span>
+                {TIME_LABELS.map(l => <span key={l} className={styles.timeCol}>{l}</span>)}
+                <span className={styles.trendCol}>TREND</span>
+              </div>
+              {predictions.map(p => (
+                <div key={p.resourceId} className={styles.tableRow}>
+                  <span className={styles.resourceName}>{p.resourceName}</span>
+                  {p.points.map((pt, i) => (
+                    <span
+                      key={i}
+                      className={styles.pressureCell}
+                      style={{ color: pt.pressure >= 95 ? "var(--red)" : pt.pressure >= 85 ? "var(--orange)" : pt.pressure >= 70 ? "var(--yellow-state)" : "var(--green)" }}
+                    >
+                      {pt.pressure}%
+                    </span>
+                  ))}
+                  <span className={`${styles.trendCell} ${p.points[3].pressure > p.points[0].pressure + 10 ? styles.trendUp : styles.trendDown}`}>
+                    {p.points[3].pressure > p.points[0].pressure + 5 ? "↑ Rising" : "→ Stable"}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* METHODOLOGY SPECIFICATION */}
+            <div className={styles.techGrid}>
+              <div className={styles.techItem}>
+                <span className={styles.techLabel}>FORECAST ENGINE</span>
+                <span className={styles.techVal}>forecastingService v1</span>
+                <span className={styles.techDesc}>Rolling-window trend analysis with deterministic scenario multipliers</span>
+              </div>
+              <div className={styles.techItem}>
+                <span className={styles.techLabel}>SIGNAL INPUTS</span>
+                <span className={styles.techVal}>Multi-Sensor Ingestion</span>
+                <span className={styles.techDesc}>Live turnstiles, camera headcount, and probe observations</span>
+              </div>
+              <div className={styles.techItem}>
+                <span className={styles.techLabel}>ACTIVE SCENARIO</span>
+                <span className={styles.techVal}>{activeScenario}</span>
+                <span className={styles.techDesc}>Scenario adjustment applied across +15m, +30m, and +60m horizons</span>
+              </div>
+              <div className={styles.techItem}>
+                <span className={styles.techLabel}>SIMULATION STATE</span>
+                <span className={styles.techVal}>+{Math.round(simulationState.minutesElapsed)} min</span>
+                <span className={styles.techDesc}>Synchronized with What-If simulator engine</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

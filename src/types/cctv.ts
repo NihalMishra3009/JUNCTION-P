@@ -27,6 +27,8 @@ export interface CctvFeedConfig {
   hasAudio?: boolean;
   isRecorded?: boolean;
   detectionStatus?: "ACTIVE" | "STANDBY" | "PROCESSING" | "OFFLINE";
+  operationalZoneGroup?: string;
+  subZoneName?: string;
 }
 
 export interface BoundingBoxNormalized {

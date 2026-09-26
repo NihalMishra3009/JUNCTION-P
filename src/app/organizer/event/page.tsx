@@ -7,7 +7,7 @@ export default function EventPage() {
   return (
     <div className={styles.page}>
       <PageHeader
-        category="EVENT"
+        category="CONTEXT"
         title="Event Operations & Venue Gates"
         subtitle="Operational parameters, gate capacities, and attendance tracking for Wankhede Stadium matchday."
         actions={

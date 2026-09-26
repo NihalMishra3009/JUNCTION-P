@@ -42,6 +42,7 @@ interface Props {
   activeLayers?: Set<string>;
   onSelectResource?: (r: Resource) => void;
   selectedId?: string | null;
+  onSelectZone?: (zoneId: string) => void;
 }
 
 const MUMBAI_CENTER: [number, number] = [72.8258, 18.9388];
@@ -347,7 +348,9 @@ function addMapLayers(map: MapLibreMap) {
     });
   }
 
-  // 3D GPU Crowd Density Heatmap Layer - Original glowing volumetric heat gradient
+  // Crowd Density Heatmap Layer — radius is kept small so heat stays within zone boundaries.
+  // At zoom 14 (operational view), radius = 20px ≈ 60m which fits inside zone polygons.
+  // The heatmap data points are already constrained to land via tight jitter (±44m).
   if (!map.getLayer("secret-heatmap-layer")) {
     map.addLayer({
       id: "secret-heatmap-layer",
@@ -356,21 +359,21 @@ function addMapLayers(map: MapLibreMap) {
       maxzoom: 19,
       paint: {
         "heatmap-weight": ["interpolate", ["linear"], ["get", "weight"], 0, 0, 1, 1],
-        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 1.2, 15, 3.5],
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 1.0, 15, 2.5],
         "heatmap-color": [
           "interpolate",
           ["linear"],
           ["heatmap-density"],
           0, "rgba(0, 0, 0, 0)",
-          0.15, "rgba(37, 99, 235, 0.45)",
-          0.35, "rgba(6, 182, 212, 0.7)",
-          0.55, "rgba(16, 185, 129, 0.85)",
-          0.75, "rgba(245, 158, 11, 0.95)",
-          0.9, "rgba(239, 68, 68, 0.98)",
+          0.15, "rgba(37, 99, 235, 0.40)",
+          0.35, "rgba(6, 182, 212, 0.65)",
+          0.55, "rgba(16, 185, 129, 0.80)",
+          0.75, "rgba(245, 158, 11, 0.92)",
+          0.9, "rgba(239, 68, 68, 0.96)",
           1.0, "rgba(220, 38, 38, 1.0)"
         ],
-        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 22, 14, 45, 17, 80],
-        "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 12, 0.88, 17, 0.62],
+        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 12, 14, 20, 16, 30, 18, 40],
+        "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 12, 0.82, 17, 0.55],
       },
     });
   }
@@ -478,6 +481,8 @@ function addMapLayers(map: MapLibreMap) {
   }
 
   // Operational Zone Center Label Symbol Layer
+  // text-allow-overlap is false so MapLibre's label collision engine prevents stacking.
+  // Child zones (Gate 1/Gate 2) use offset coordinates to naturally separate from parent.
   if (!map.getLayer("secret-zone-labels")) {
     map.addLayer({
       id: "secret-zone-labels",
@@ -487,34 +492,41 @@ function addMapLayers(map: MapLibreMap) {
       layout: {
         "text-field": ["get", "zoneLabel"],
         "text-font": ["Noto Sans Regular"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 14, 12, 18, 14],
+        "text-size": [
+          "interpolate", ["linear"], ["zoom"],
+          10, ["case", ["get", "isChildZone"], 8, 10],
+          14, ["case", ["get", "isChildZone"], 9, 12],
+          18, ["case", ["get", "isChildZone"], 10, 14]
+        ],
         "text-offset": [0, 0],
         "text-anchor": "center",
-        "text-allow-overlap": true,
+        "text-allow-overlap": false,
+        "text-ignore-placement": false,
       },
       paint: {
         "text-color": ["get", "textColor"],
         "text-halo-color": "#040714",
-        "text-halo-width": 2.5,
+        "text-halo-width": 2,
         "text-halo-blur": 0.5,
       },
     });
   }
 
-  // Location & Operational Symbol Labels (Names, Types, Badges)
+  // Case-Only Symbol Labels — only "case" and "case location" features get text labels.
+  // Checkpoints and vehicles (patrol units, cohorts) render as pure circles with no text.
   if (!map.getLayer("secret-location-labels")) {
     map.addLayer({
       id: "secret-location-labels",
       type: "symbol",
       source: "secret-data",
-      filter: ["in", ["get", "kind"], ["literal", ["location", "case", "checkpoint", "vehicle"]]],
+      filter: ["in", ["get", "kind"], ["literal", ["location", "case"]]],
       layout: {
         "text-field": ["get", "label"],
         "text-font": ["Noto Sans Regular"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 10, 9.5, 14, 11.5, 18, 13.5],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 10, 9.5, 14, 11, 18, 13],
         "text-offset": [0, 1.3],
         "text-anchor": "top",
-        "text-allow-overlap": true,
+        "text-allow-overlap": false,
         "text-ignore-placement": false,
       },
       paint: {
@@ -550,6 +562,8 @@ function buildData(
   const features: GeoJSON.Feature[] = [];
 
   // 1. CANONICAL JUNCTION OPERATIONAL ZONES (Boundaries & Labels)
+  // Strategy: parent zones get a center label; child sub-zones (Gate 1/Gate 2) get a compact
+  // offset label so they don't stack on top of the Wankhede parent label.
   OPERATIONAL_ZONES.forEach((zone) => {
     let pressure = 50;
     const rawKey = zone.id.replace("ZONE_", "");
@@ -568,6 +582,7 @@ function buildData(
 
     const { fill: fillColor, border: borderColor } = getZoneColor(pressure);
     const severity = pressure >= 90 ? "CRITICAL" : pressure >= 75 ? "HIGH" : pressure >= 50 ? "MODERATE" : "NORMAL";
+    const isChildZone = Boolean((zone as { parentZoneId?: string }).parentZoneId);
 
     // Polygon boundary
     features.push({
@@ -587,18 +602,25 @@ function buildData(
       },
     });
 
-    // Center Label Anchor
+    // Label anchor — child zones (Gate 1 / Gate 2) use a short name and are offset slightly
+    // so they don't stack directly on the parent (Wankhede Stadium) label.
+    // Parent zones get a full center label.
+    const labelText = isChildZone ? zone.shortName : zone.shortName.toUpperCase();
     features.push({
       type: "Feature",
       properties: {
         kind: "zone-label",
         id: `${zone.id}_LABEL`,
-        zoneLabel: `📍 ${zone.shortName.toUpperCase()}\n[${severity} · ${pressure}%]`,
+        zoneLabel: labelText,
         textColor: borderColor,
+        isChildZone,
       },
       geometry: {
         type: "Point",
-        coordinates: [zone.center.longitude, zone.center.latitude],
+        // Child zones: offset label slightly toward bottom-left to avoid parent overlap
+        coordinates: isChildZone
+          ? [zone.center.longitude - 0.0003, zone.center.latitude - 0.0003]
+          : [zone.center.longitude, zone.center.latitude],
       },
     });
   });
@@ -726,6 +748,8 @@ function buildData(
   });
 
   // Junction Operational Resources (Checkpoints & Patrol Vehicles)
+  // These render as circles only — no text label attached, so the simulation map
+  // is not cluttered with CHECKPOINT / PATROL UNIT text overlays.
   resources.forEach((res) => {
     if (!res.location) return;
     const isCheckpoint = res.type?.toUpperCase().includes("CHECKPOINT") || res.type?.toUpperCase().includes("GATE");
@@ -734,17 +758,14 @@ function buildData(
       properties: {
         kind: isCheckpoint ? "checkpoint" : "vehicle",
         id: res.id,
-        name: res.name,
-        type: res.type,
         color: isCheckpoint ? "#ffbd55" : "#38bdf8",
-        label: isCheckpoint ? `◆ CHECKPOINT\n${res.name}` : `🚓 PATROL UNIT\n${res.name}`,
-        textColor: isCheckpoint ? "#ffbd55" : "#38bdf8",
+        // No label / textColor — patrol units and checkpoints render as circles only
       },
       geometry: { type: "Point", coordinates: [res.location.longitude, res.location.latitude] },
     });
   });
 
-  // Moving Human Cohorts / Vehicles from Live Simulation
+  // Moving Human Cohorts from Live Simulation — rendered as clean dots, no text labels
   if (simulationState?.humanCohorts) {
     simulationState.humanCohorts
       .filter((c) => c.status === "MOVING")
@@ -759,10 +780,8 @@ function buildData(
             properties: {
               kind: "vehicle",
               id: cohort.id,
-              name: `COHORT ${cohort.volume} PAX`,
               color: "#38bdf8",
-              label: `🚌 COHORT (${cohort.volume} pax)\n→ ${cohort.destinationId}`,
-              textColor: "#38bdf8",
+              // No label or textColor — cohorts render as circles only
             },
             geometry: { type: "Point", coordinates: interpPt },
           });
@@ -818,34 +837,40 @@ function buildHeatmapData(
 
   const features: GeoJSON.Feature[] = [];
 
-  // Core High-Density Hotspot Nodes (Wankhede Stadium, Churchgate, Marine Drive, Nariman Point, CSMT, Dadar)
-  const DENSITY_NODES = [
-    // Wankhede Stadium Gate Clusters & Stadium Bowl
-    { lat: 18.9389, lon: 72.8258, baseWeight: 0.95, count: 12, nodeId: "WANKHEDE_EXIT" },
-    { lat: 18.9392, lon: 72.8250, baseWeight: 0.90, count: 8, nodeId: "WANKHEDE_EXIT" },
-    { lat: 18.9385, lon: 72.8262, baseWeight: 0.85, count: 8, nodeId: "WANKHEDE_EXIT" },
-    { lat: 18.9398, lon: 72.8265, baseWeight: 0.88, count: 6, nodeId: "WANKHEDE_EXIT" },
+  // Operational density nodes — coordinates are verified to be strictly on land.
+  // Jitter spread is tightly constrained (±0.0004° ≈ ±44m) so no points reach
+  // the sea even for coastal zones like Marine Lines.
+  //
+  // Marine Lines nodes: moved to lon 72.8236 (Marine Lines station, confirmed land)
+  // Wankhede nodes: confirmed inside stadium/concourse footprint
+  // Taxi Zone: confirmed on Veer Nariman Road curbside (not by water)
+  const DENSITY_NODES: Array<{ lat: number; lon: number; baseWeight: number; count: number; nodeId: string }> = [
+    // Wankhede Stadium — inside concourse footprint
+    { lat: 18.9389, lon: 72.8258, baseWeight: 0.95, count: 8, nodeId: "WANKHEDE_EXIT" },
+    { lat: 18.9384, lon: 72.8253, baseWeight: 0.90, count: 6, nodeId: "WANKHEDE_EXIT" },
+    { lat: 18.9393, lon: 72.8263, baseWeight: 0.85, count: 5, nodeId: "WANKHEDE_EXIT" },
 
-    // Churchgate Suburban Railway Terminus Concourse
-    { lat: 18.9350, lon: 72.8272, baseWeight: 0.92, count: 14, nodeId: "CHURCHGATE" },
-    { lat: 18.9355, lon: 72.8278, baseWeight: 0.85, count: 8, nodeId: "CHURCHGATE" },
-    { lat: 18.9342, lon: 72.8268, baseWeight: 0.80, count: 6, nodeId: "CHURCHGATE" },
+    // Churchgate Railway Terminal — inside station concourse
+    { lat: 18.9350, lon: 72.8272, baseWeight: 0.92, count: 10, nodeId: "CHURCHGATE" },
+    { lat: 18.9356, lon: 72.8278, baseWeight: 0.85, count: 6, nodeId: "CHURCHGATE" },
+    { lat: 18.9344, lon: 72.8268, baseWeight: 0.80, count: 4, nodeId: "CHURCHGATE" },
 
-    // Marine Drive Promenade Crowd Exits
-    { lat: 18.9430, lon: 72.8230, baseWeight: 0.82, count: 10, nodeId: "MARINE_LINES" },
-    { lat: 18.9380, lon: 72.8222, baseWeight: 0.88, count: 12, nodeId: "MARINE_LINES" },
-    { lat: 18.9320, lon: 72.8218, baseWeight: 0.75, count: 7, nodeId: "MARINE_LINES" },
+    // Marine Lines Station — station concourse at 72.8236 (strictly inland, east of promenade)
+    { lat: 18.9436, lon: 72.8236, baseWeight: 0.80, count: 6, nodeId: "MARINE_LINES" },
+    { lat: 18.9430, lon: 72.8240, baseWeight: 0.75, count: 4, nodeId: "MARINE_LINES" },
 
-    // Nariman Point Financial Hub & Bus Junctions
-    { lat: 18.9250, lon: 72.8220, baseWeight: 0.70, count: 6, nodeId: "TAXI_ZONE" },
-    { lat: 18.9270, lon: 72.8235, baseWeight: 0.65, count: 5, nodeId: "TAXI_ZONE" },
+    // Taxi Staging — Veer Nariman Road curbside, south of stadium
+    { lat: 18.9372, lon: 72.8268, baseWeight: 0.68, count: 4, nodeId: "TAXI_ZONE" },
+    { lat: 18.9365, lon: 72.8274, baseWeight: 0.60, count: 3, nodeId: "TAXI_ZONE" },
 
-    // CSMT Station Hub
-    { lat: 18.9400, lon: 72.8350, baseWeight: 0.85, count: 10, nodeId: "CSMT" },
+    // CSMT Station Hub — inside CSMT station building
+    { lat: 18.9400, lon: 72.8353, baseWeight: 0.82, count: 7, nodeId: "CSMT" },
 
-    // Dadar Station Hub
-    { lat: 19.0183, lon: 72.8434, baseWeight: 0.75, count: 10, nodeId: "DADAR" },
+    // Dadar Station Hub — Dadar W/E platform area
+    { lat: 19.0183, lon: 72.8434, baseWeight: 0.72, count: 7, nodeId: "DADAR" },
   ];
+
+  const JITTER = 0.0004; // ±44m — tight enough to stay on land for all coastal nodes
 
   DENSITY_NODES.forEach((node) => {
     let nodePressure = node.baseWeight;
@@ -861,9 +886,9 @@ function buildHeatmapData(
     }
 
     for (let i = 0; i < node.count; i++) {
-      const jitterLat = node.lat + (Math.random() - 0.5) * 0.0012;
-      const jitterLon = node.lon + (Math.random() - 0.5) * 0.0012;
-      const pointWeight = Math.max(0.15, nodePressure * (0.85 + Math.random() * 0.3));
+      const jitterLat = node.lat + (Math.random() - 0.5) * JITTER;
+      const jitterLon = node.lon + (Math.random() - 0.5) * JITTER;
+      const pointWeight = Math.max(0.15, nodePressure * (0.85 + Math.random() * 0.25));
       features.push({
         type: "Feature",
         properties: { weight: pointWeight },
@@ -872,11 +897,14 @@ function buildHeatmapData(
     }
   });
 
-  // Dynamic Hotspots from Props
+  // Dynamic hotspots from zone pressure (no arbitrary external lat/lon).
+  // Only include hotspots that have explicit location data from the operational zone definitions.
   hotspots.forEach((h) => {
-    const lat = h.location ? h.location.latitude : undefined;
-    const lon = h.location ? h.location.longitude : undefined;
-    if (lat === undefined || lon === undefined) return;
+    if (!h.location) return;
+    const { latitude: lat, longitude: lon } = h.location;
+    // Bounds check: only include points within the South Mumbai operational area
+    // (roughly: lat 18.90–19.06, lon 72.82–72.87) to prevent sea blobs.
+    if (lat < 18.90 || lat > 19.07 || lon < 72.82 || lon > 72.88) return;
     const w = h.predictedPressure ? h.predictedPressure / 100 : h.currentPressure ? h.currentPressure / 100 : 0.8;
     features.push({
       type: "Feature",
@@ -980,12 +1008,12 @@ export default function InvestigationMap({
   activeLayers = new Set(),
   onSelectResource,
   selectedId,
+  onSelectZone,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const threeOverlayRef = useRef<ThreeIntelOverlay | null>(null);
   const [ready, setReady] = useState(false);
-  const [showDiagnostics, setShowDiagnostics] = useState(true);
   const [hover, setHover] = useState<MapHover>(null);
 
   const {
@@ -1000,6 +1028,18 @@ export default function InvestigationMap({
     selectCase,
     cameraRequest,
   } = useMapStore();
+
+  // Stable references for event listeners without remounting map
+  const onSelectZoneRef = useRef(onSelectZone);
+  onSelectZoneRef.current = onSelectZone;
+  const onSelectResourceRef = useRef(onSelectResource);
+  onSelectResourceRef.current = onSelectResource;
+  const markersRef = useRef(markers);
+  markersRef.current = markers;
+  const selectLocationRef = useRef(selectLocation);
+  selectLocationRef.current = selectLocation;
+  const selectCaseRef = useRef(selectCase);
+  selectCaseRef.current = selectCase;
 
   const hoveredMarker = useMemo(() => hover && markers.find((marker) => marker.caseId === hover.id), [hover, markers]);
   const hoveredLocation = useMemo(
@@ -1017,6 +1057,7 @@ export default function InvestigationMap({
   );
   const selectedMarker = useMemo(() => (selectedCaseId ? markers.find((marker) => marker.caseId === selectedCaseId) : null), [markers, selectedCaseId]);
 
+  // Map instance lifecycle: initialized ONCE for the life of the page
   useEffect(() => {
     if (!hostRef.current) return;
 
@@ -1040,37 +1081,26 @@ export default function InvestigationMap({
     map.addControl(new maplibregl.NavigationControl({ showZoom: true, showCompass: true, visualizePitch: true }), "bottom-right");
     map.addControl(new PitchControl(), "bottom-right");
 
-    const applyStyleTheme = () => {
-      if (!map.isStyleLoaded()) return;
+    let isLayersConfigured = false;
+    const configureMapLayers = () => {
+      if (isLayersConfigured || !map.isStyleLoaded()) return;
+      isLayersConfigured = true;
       addMapLayers(map);
       recolorMapStyle(map);
-      if (!map.getLayer(threeOverlay.id)) map.addLayer(threeOverlay);
-
-      const st = useMapStore.getState();
-      const zoneGeoData = buildData(st.markers, resources, roads, st.showCases, st.showLocations, st.showRoutes, st.selectedCaseId, st.selectedLocationId, simulationState);
-      const zoneFeatures = zoneGeoData.features.filter((f) => f.properties?.kind === "zone");
-
-      console.log("[JUNCTION ZONES]", {
-        zoneCount: OPERATIONAL_ZONES.length,
-        geoJsonFeatureCount: zoneFeatures.length,
-        firstZone: zoneFeatures[0]?.properties,
-        firstZoneGeometry: zoneFeatures[0]?.geometry,
-        sourceExists: Boolean(map.getSource("secret-data")),
-        fillLayerExists: Boolean(map.getLayer("secret-zone-fill")),
-        outlineLayerExists: Boolean(map.getLayer("secret-zone-outline")),
-      });
-
-      const ds = map.getSource("secret-data") as maplibregl.GeoJSONSource | undefined;
-      if (ds) ds.setData(zoneGeoData);
-      const hds = map.getSource("secret-heatmap-data") as maplibregl.GeoJSONSource | undefined;
-      if (hds) hds.setData(buildHeatmapData(hotspots, st.markers, activeLayers, resources, simulationState));
-
+      if (!map.getLayer(threeOverlay.id)) {
+        map.addLayer(threeOverlay);
+      }
       setReady(true);
     };
 
-    map.on("load", applyStyleTheme);
-    map.once("idle", applyStyleTheme);
-    map.on("styledata", applyStyleTheme);
+    if (map.isStyleLoaded()) {
+      configureMapLayers();
+    } else {
+      map.once("load", configureMapLayers);
+    }
+    map.once("idle", () => {
+      if (!isLayersConfigured) configureMapLayers();
+    });
 
     const onMove = (event: MapMouseEvent) => {
       const feature = eventFeatures(event)[0];
@@ -1088,14 +1118,18 @@ export default function InvestigationMap({
       if (!feature) return;
       const props = feature.properties ?? {};
       if (props.kind === "location" && props.id) {
-        selectLocation(props.id);
-        const loc = markers.flatMap((m) => m.locations).find((l) => l.id === props.id);
+        selectLocationRef.current(props.id);
+        const loc = markersRef.current.flatMap((m) => m.locations).find((l) => l.id === props.id);
         if (loc) map.flyTo({ center: [loc.longitude, loc.latitude], zoom: 16.2, pitch: 58, bearing: -15, duration: 1200 });
       } else if (props.kind === "case" && props.id) {
-        selectCase(props.id);
-        const m = markers.find((item) => item.caseId === props.id);
+        selectCaseRef.current(props.id);
+        const m = markersRef.current.find((item) => item.caseId === props.id);
         const center = m ? centerOf(m) : null;
         if (center) map.flyTo({ center, zoom: 15.5, pitch: 58, bearing: -15, duration: 1200 });
+      } else if (props.kind === "zone" && props.id) {
+        if (onSelectZoneRef.current) {
+          onSelectZoneRef.current(props.id);
+        }
       }
     };
 
@@ -1106,17 +1140,20 @@ export default function InvestigationMap({
 
     map.on("mousemove", "secret-locations", onMove);
     map.on("mousemove", "secret-cases", onMove);
+    map.on("mousemove", "secret-zone-fill", onMove);
     map.on("click", "secret-locations", onClick);
     map.on("click", "secret-cases", onClick);
+    map.on("click", "secret-zone-fill", onClick);
     map.on("mouseleave", "secret-locations", onLeave);
     map.on("mouseleave", "secret-cases", onLeave);
+    map.on("mouseleave", "secret-zone-fill", onLeave);
 
     return () => {
       map.remove();
       mapRef.current = null;
       threeOverlayRef.current = null;
     };
-  }, [resources, roads, markers, selectLocation, selectCase]);
+  }, []);
 
   // Update GeoJSON sources when map state, resources/roads/hotspots or activeLayers change
   useEffect(() => {
@@ -1202,75 +1239,6 @@ export default function InvestigationMap({
           <div className="map-tooltip-row"><span>LINKED</span><strong>{hoveredEntities.length > 1 ? `${hoveredEntities.length} ENTITIES` : "CASE EVIDENCE"}</strong></div>
         </div>
       )}
-
-      {/* DIAGNOSTIC MAP ENGINE STATUS PANEL */}
-      <div
-        style={{
-          position: "absolute",
-          top: 10,
-          right: 10,
-          zIndex: 10,
-          background: "rgba(15, 23, 42, 0.94)",
-          backdropFilter: "blur(12px)",
-          padding: "10px 14px",
-          borderRadius: 8,
-          border: "1px solid rgba(98, 211, 255, 0.3)",
-          color: "#f8fafc",
-          fontSize: "10px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "8px",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-          maxWidth: "310px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ fontWeight: 800, color: "#38bdf8", letterSpacing: "0.04em", fontSize: "11px" }}>
-            🗺️ MAPLIBRE 3D ENGINE (SECRET)
-          </div>
-          <button
-            onClick={() => setShowDiagnostics(!showDiagnostics)}
-            style={{
-              background: showDiagnostics ? "rgba(56, 189, 248, 0.2)" : "rgba(255,255,255,0.08)",
-              color: showDiagnostics ? "#38bdf8" : "#94a3b8",
-              border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: "4px",
-              padding: "2px 6px",
-              fontSize: "8.5px",
-              cursor: "pointer",
-              fontWeight: 700,
-            }}
-          >
-            ⚙️ Debug
-          </button>
-        </div>
-
-        {showDiagnostics && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "8.5px", marginTop: "2px", background: "rgba(0,0,0,0.55)", padding: "6px 8px", borderRadius: "4px" }}>
-            <div style={{ color: "#cbd5e1" }}>
-              MAP ENGINE: <span style={{ color: "#38bdf8", fontWeight: 700 }}>MAPLIBRE 3D</span>
-            </div>
-            <div style={{ color: "#cbd5e1" }}>
-              PROVIDER: <span style={{ color: "#34d399", fontWeight: 700 }}>OPENFREEMAP</span>
-            </div>
-            <div style={{ color: "#cbd5e1" }}>
-              BUILDINGS: <span style={{ color: "#34d399", fontWeight: 700 }}>OSM VECTOR EXTRUSION</span>
-            </div>
-            <div style={{ color: "#cbd5e1" }}>
-              TERRAIN: <span style={{ color: "#38bdf8", fontWeight: 700 }}>SECRET TERRAIN (SRTM + RELIEF)</span>
-            </div>
-            <div style={{ color: "#cbd5e1" }}>
-              ROADS: <span style={{ color: "#34d399" }}>OSM VECTOR NETWORK</span>
-            </div>
-            <div style={{ color: "#cbd5e1" }}>
-              ROUTES: <span style={{ color: "#34d399" }}>JUNCTION OPERATIONAL</span>
-            </div>
-            <div style={{ color: "#cbd5e1" }}>
-              VEHICLES: <span style={{ color: "#34d399" }}>JUNCTION OPERATIONAL</span>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

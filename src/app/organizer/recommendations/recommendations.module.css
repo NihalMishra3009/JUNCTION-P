@@ -24,11 +24,174 @@
   margin-top: 4px;
 }
 
+/* SUMMARY STRIP */
+.summaryStrip {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--ink);
+  border: 1.5px solid var(--ink);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+}
+
+.summaryMetric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 24px;
+  border-right: 1px solid #2a2a2a;
+  flex: 1;
+  gap: 2px;
+}
+
+.summaryMetric:last-child {
+  border-right: none;
+}
+
+.summaryMetricVal {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--white);
+}
+
+.summaryMetricLabel {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+}
+
+/* PRIMARY REC HERO */
+.primaryRecHero {
+  background: var(--white);
+  border: 1.5px solid var(--ink);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.primaryRecHeroHeader {
+  background: var(--ink);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.primaryRecHeroTitle {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+
+.primaryRecHeroBody {
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+}
+
+@media (max-width: 860px) {
+  .primaryRecHeroBody {
+    grid-template-columns: 1fr;
+  }
+}
+
+.primaryRecActionText {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.primaryRecActionSub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-top: 6px;
+}
+
+.primaryRecImpact {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.primaryRecImpactLabel {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.primaryRecImpactVal {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--green);
+}
+
+.primaryRecActions {
+  display: flex;
+  gap: 10px;
+}
+
+/* EXPAND TOGGLE */
+.expandToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--paper);
+  border-top: 1px solid var(--neutral);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  transition: background var(--t-fast);
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+
+.expandToggle:hover {
+  background: var(--paper-dark);
+  color: var(--ink);
+}
+
+.expandBody {
+  padding: 20px 24px;
+  border-top: 1px solid var(--neutral);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .list {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
+
 
 .recCard {
   background: var(--white);

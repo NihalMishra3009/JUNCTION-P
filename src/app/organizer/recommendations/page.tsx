@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/state/AppContext";
 import PageHeader from "@/components/ui/PageHeader";
 import ConfidenceBadge from "@/components/ui/ConfidenceBadge";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import styles from "./recommendations.module.css";
 
 export default function RecommendationsPage() {
@@ -23,6 +24,7 @@ export default function RecommendationsPage() {
   } = useApp();
   const [approving, setApproving] = useState<string | null>(null);
   const [justApproved, setJustApproved] = useState<string | null>(null);
+  const [expandedRecs, setExpandedRecs] = useState<Set<string>>(new Set());
 
   const handleApprove = (id: string) => { setApproving(id); };
   const handleConfirmApprove = (id: string) => {
@@ -32,10 +34,24 @@ export default function RecommendationsPage() {
     setTimeout(() => setJustApproved(null), 4000);
   };
 
+  const toggleExpand = (id: string) => {
+    setExpandedRecs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const pendingCount = recommendations.filter(r => r.status === "PENDING").length;
+  const approvedCount = recommendations.filter(r => r.status === "APPROVED").length;
+  const rejectedCount = recommendations.filter(r => r.status === "REJECTED").length;
+  const primaryRec = recommendations.find(r => r.status === "PENDING") || recommendations[0];
+
   return (
     <div className={styles.page}>
       <PageHeader
-        category="DECISIONS"
+        category="DECIDE"
         title="Action Recommendations"
         subtitle="AI recommends. Humans decide. Verified operational interventions requiring explicit operator review."
         actions={
@@ -63,13 +79,13 @@ export default function RecommendationsPage() {
         }
       />
 
+      {/* AI PLAN CONTEXT */}
       {aiPlanSummary && (
         <div style={{
           background: "var(--surface-sunken)",
           border: "1px solid var(--border)",
           borderRadius: "var(--radius-sm)",
           padding: "10px 16px",
-          marginBottom: 16,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -86,10 +102,129 @@ export default function RecommendationsPage() {
         </div>
       )}
 
+      {/* 1. SUMMARY STRIP */}
+      <div className={styles.summaryStrip}>
+        <div className={styles.summaryMetric}>
+          <span className={styles.summaryMetricVal} style={{ color: pendingCount > 0 ? "var(--yellow)" : "var(--white)" }}>{pendingCount}</span>
+          <span className={styles.summaryMetricLabel}>PENDING APPROVAL</span>
+        </div>
+        <div className={styles.summaryMetric}>
+          <span className={styles.summaryMetricVal} style={{ color: approvedCount > 0 ? "#4ade80" : "var(--white)" }}>{approvedCount}</span>
+          <span className={styles.summaryMetricLabel}>APPROVED & ACTIVE</span>
+        </div>
+        <div className={styles.summaryMetric}>
+          <span className={styles.summaryMetricVal}>{rejectedCount}</span>
+          <span className={styles.summaryMetricLabel}>REJECTED</span>
+        </div>
+        <div className={styles.summaryMetric}>
+          <span className={styles.summaryMetricVal}>{auditRecords.length}</span>
+          <span className={styles.summaryMetricLabel}>AUDIT RECORDS</span>
+        </div>
+      </div>
+
+      {/* 2. PRIMARY RECOMMENDATION HERO */}
+      {primaryRec && (
+        <div className={styles.primaryRecHero}>
+          <div className={styles.primaryRecHeroHeader}>
+            <span className={styles.primaryRecHeroTitle}>
+              PRIMARY RECOMMENDATION — AWAITING OPERATOR DECISION
+            </span>
+            {primaryRec.status === "APPROVED" ? (
+              <span className="pill pill-live">● APPROVED & PUBLISHED</span>
+            ) : (
+              <span className="pill pill-yellow">HUMAN APPROVAL REQUIRED</span>
+            )}
+          </div>
+
+          <div className={styles.primaryRecHeroBody}>
+            <div>
+              <h2 className={styles.primaryRecActionText}>{primaryRec.title}</h2>
+              <p className={styles.primaryRecActionSub}>{primaryRec.action}</p>
+            </div>
+
+            <div className={styles.primaryRecImpact}>
+              <span className={styles.primaryRecImpactLabel}>EXPECTED RELIEF</span>
+              <span className={styles.primaryRecImpactVal}>
+                {primaryRec.expectedImpact[0]?.before}% → {primaryRec.expectedImpact[0]?.after}%
+              </span>
+              <div className={styles.primaryRecActions}>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => router.push(`/organizer/simulation?rec=${primaryRec.id}`)}
+                >
+                  SIMULATE
+                </button>
+                <button className="btn btn-yellow btn-sm" onClick={() => handleApprove(primaryRec.id)}>
+                  APPROVE
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => rejectRecommendation(primaryRec.id)}
+                >
+                  REJECT
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Expand to see full details */}
+          <button
+            className={styles.expandToggle}
+            onClick={() => toggleExpand(primaryRec.id)}
+          >
+            <span>{expandedRecs.has(primaryRec.id) ? "COLLAPSE DETAILS" : "EXPAND: REASON · TRADE-OFF · ATTENDEE MESSAGE · IMPACT DETAIL"}</span>
+            {expandedRecs.has(primaryRec.id) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+
+          {expandedRecs.has(primaryRec.id) && (
+            <div className={styles.expandBody}>
+              <div className={styles.recGrid}>
+                <div className={styles.recSection}>
+                  <span className="text-meta">Problem</span>
+                  <p className={styles.recText}>{primaryRec.problem}</p>
+                </div>
+                <div className={styles.recSection}>
+                  <span className="text-meta">Reason</span>
+                  <p className={styles.recText}>{primaryRec.reason}</p>
+                </div>
+                <div className={styles.recSection}>
+                  <span className="text-meta">Trade-off</span>
+                  <p className={styles.recText}>{primaryRec.tradeOff}</p>
+                </div>
+              </div>
+
+              {primaryRec.attendeeMessage && (
+                <div className={styles.attendeeNote}>
+                  <span className={styles.attendeeNoteLabel}>Attendee Message (if approved)</span>
+                  <p>{primaryRec.attendeeMessage}</p>
+                </div>
+              )}
+
+              {primaryRec.evidence && primaryRec.evidence.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-faint)" }}>
+                    Telemetry Evidence:
+                  </span>
+                  {primaryRec.evidence.map((ev, i) => (
+                    <span key={i} className="pill" style={{ fontSize: 10, background: "var(--surface-sunken)", color: "var(--ink)" }}>
+                      {ev}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. ALL RECOMMENDATIONS */}
       <div className={styles.list}>
         {recommendations.map((rec, idx) => {
           const approved = rec.status === "APPROVED";
           const rejected = rec.status === "REJECTED";
+          const isExpanded = expandedRecs.has(rec.id);
+          if (rec.id === primaryRec?.id && rec.status === "PENDING") return null; // already shown above
+
           return (
             <div key={rec.id} className={`${styles.recCard} ${approved ? styles.recApproved : ""} ${rejected ? styles.recRejected : ""}`}>
               <div className={styles.recHeader}>
@@ -109,135 +244,123 @@ export default function RecommendationsPage() {
 
               <h2 className={styles.recTitle}>{rec.title}</h2>
 
-              <div className={styles.recGrid}>
-                <div className={styles.recSection}>
-                  <span className="text-meta">Problem</span>
-                  <p className={styles.recText}>{rec.problem}</p>
-                </div>
-                <div className={styles.recSection}>
+              {/* PRIMARY SURFACE */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
                   <span className="text-meta">Recommended Action</span>
                   <p className={`${styles.recText} ${styles.recAction}`}>{rec.action}</p>
                 </div>
-                <div className={styles.recSection}>
-                  <span className="text-meta">Reason</span>
-                  <p className={styles.recText}>{rec.reason}</p>
-                </div>
-                <div className={styles.recSection}>
-                  <span className="text-meta">Trade-off</span>
-                  <p className={styles.recText}>{rec.tradeOff}</p>
+                <div className={styles.impactSection} style={{ flexShrink: 0 }}>
+                  {approved ? (
+                    <div style={{ borderLeft: "3px solid var(--green)", paddingLeft: 12 }}>
+                      <span className="text-meta" style={{ color: "var(--green)", fontWeight: 700 }}>● OBSERVED IMPACT (LIVE)</span>
+                      <div className={styles.impactGrid} style={{ marginTop: 6 }}>
+                        {rec.expectedImpact.map(imp => {
+                          const matchedZone = zones.find(z =>
+                            z.name.toLowerCase().includes(imp.resourceName.toLowerCase()) ||
+                            imp.resourceName.toLowerCase().includes(z.name.toLowerCase()) ||
+                            z.id.toLowerCase().includes(imp.resourceName.toLowerCase())
+                          );
+                          const beforePressure = rec.baselines?.[matchedZone?.id || ""]?.pressure ?? imp.before;
+                          const currentPressure = matchedZone?.pressure ?? imp.before;
+                          const delta = currentPressure - beforePressure;
+                          return (
+                            <div key={imp.resourceName} className={styles.impactCard} style={{ borderColor: delta <= 0 ? "var(--green)" : "var(--amber)" }}>
+                              <span className={styles.impactResource}>{imp.resourceName}</span>
+                              <div className={styles.impactChange}>
+                                <span className={styles.impactBefore}>{beforePressure}%</span>
+                                <span className={styles.impactArrow}>→</span>
+                                <span className={styles.impactAfter} style={{ color: delta < 0 ? "var(--green)" : delta > 0 ? "var(--amber)" : "var(--ink)" }}>
+                                  {currentPressure}%
+                                </span>
+                              </div>
+                              <span className={styles.impactDelta} style={{ color: delta < 0 ? "var(--green)" : delta > 0 ? "var(--red)" : "var(--ink-muted)", fontWeight: 700 }}>
+                                {delta < 0 ? `↓ ${Math.abs(delta)}% RELIEF` : delta > 0 ? `↑ +${delta}% LOAD` : "→ 0% STABLE"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="text-meta">Expected Impact</span>
+                      <div className={styles.impactGrid} style={{ marginTop: 6 }}>
+                        {rec.expectedImpact.map(imp => (
+                          <div key={imp.resourceName} className={styles.impactCard}>
+                            <span className={styles.impactResource}>{imp.resourceName}</span>
+                            <div className={styles.impactChange}>
+                              <span className={styles.impactBefore}>{imp.before}%</span>
+                              <span className={styles.impactArrow}>→</span>
+                              <span className={styles.impactAfter}>{imp.after}%</span>
+                            </div>
+                            <span className={styles.impactDelta}>
+                              {imp.after > imp.before ? `+${imp.after - imp.before}%` : `${imp.after - imp.before}%`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* OBSERVED IMPACT (POST-APPROVAL LIVE TELEMETRY) VS EXPECTED IMPACT */}
-              {approved ? (
-                <div className={styles.impactSection} style={{ borderLeft: "3px solid var(--green)", paddingLeft: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <span className="text-meta" style={{ color: "var(--green)", fontWeight: 700 }}>
-                      ● OBSERVED IMPACT (LIVE SENSOR FUSION)
-                    </span>
-                    <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--ink-faint)" }}>
-                      CAPTURED FROM POST-APPROVAL TELEMETRY
-                    </span>
+              {/* EXPAND TOGGLE for secondary details */}
+              {!rejected && (
+                <button className={styles.expandToggle} onClick={() => toggleExpand(rec.id)}>
+                  <span>{isExpanded ? "COLLAPSE DETAILS" : "EXPAND: REASON · TRADE-OFF · EVIDENCE · ATTENDEE MESSAGE"}</span>
+                  {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+              )}
+
+              {isExpanded && (
+                <div className={styles.expandBody}>
+                  <div className={styles.recGrid}>
+                    <div className={styles.recSection}>
+                      <span className="text-meta">Problem</span>
+                      <p className={styles.recText}>{rec.problem}</p>
+                    </div>
+                    <div className={styles.recSection}>
+                      <span className="text-meta">Reason</span>
+                      <p className={styles.recText}>{rec.reason}</p>
+                    </div>
+                    <div className={styles.recSection}>
+                      <span className="text-meta">Trade-off</span>
+                      <p className={styles.recText}>{rec.tradeOff}</p>
+                    </div>
                   </div>
 
-                  <div className={styles.impactGrid}>
-                    {rec.expectedImpact.map(imp => {
-                      const matchedZone = zones.find(
-                        z =>
-                          z.name.toLowerCase().includes(imp.resourceName.toLowerCase()) ||
-                          imp.resourceName.toLowerCase().includes(z.name.toLowerCase()) ||
-                          z.id.toLowerCase().includes(imp.resourceName.toLowerCase())
-                      );
-                      const beforePressure = rec.baselines?.[matchedZone?.id || ""]?.pressure ?? imp.before;
-                      const currentPressure = matchedZone?.pressure ?? imp.before;
-                      const delta = currentPressure - beforePressure;
-
-                      return (
-                        <div key={imp.resourceName} className={styles.impactCard} style={{ borderColor: delta <= 0 ? "var(--green)" : "var(--amber)" }}>
-                          <span className={styles.impactResource}>{imp.resourceName}</span>
-                          <div className={styles.impactChange}>
-                            <span className={styles.impactBefore} title="Immutable baseline pressure at moment of human approval">
-                              {beforePressure}%
-                            </span>
-                            <span className={styles.impactArrow}>→</span>
-                            <span className={styles.impactAfter} style={{ color: delta < 0 ? "var(--green)" : delta > 0 ? "var(--amber)" : "var(--ink)" }}>
-                              {currentPressure}%
-                            </span>
-                          </div>
-                          <span
-                            className={styles.impactDelta}
-                            style={{
-                              color: delta < 0 ? "var(--green)" : delta > 0 ? "var(--red)" : "var(--ink-muted)",
-                              fontWeight: 700,
-                            }}
-                          >
-                            {delta < 0 ? `↓ ${Math.abs(delta)}% RELIEF` : delta > 0 ? `↑ +${delta}% LOAD` : "→ 0% STABLE"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <p style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 8, fontStyle: "italic" }}>
-                    Observed impact is based on subsequent simulated sensor telemetry; outcomes are not guaranteed.
-                  </p>
-                </div>
-              ) : (
-                <div className={styles.impactSection}>
-                  <span className="text-meta">Expected Impact (Proposal)</span>
-                  <div className={styles.impactGrid}>
-                    {rec.expectedImpact.map(imp => (
-                      <div key={imp.resourceName} className={styles.impactCard}>
-                        <span className={styles.impactResource}>{imp.resourceName}</span>
-                        <div className={styles.impactChange}>
-                          <span className={styles.impactBefore}>{imp.before}%</span>
-                          <span className={styles.impactArrow}>→</span>
-                          <span className={styles.impactAfter}>{imp.after}%</span>
-                        </div>
-                        <span className={styles.impactDelta}>
-                          {imp.after > imp.before ? `+${imp.after - imp.before}%` : `${imp.after - imp.before}%`}
+                  {rec.evidence && rec.evidence.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-faint)" }}>
+                        Telemetry Evidence:
+                      </span>
+                      {rec.evidence.map((ev, i) => (
+                        <span key={i} className="pill" style={{ fontSize: 10, background: "var(--surface-sunken)", color: "var(--ink)" }}>
+                          {ev}
                         </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                      ))}
+                    </div>
+                  )}
 
-              {rec.evidence && rec.evidence.length > 0 && (
-                <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-faint)" }}>
-                    Telemetry Evidence:
-                  </span>
-                  {rec.evidence.map((ev, i) => (
-                    <span key={i} className="pill" style={{ fontSize: 10, background: "var(--surface-sunken)", color: "var(--ink)" }}>
-                      {ev}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {rec.attendeeMessage && (
-                <div className={styles.attendeeNote}>
-                  <span className={styles.attendeeNoteLabel}>Attendee Message (if approved)</span>
-                  <p>{rec.attendeeMessage}</p>
+                  {rec.attendeeMessage && (
+                    <div className={styles.attendeeNote}>
+                      <span className={styles.attendeeNoteLabel}>Attendee Message (if approved)</span>
+                      <p>{rec.attendeeMessage}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
               {!approved && !rejected && (
                 <div className={styles.recActions}>
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => router.push(`/organizer/simulation?rec=${rec.id}`)}
-                  >
+                  <button className="btn btn-outline btn-sm" onClick={() => router.push(`/organizer/simulation?rec=${rec.id}`)}>
                     SIMULATE
                   </button>
                   <button className="btn btn-yellow btn-sm" onClick={() => handleApprove(rec.id)}>
                     APPROVE
                   </button>
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => router.push(`/organizer/simulation?rec=${rec.id}&modify=true`)}
-                  >
+                  <button className="btn btn-outline btn-sm" onClick={() => router.push(`/organizer/simulation?rec=${rec.id}&modify=true`)}>
                     MODIFY
                   </button>
                   <button className="btn btn-ghost btn-sm" onClick={() => rejectRecommendation(rec.id)}>
@@ -256,8 +379,8 @@ export default function RecommendationsPage() {
         })}
       </div>
 
-      {/* AUDIT TRAIL LOGGING SECTION (FIX-02) */}
-      <div style={{ marginTop: 40, borderTop: "1px solid var(--border)", paddingTop: 24 }}>
+      {/* AUDIT TRAIL */}
+      <div style={{ marginTop: 24, borderTop: "1px solid var(--border)", paddingTop: 24 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-display)", color: "var(--ink)" }}>Operational Audit Trail</h2>

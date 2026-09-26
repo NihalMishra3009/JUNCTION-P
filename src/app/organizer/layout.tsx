@@ -19,34 +19,45 @@ import {
   Calendar,
   ShieldAlert,
 } from "lucide-react";
+import FlowIndicator from "@/components/organizer/FlowIndicator";
 
 const NAV = [
   {
-    group: "COMMAND",
+    group: "OBSERVE",
     items: [
-      { href: "/organizer", label: "Operations Room", icon: <LayoutDashboard size={16} strokeWidth={2} /> },
+      { href: "/organizer/cctv-demo", label: "CCTV & Sensor Inputs", icon: <Video size={16} strokeWidth={2} /> },
     ],
   },
   {
-    group: "DESTINATION",
+    group: "ASSESS",
     items: [
-      { href: "/organizer/map", label: "Live Command Map", icon: <MapIcon size={16} strokeWidth={2} /> },
-      { href: "/organizer/cctv-demo", label: "CCTV Telemetry Lab", icon: <Video size={16} strokeWidth={2} /> },
+      { href: "/organizer", label: "Live Operations Room", icon: <LayoutDashboard size={16} strokeWidth={2} /> },
+      { href: "/organizer/map", label: "Spatial Command Map", icon: <MapIcon size={16} strokeWidth={2} /> },
       { href: "/organizer/capacity", label: "Capacity & Hotels", icon: <Building2 size={16} strokeWidth={2} /> },
-      { href: "/organizer/predictions", label: "Predictions & Cascade", icon: <TrendingUp size={16} strokeWidth={2} /> },
     ],
   },
   {
-    group: "DECISIONS",
+    group: "PREDICT",
     items: [
-      { href: "/organizer/recommendations", label: "Action Recommendations", icon: <Zap size={16} strokeWidth={2} /> },
+      { href: "/organizer/predictions", label: "Predictions", icon: <TrendingUp size={16} strokeWidth={2} /> },
+    ],
+  },
+  {
+    group: "SIMULATE",
+    items: [
       { href: "/organizer/simulation", label: "What-If Simulator", icon: <Sliders size={16} strokeWidth={2} /> },
     ],
   },
   {
-    group: "EVENT",
+    group: "DECIDE",
     items: [
-      { href: "/organizer/event", label: "Event Gate Info", icon: <Calendar size={16} strokeWidth={2} /> },
+      { href: "/organizer/recommendations", label: "Action Recommendations", icon: <Zap size={16} strokeWidth={2} /> },
+    ],
+  },
+  {
+    group: "CONTEXT",
+    items: [
+      { href: "/organizer/event", label: "Event & Gate Info", icon: <Calendar size={16} strokeWidth={2} /> },
     ],
   },
 ];
@@ -242,6 +253,8 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
             />
           </div>
         </header>
+
+        <FlowIndicator />
 
         <div className={styles.content}>
           {children}

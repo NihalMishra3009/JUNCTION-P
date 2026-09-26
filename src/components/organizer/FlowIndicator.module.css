@@ -1,0 +1,124 @@
+.flowBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #181818;
+  border-bottom: 1px solid #282828;
+  padding: 8px 24px;
+  font-family: var(--font-display);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.flowLabelWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pipelineTag {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #777777;
+}
+
+.hubBadge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #111111;
+  background: var(--junction-yellow);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.stagesTrack {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.stageNode {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  text-decoration: none;
+  color: #888888;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  transition: all var(--t-fast);
+  border: 1px solid transparent;
+}
+
+.stageNode:hover {
+  color: #ffffff;
+  background: #222222;
+}
+
+.stepNum {
+  font-size: 9px;
+  font-weight: 600;
+  color: #555555;
+  font-family: var(--font-body);
+}
+
+.stepLabel {
+  text-transform: uppercase;
+}
+
+.stepDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.stageActive {
+  background: #222222;
+  color: var(--junction-yellow) !important;
+  border-color: rgba(245, 196, 0, 0.4);
+}
+
+.stageActive .stepNum {
+  color: var(--junction-yellow);
+}
+
+.stageActive .stepDot {
+  background: var(--junction-yellow);
+  box-shadow: 0 0 6px rgba(245, 196, 0, 0.8);
+}
+
+.stageOverview {
+  color: #cccccc;
+}
+
+.stageOverview:hover {
+  color: var(--junction-yellow);
+}
+
+.flowArrow {
+  color: #444444;
+  font-size: 11px;
+  user-select: none;
+}
+
+@media (max-width: 900px) {
+  .flowBar {
+    padding: 6px 16px;
+    gap: 10px;
+  }
+  .stageNode {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+}

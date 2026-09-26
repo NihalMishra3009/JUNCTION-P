@@ -28,6 +28,97 @@
   line-height: 1.5;
 }
 
+/* SCENARIO SUMMARY — WHAT AM I TESTING? WHAT HAPPENED? DID IT HELP? */
+.scenarioSummaryCard {
+  background: var(--white);
+  border: 1.5px solid var(--ink);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.06);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+}
+
+@media (max-width: 800px) {
+  .scenarioSummaryCard {
+    grid-template-columns: 1fr;
+  }
+}
+
+.scenarioSummaryBlock {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-right: 1px solid var(--neutral);
+}
+
+.scenarioSummaryBlock:last-child {
+  border-right: none;
+}
+
+.scenarioSummaryStepTag {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--yellow);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scenarioSummaryTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.scenarioSummaryValue {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.scenarioSummarySub {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* IDLE EMPTY STATE */
+.idleState {
+  background: var(--paper);
+  border: 1px dashed var(--neutral-dark);
+  border-radius: var(--radius-xs);
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.idleStateTitle {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.idleStateSub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ink-muted);
+  max-width: 400px;
+}
+
+
 /* SIMULATION COMMAND CONSOLE */
 .simConsole {
   background: var(--ink);
