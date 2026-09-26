@@ -7,7 +7,25 @@ import { useUser, UserButton } from "@clerk/nextjs";
 import styles from "./landing.module.css";
 
 export default function LandingPage() {
-  const { isSignedIn, isLoaded } = useUser();
+  const { isSignedIn, isLoaded, user } = useUser();
+
+  const junctionRole = user?.publicMetadata?.junctionRole as string | undefined;
+
+  let ctaText = "ENTER JUNCTION →";
+  let ctaLink = "/login";
+
+  if (isLoaded && isSignedIn) {
+    if (junctionRole === "ORGANIZER") {
+      ctaText = "OPEN COMMAND CENTER →";
+      ctaLink = "/organizer";
+    } else if (junctionRole === "RESTAURANT_PARTNER") {
+      ctaText = "OPEN PARTNER PORTAL →";
+      ctaLink = "/partner";
+    } else {
+      ctaText = "ACCESS SETUP →";
+      ctaLink = "/login";
+    }
+  }
 
   return (
     <main className={styles.page}>
@@ -24,8 +42,8 @@ export default function LandingPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 38 }}>
           {isLoaded && isSignedIn ? (
             <>
-              <Link href="/organizer" className={`btn btn-primary ${styles.navCta}`}>
-                OPEN COMMAND CENTER →
+              <Link href={ctaLink} className={`btn btn-primary ${styles.navCta}`}>
+                {ctaText}
               </Link>
               <UserButton
                 appearance={{
@@ -96,15 +114,9 @@ export default function LandingPage() {
             </p>
 
             <div className={styles.heroCtas}>
-              {isLoaded && isSignedIn ? (
-                <Link href="/organizer" className={styles.ctaPrimary}>
-                  ENTER OPERATIONS →
-                </Link>
-              ) : (
-                <Link href="/login" className={styles.ctaPrimary}>
-                  ENTER JUNCTION →
-                </Link>
-              )}
+              <Link href={ctaLink} className={styles.ctaPrimary}>
+                {ctaText}
+              </Link>
               <Link href="#solution" className={styles.ctaSecondary}>
                 SEE HOW IT WORKS
               </Link>
@@ -161,7 +173,11 @@ export default function LandingPage() {
             <h3 className={styles.portalTitle}>Organizer Command Center</h3>
             <p className={styles.portalDesc}>Destination map, pressure analytics, cascade tracing, what-if simulation, and recommendation approval.</p>
             <span className={styles.portalCta}>
-              {isLoaded && isSignedIn ? "Open Command Center →" : "Sign In to Access →"}
+              {junctionRole === "ORGANIZER"
+                ? "Open Command Center →"
+                : isSignedIn
+                ? "View Access Status →"
+                : "Sign In to Access →"}
             </span>
           </Link>
           <Link href="/attendee" className={styles.portalCard}>
@@ -175,7 +191,11 @@ export default function LandingPage() {
             <h3 className={styles.portalTitle}>Partner Portal</h3>
             <p className={styles.portalDesc}>Hotels, restaurants, and service operators update availability and receive event demand signals.</p>
             <span className={styles.portalCta}>
-              {isLoaded && isSignedIn ? "Open Partner Portal →" : "Sign In to Access →"}
+              {junctionRole === "RESTAURANT_PARTNER"
+                ? "Open Partner Portal →"
+                : isSignedIn
+                ? "View Access Status →"
+                : "Sign In to Access →"}
             </span>
           </Link>
         </div>
