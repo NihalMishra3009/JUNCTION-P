@@ -9,6 +9,7 @@ import { getCrowdFlows } from "@/data/mockCrowdFlows";
 import { getPredictedHotspots } from "@/data/mockHotspotService";
 import { getRestaurants } from "@/data/mockRestaurants";
 import { useMapStore } from "@/store/mapStore";
+import { getRouteDebugTelemetry } from "@/services/canonicalRouteStore";
 import styles from "./DestinationMap.module.css";
 
 // Dynamic imports with SSR disabled for browser-only map libraries
@@ -87,7 +88,8 @@ export default function DestinationMap({
   const isRunning = simulationState.status === "PLAYING";
   const isPaused = simulationState.status === "PAUSED";
   const [showLegend, setShowLegend] = useState(true);
-  
+  const [showMatrix, setShowMatrix] = useState(true);
+
   // MAP ENGINE TOGGLE: SECRET 3D Map (default) vs 2D Operational Map
   const [mapEngine, setMapEngine] = useState<"MAPLIBRE" | "LEAFLET">("MAPLIBRE");
 
@@ -218,6 +220,20 @@ export default function DestinationMap({
             </button>
           );
         })}
+
+        <button
+          className={`${styles.layerBtn} ${showMatrix ? styles.layerActive : ""}`}
+          onClick={() => setShowMatrix((prev) => !prev)}
+          title="Toggle Simulation Operational Decision Matrix"
+          style={{
+            background: showMatrix ? "#f59e0b" : undefined,
+            color: showMatrix ? "#040714" : undefined,
+            fontWeight: 700,
+            marginLeft: "auto",
+          }}
+        >
+          📊 Matrix View
+        </button>
       </div>
 
       {/* COMPACT MAP SIMULATION CONTROLLER */}
@@ -347,6 +363,50 @@ export default function DestinationMap({
                   <span>Forecast Hotspot</span>
                 </div>
               </div>
+            </div>
+
+            {/* CANONICAL ROUTE DEBUG TELEMETRY (Requirement 25) */}
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.15)", fontSize: 10 }}>
+              {(() => {
+                const telemetry = getRouteDebugTelemetry("ROUTE_MARINE_LINES_WANKHEDE");
+                if (!telemetry) return null;
+                const isRoadFollowing = telemetry.roadFollowing;
+                return (
+                  <div>
+                    <div style={{ fontWeight: 800, color: "#38bdf8", letterSpacing: "0.06em", marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>ROUTE DEBUG</span>
+                      <span style={{ color: isRoadFollowing ? "#34d399" : "#ef4444", fontSize: 9, fontWeight: 700, background: "rgba(0,0,0,0.6)", padding: "2px 6px", borderRadius: 4, border: `1px solid ${isRoadFollowing ? "#059669" : "#dc2626"}` }}>
+                        {isRoadFollowing ? "✓ CANONICAL GEOMETRY" : "⚠️ NON-CANONICAL"}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, background: "rgba(15, 23, 42, 0.75)", padding: 8, borderRadius: 6, border: "1px solid rgba(255, 255, 255, 0.12)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+                        <span style={{ color: "#94a3b8", fontSize: 9 }}>Route ID:</span>
+                        <span style={{ color: "#38bdf8", fontWeight: 700, fontFamily: "monospace", fontSize: 9, wordBreak: "break-all" }}>
+                          {telemetry.routeId}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ color: "#94a3b8", fontSize: 9 }}>Points:</span>
+                        <span style={{ color: "#f8fafc", fontWeight: 800, fontSize: 10 }}>{telemetry.pointCount}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ color: "#94a3b8", fontSize: 9 }}>Road-following:</span>
+                        <span style={{ color: isRoadFollowing ? "#34d399" : "#ef4444", fontWeight: 800, fontSize: 10 }}>
+                          {isRoadFollowing ? "YES" : "NO"}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ color: "#94a3b8", fontSize: 9 }}>Distance:</span>
+                        <span style={{ color: "#f8fafc", fontWeight: 800, fontSize: 10 }}>{telemetry.distanceKm} km</span>
+                      </div>
+                      <div style={{ fontSize: 8, color: "#64748b", marginTop: 2, borderTop: "1px dashed rgba(255,255,255,0.1)", paddingTop: 4 }}>
+                        Source: {telemetry.source}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}

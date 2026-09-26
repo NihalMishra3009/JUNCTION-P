@@ -128,6 +128,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     createInitialSimulationState(activeScenario, simParams.attendance)
   );
 
+  // Fetch authoritative active scenario from backend on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      fetch("/api/scenarios")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.activeScenario) {
+            setActiveScenario(data.activeScenario);
+            setSimulationState(createInitialSimulationState(data.activeScenario, 33000));
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   // Play / Pause / Reset / Speed Controls
   const playSimulation = useCallback(() => {
     setSimulationState(prev => ({ ...prev, status: "PLAYING" }));
@@ -169,6 +184,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setRecommendations(MOCK_RECOMMENDATIONS.map(r => ({ ...r, status: "PENDING" as const })));
     setHotelOverrides({});
     setSimulationState(createInitialSimulationState(s, simParams.attendance));
+
+    // Synchronize to unified backend API so mobile clients instantly receive update
+    if (typeof window !== "undefined") {
+      fetch("/api/scenarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scenarioId: s }),
+      }).catch(() => {});
+    }
   }, [simParams.attendance]);
 
   const approveRecommendation = useCallback((id: string) => {

@@ -1,5 +1,15 @@
 import { RoadEdge, ScenarioId } from "@/types";
 import { SCENARIOS } from "./mockScenarios";
+import { canonicalRouteStore, lineStringToGeoLocations } from "@/services/canonicalRouteStore";
+
+function getCanonicalGeoLocations(routeId: string) {
+  const route = canonicalRouteStore.getRoute(routeId);
+  if (!route) {
+    console.error(`[ROUTE ERROR] mockRoadNetwork failed to resolve routeId: ${routeId}`);
+    return [];
+  }
+  return lineStringToGeoLocations(route.geometry);
+}
 
 export const MVP_ROAD_CORRIDORS: Omit<RoadEdge, "congestion" | "status" | "travelTimeMin">[] = [
   {
@@ -9,13 +19,7 @@ export const MVP_ROAD_CORRIDORS: Omit<RoadEdge, "congestion" | "status" | "trave
     toId: "CHOWPATTY",
     distanceKm: 3.6,
     capacity: 4500,
-    geometry: [
-      { latitude: 18.9255, longitude: 72.8220 },
-      { latitude: 18.9320, longitude: 72.8235 },
-      { latitude: 18.9378, longitude: 72.8242 },
-      { latitude: 18.9432, longitude: 72.8230 },
-      { latitude: 18.9530, longitude: 72.8180 },
-    ],
+    geometry: getCanonicalGeoLocations("ROAD_MARINE_DR"),
   },
   {
     id: "ROAD_VEER_NARIMAN",
@@ -24,11 +28,7 @@ export const MVP_ROAD_CORRIDORS: Omit<RoadEdge, "congestion" | "status" | "trave
     toId: "FLORA_FOUNTAIN",
     distanceKm: 1.1,
     capacity: 2200,
-    geometry: [
-      { latitude: 18.9332, longitude: 72.8235 },
-      { latitude: 18.9348, longitude: 72.8270 },
-      { latitude: 18.9325, longitude: 72.8315 },
-    ],
+    geometry: getCanonicalGeoLocations("ROAD_VEER_NARIMAN"),
   },
   {
     id: "ROAD_MAHARSHI_KARVE",
@@ -37,12 +37,7 @@ export const MVP_ROAD_CORRIDORS: Omit<RoadEdge, "congestion" | "status" | "trave
     toId: "CHARNI_ROAD",
     distanceKm: 2.2,
     capacity: 3200,
-    geometry: [
-      { latitude: 18.9355, longitude: 72.8272 },
-      { latitude: 18.9385, longitude: 72.8265 },
-      { latitude: 18.9436, longitude: 72.8236 },
-      { latitude: 18.9510, longitude: 72.8195 },
-    ],
+    geometry: getCanonicalGeoLocations("ROAD_MAHARSHI_KARVE"),
   },
   {
     id: "ROAD_DN_ROAD",
@@ -51,11 +46,7 @@ export const MVP_ROAD_CORRIDORS: Omit<RoadEdge, "congestion" | "status" | "trave
     toId: "HUTATMA_CHOWK",
     distanceKm: 1.4,
     capacity: 2800,
-    geometry: [
-      { latitude: 18.9400, longitude: 72.8353 },
-      { latitude: 18.9360, longitude: 72.8330 },
-      { latitude: 18.9330, longitude: 72.8285 },
-    ],
+    geometry: getCanonicalGeoLocations("ROAD_DN_ROAD"),
   },
   {
     id: "ROAD_CENTRAL_SPINE",
@@ -64,12 +55,7 @@ export const MVP_ROAD_CORRIDORS: Omit<RoadEdge, "congestion" | "status" | "trave
     toId: "CSMT",
     distanceKm: 9.8,
     capacity: 6500,
-    geometry: [
-      { latitude: 19.0183, longitude: 72.8434 },
-      { latitude: 18.9950, longitude: 72.8400 },
-      { latitude: 18.9700, longitude: 72.8350 },
-      { latitude: 18.9400, longitude: 72.8353 },
-    ],
+    geometry: getCanonicalGeoLocations("ROAD_CENTRAL_SPINE"),
   },
 ];
 
@@ -105,6 +91,7 @@ export function getRoadNetwork(scenario: ScenarioId, redistributionApplied = fal
 
     return {
       ...corridor,
+      geometry: getCanonicalGeoLocations(corridor.id),
       congestion,
       status,
       travelTimeMin,
