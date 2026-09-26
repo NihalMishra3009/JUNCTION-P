@@ -233,8 +233,14 @@ ${JSON.stringify(SUPPORTED_ACTION_CATALOGUE, null, 2)}
 
 Generate a concise, high-priority operational plan (2-3 recommendations) addressing the most critical bottlenecks.`;
 
-    const candidateModels = ["gemini-2.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash", "gemini-flash-latest"];
+    const candidateModels = [
+      "gemini-3.8-flash",
+      "gemini-3.5-flash",
+      "gemini-flash-latest",
+      "gemini-3.1-flash-lite",
+    ];
     let response: any = null;
+    let successfulModel = "gemini-3.8-flash";
     let lastError: Error | null = null;
 
     for (const modelName of candidateModels) {
@@ -314,6 +320,7 @@ Generate a concise, high-priority operational plan (2-3 recommendations) address
           },
         });
         if (response) {
+          successfulModel = modelName;
           break;
         }
       } catch (err: any) {
@@ -381,7 +388,7 @@ Generate a concise, high-priority operational plan (2-3 recommendations) address
       planId: `PLAN_AI_${Date.now()}`,
       generatedAt: new Date().toISOString(),
       source: "AI",
-      modelUsed: "gemini-2.5-flash",
+      modelUsed: successfulModel,
       planSummary: parsed.planSummary,
       recommendations: validatedRecs,
       operationalRationale: parsed.operationalRationale,
