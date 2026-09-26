@@ -86,7 +86,6 @@ const MAP_COLORS = {
 
 // Note: All operational routes and case geometries are strictly road-network constrained
 // via getRoadSnappedPath() and buildRoadConstrainedPath() from osmRoadNetwork.ts.
-
 const BUILDING_COLOR: maplibregl.ExpressionSpecification = [
   "interpolate", ["linear"], BUILDING_HEIGHT,
   0, "#0f182c",
@@ -334,34 +333,61 @@ function addMapLayers(map: MapLibreMap) {
   if (!map.getSource("secret-data")) map.addSource("secret-data", { type: "geojson", data: featureCollection([]) });
   if (!map.getSource("secret-heatmap-data")) map.addSource("secret-heatmap-data", { type: "geojson", data: featureCollection([]) });
 
-  // 3D GPU Crowd Density Heatmap Layer - Glowing volumetric heat gradient
+  // Operational Zone Layer - Ground Level Fill
+  if (!map.getLayer("secret-zone-fill")) {
+    map.addLayer({
+      id: "secret-zone-fill",
+      type: "fill",
+      source: "secret-data",
+      filter: ["==", ["get", "kind"], "zone"],
+      paint: {
+        "fill-color": ["coalesce", ["get", "fillColor"], "#10b981"],
+        "fill-opacity": 0.28,
+      },
+    });
+  }
+
+  // 3D GPU Crowd Density Heatmap Layer - Original glowing volumetric heat gradient
   if (!map.getLayer("secret-heatmap-layer")) {
-    map.addLayer(
-      {
-        id: "secret-heatmap-layer",
-        type: "heatmap",
-        source: "secret-heatmap-data",
-        maxzoom: 19,
-        paint: {
-          "heatmap-weight": ["interpolate", ["linear"], ["get", "weight"], 0, 0, 1, 1],
-          "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 1.2, 15, 3.5],
-          "heatmap-color": [
-            "interpolate",
-            ["linear"],
-            ["heatmap-density"],
-            0, "rgba(0, 0, 0, 0)",
-            0.15, "rgba(37, 99, 235, 0.45)",
-            0.35, "rgba(6, 182, 212, 0.7)",
-            0.55, "rgba(16, 185, 129, 0.85)",
-            0.75, "rgba(245, 158, 11, 0.95)",
-            0.9, "rgba(239, 68, 68, 0.98)",
-            1.0, "rgba(220, 38, 38, 1.0)"
-          ],
-          "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 22, 14, 45, 17, 80],
-          "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 12, 0.88, 17, 0.62],
-        },
-      }
-    );
+    map.addLayer({
+      id: "secret-heatmap-layer",
+      type: "heatmap",
+      source: "secret-heatmap-data",
+      maxzoom: 19,
+      paint: {
+        "heatmap-weight": ["interpolate", ["linear"], ["get", "weight"], 0, 0, 1, 1],
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 1.2, 15, 3.5],
+        "heatmap-color": [
+          "interpolate",
+          ["linear"],
+          ["heatmap-density"],
+          0, "rgba(0, 0, 0, 0)",
+          0.15, "rgba(37, 99, 235, 0.45)",
+          0.35, "rgba(6, 182, 212, 0.7)",
+          0.55, "rgba(16, 185, 129, 0.85)",
+          0.75, "rgba(245, 158, 11, 0.95)",
+          0.9, "rgba(239, 68, 68, 0.98)",
+          1.0, "rgba(220, 38, 38, 1.0)"
+        ],
+        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 22, 14, 45, 17, 80],
+        "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 12, 0.88, 17, 0.62],
+      },
+    });
+  }
+
+  // Operational Zone Layer - Boundary Outline (Added AFTER Heatmap)
+  if (!map.getLayer("secret-zone-outline")) {
+    map.addLayer({
+      id: "secret-zone-outline",
+      type: "line",
+      source: "secret-data",
+      filter: ["==", ["get", "kind"], "zone"],
+      paint: {
+        "line-color": ["coalesce", ["get", "borderColor"], "#059669"],
+        "line-width": 3.5,
+        "line-opacity": 1.0,
+      },
+    });
   }
 
   // Operational Layers - Added ABOVE 3D Buildings so they are never obscured
@@ -451,6 +477,30 @@ function addMapLayers(map: MapLibreMap) {
     });
   }
 
+  // Operational Zone Center Label Symbol Layer
+  if (!map.getLayer("secret-zone-labels")) {
+    map.addLayer({
+      id: "secret-zone-labels",
+      type: "symbol",
+      source: "secret-data",
+      filter: ["==", ["get", "kind"], "zone-label"],
+      layout: {
+        "text-field": ["get", "zoneLabel"],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 14, 12, 18, 14],
+        "text-offset": [0, 0],
+        "text-anchor": "center",
+        "text-allow-overlap": true,
+      },
+      paint: {
+        "text-color": ["get", "textColor"],
+        "text-halo-color": "#040714",
+        "text-halo-width": 2.5,
+        "text-halo-blur": 0.5,
+      },
+    });
+  }
+
   // Location & Operational Symbol Labels (Names, Types, Badges)
   if (!map.getLayer("secret-location-labels")) {
     map.addLayer({
@@ -460,7 +510,7 @@ function addMapLayers(map: MapLibreMap) {
       filter: ["in", ["get", "kind"], ["literal", ["location", "case", "checkpoint", "vehicle"]]],
       layout: {
         "text-field": ["get", "label"],
-        "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+        "text-font": ["Noto Sans Regular"],
         "text-size": ["interpolate", ["linear"], ["zoom"], 10, 9.5, 14, 11.5, 18, 13.5],
         "text-offset": [0, 1.3],
         "text-anchor": "top",
@@ -494,11 +544,66 @@ function buildData(
   showLocations: boolean,
   showRoutes: boolean,
   selectedCaseId: string | null,
-  selectedLocationId: string | null
+  selectedLocationId: string | null,
+  simulationState?: SimulationState
 ): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
 
-  // 1. 2D JUNCTION OPERATIONAL ROAD CORRIDORS (Exact Road-Snapped Geometry from 2D Map)
+  // 1. CANONICAL JUNCTION OPERATIONAL ZONES (Boundaries & Labels)
+  OPERATIONAL_ZONES.forEach((zone) => {
+    let pressure = 50;
+    const rawKey = zone.id.replace("ZONE_", "");
+    if (simulationState?.nodeLoads) {
+      const load = simulationState.nodeLoads[rawKey] ?? simulationState.nodeLoads[zone.resourceIds[0]];
+      if (load !== undefined) {
+        const cap = zone.nominalPedestrianCapacity || 5000;
+        pressure = Math.min(99, Math.max(20, Math.round((load / cap) * 100)));
+      }
+    } else {
+      const matchingRes = resources.find((r) => r.id === rawKey || zone.resourceIds.includes(r.id));
+      if (matchingRes && matchingRes.pressure !== undefined) {
+        pressure = matchingRes.pressure;
+      }
+    }
+
+    const { fill: fillColor, border: borderColor } = getZoneColor(pressure);
+    const severity = pressure >= 90 ? "CRITICAL" : pressure >= 75 ? "HIGH" : pressure >= 50 ? "MODERATE" : "NORMAL";
+
+    // Polygon boundary
+    features.push({
+      type: "Feature",
+      properties: {
+        kind: "zone",
+        id: zone.id,
+        name: zone.shortName,
+        pressure,
+        severity,
+        fillColor,
+        borderColor,
+      },
+      geometry: {
+        type: "Polygon",
+        coordinates: createCirclePolygon(zone.center.longitude, zone.center.latitude, zone.radiusMeters),
+      },
+    });
+
+    // Center Label Anchor
+    features.push({
+      type: "Feature",
+      properties: {
+        kind: "zone-label",
+        id: `${zone.id}_LABEL`,
+        zoneLabel: `📍 ${zone.shortName.toUpperCase()}\n[${severity} · ${pressure}%]`,
+        textColor: borderColor,
+      },
+      geometry: {
+        type: "Point",
+        coordinates: [zone.center.longitude, zone.center.latitude],
+      },
+    });
+  });
+
+  // 2. 2D JUNCTION OPERATIONAL ROAD CORRIDORS (Exact Road-Snapped Geometry from 2D Map)
   roads.forEach((road) => {
     if (!road.geometry || road.geometry.length < 2) return;
     const isCritical = road.congestion >= 90;
@@ -530,7 +635,7 @@ function buildData(
     });
   });
 
-  // 2. AGGREGATE NETWORK TOPOLOGY CORRIDORS (From 2D Human Flow Topology)
+  // 3. AGGREGATE NETWORK TOPOLOGY CORRIDORS (From 2D Human Flow Topology)
   Object.values(MVP_NETWORK_EDGES).forEach((edge) => {
     if (!edge.geometry || edge.geometry.length < 2) return;
     features.push({
@@ -639,13 +744,67 @@ function buildData(
     });
   });
 
+  // Moving Human Cohorts / Vehicles from Live Simulation
+  if (simulationState?.humanCohorts) {
+    simulationState.humanCohorts
+      .filter((c) => c.status === "MOVING")
+      .forEach((cohort) => {
+        const currentEdgeId = cohort.path[cohort.currentSegmentIndex];
+        const edge = MVP_NETWORK_EDGES[currentEdgeId];
+        if (edge && edge.geometry && edge.geometry.length >= 2) {
+          const interpolated = interpolatePathByDistance(edge.geometry, cohort.progress);
+          const interpPt: [number, number] = [interpolated.position.longitude, interpolated.position.latitude];
+          features.push({
+            type: "Feature",
+            properties: {
+              kind: "vehicle",
+              id: cohort.id,
+              name: `COHORT ${cohort.volume} PAX`,
+              color: "#38bdf8",
+              label: `🚌 COHORT (${cohort.volume} pax)\n→ ${cohort.destinationId}`,
+              textColor: "#38bdf8",
+            },
+            geometry: { type: "Point", coordinates: interpPt },
+          });
+        }
+      });
+  }
+
   return featureCollection(features);
+}
+
+function createCirclePolygon(centerLng: number, centerLat: number, radiusMeters: number, steps = 32): number[][][] {
+  const coordinates: number[][] = [];
+  const km = radiusMeters / 1000;
+  const latRad = (centerLat * Math.PI) / 180;
+
+  for (let i = 0; i <= steps; i++) {
+    const angle = (i * 2 * Math.PI) / steps;
+    const dx = km * Math.cos(angle);
+    const dy = km * Math.sin(angle);
+
+    const deltaLat = dy / 111.32;
+    const deltaLng = dx / (111.32 * Math.cos(latRad));
+
+    coordinates.push([centerLng + deltaLng, centerLat + deltaLat]);
+  }
+
+  return [coordinates];
+}
+
+function getZoneColor(pressure: number): { fill: string; border: string } {
+  if (pressure >= 80) return { fill: "#ef4444", border: "#dc2626" }; // Critical (Red)
+  if (pressure >= 70) return { fill: "#f97316", border: "#ea580c" }; // High (Orange)
+  if (pressure >= 50) return { fill: "#f59e0b", border: "#d97706" }; // Moderate (Amber)
+  return { fill: "#10b981", border: "#059669" }; // Low / Normal (Emerald Green)
 }
 
 function buildHeatmapData(
   hotspots: PredictedHotspot[] = [],
   markers: CaseMarker[] = [],
-  activeLayers: Set<string> = new Set()
+  activeLayers: Set<string> = new Set(),
+  resources: Resource[] = [],
+  simulationState?: SimulationState
 ): GeoJSON.FeatureCollection {
   const showDensity =
     activeLayers.size === 0 ||
@@ -659,47 +818,52 @@ function buildHeatmapData(
 
   const features: GeoJSON.Feature[] = [];
 
-  // Core High-Density Hotspot Nodes (Wankhede Stadium, Churchgate, Marine Drive, Nariman Point, CSMT)
+  // Core High-Density Hotspot Nodes (Wankhede Stadium, Churchgate, Marine Drive, Nariman Point, CSMT, Dadar)
   const DENSITY_NODES = [
     // Wankhede Stadium Gate Clusters & Stadium Bowl
-    { lat: 18.9389, lon: 72.8258, weight: 1.0, count: 12 },
-    { lat: 18.9392, lon: 72.8250, weight: 0.95, count: 8 },
-    { lat: 18.9385, lon: 72.8262, weight: 0.90, count: 8 },
-    { lat: 18.9398, lon: 72.8265, weight: 0.88, count: 6 },
+    { lat: 18.9389, lon: 72.8258, baseWeight: 0.95, count: 12, nodeId: "WANKHEDE_EXIT" },
+    { lat: 18.9392, lon: 72.8250, baseWeight: 0.90, count: 8, nodeId: "WANKHEDE_EXIT" },
+    { lat: 18.9385, lon: 72.8262, baseWeight: 0.85, count: 8, nodeId: "WANKHEDE_EXIT" },
+    { lat: 18.9398, lon: 72.8265, baseWeight: 0.88, count: 6, nodeId: "WANKHEDE_EXIT" },
 
     // Churchgate Suburban Railway Terminus Concourse
-    { lat: 18.9350, lon: 72.8272, weight: 0.98, count: 14 },
-    { lat: 18.9355, lon: 72.8278, weight: 0.85, count: 8 },
-    { lat: 18.9342, lon: 72.8268, weight: 0.80, count: 6 },
+    { lat: 18.9350, lon: 72.8272, baseWeight: 0.92, count: 14, nodeId: "CHURCHGATE" },
+    { lat: 18.9355, lon: 72.8278, baseWeight: 0.85, count: 8, nodeId: "CHURCHGATE" },
+    { lat: 18.9342, lon: 72.8268, baseWeight: 0.80, count: 6, nodeId: "CHURCHGATE" },
 
     // Marine Drive Promenade Crowd Exits
-    { lat: 18.9430, lon: 72.8230, weight: 0.82, count: 10 },
-    { lat: 18.9380, lon: 72.8222, weight: 0.88, count: 12 },
-    { lat: 18.9320, lon: 72.8218, weight: 0.75, count: 7 },
+    { lat: 18.9430, lon: 72.8230, baseWeight: 0.82, count: 10, nodeId: "MARINE_LINES" },
+    { lat: 18.9380, lon: 72.8222, baseWeight: 0.88, count: 12, nodeId: "MARINE_LINES" },
+    { lat: 18.9320, lon: 72.8218, baseWeight: 0.75, count: 7, nodeId: "MARINE_LINES" },
 
     // Nariman Point Financial Hub & Bus Junctions
-    { lat: 18.9250, lon: 72.8220, weight: 0.70, count: 6 },
-    { lat: 18.9270, lon: 72.8235, weight: 0.65, count: 5 },
-
-    // Brabourne Stadium & Commercial Corridor
-    { lat: 18.9325, lon: 72.8250, weight: 0.78, count: 6 },
-
-    // Cooperage Ground & Oval Maidan Access
-    { lat: 18.9240, lon: 72.8290, weight: 0.60, count: 4 },
-    { lat: 18.9330, lon: 72.8295, weight: 0.68, count: 5 },
-
-    // Fashion Street & Metro Cinema Junction
-    { lat: 18.9400, lon: 72.8310, weight: 0.72, count: 6 },
+    { lat: 18.9250, lon: 72.8220, baseWeight: 0.70, count: 6, nodeId: "TAXI_ZONE" },
+    { lat: 18.9270, lon: 72.8235, baseWeight: 0.65, count: 5, nodeId: "TAXI_ZONE" },
 
     // CSMT Station Hub
-    { lat: 18.9400, lon: 72.8350, weight: 0.85, count: 10 },
+    { lat: 18.9400, lon: 72.8350, baseWeight: 0.85, count: 10, nodeId: "CSMT" },
+
+    // Dadar Station Hub
+    { lat: 19.0183, lon: 72.8434, baseWeight: 0.75, count: 10, nodeId: "DADAR" },
   ];
 
   DENSITY_NODES.forEach((node) => {
+    let nodePressure = node.baseWeight;
+    if (simulationState?.nodeLoads && simulationState.nodeLoads[node.nodeId] !== undefined) {
+      const load = simulationState.nodeLoads[node.nodeId];
+      const cap = node.nodeId === "CHURCHGATE" ? 10000 : node.nodeId === "WANKHEDE_EXIT" ? 4000 : 8000;
+      nodePressure = Math.min(1.0, Math.max(0.2, load / cap));
+    } else {
+      const res = resources.find((r) => r.id === node.nodeId);
+      if (res && res.pressure !== undefined) {
+        nodePressure = Math.min(1.0, Math.max(0.2, res.pressure / 100));
+      }
+    }
+
     for (let i = 0; i < node.count; i++) {
       const jitterLat = node.lat + (Math.random() - 0.5) * 0.0012;
       const jitterLon = node.lon + (Math.random() - 0.5) * 0.0012;
-      const pointWeight = Math.max(0.2, node.weight * (0.85 + Math.random() * 0.3));
+      const pointWeight = Math.max(0.15, nodePressure * (0.85 + Math.random() * 0.3));
       features.push({
         type: "Feature",
         properties: { weight: pointWeight },
@@ -718,17 +882,6 @@ function buildHeatmapData(
       type: "Feature",
       properties: { weight: Math.min(1.0, Math.max(0.2, w)) },
       geometry: { type: "Point", coordinates: [lon, lat] },
-    });
-  });
-
-  // Operational Case Locations
-  markers.forEach((m) => {
-    m.locations.forEach((loc) => {
-      features.push({
-        type: "Feature",
-        properties: { weight: 0.75 },
-        geometry: { type: "Point", coordinates: [loc.longitude, loc.latitude] },
-      });
     });
   });
 
@@ -894,14 +1047,30 @@ export default function InvestigationMap({
       if (!map.getLayer(threeOverlay.id)) map.addLayer(threeOverlay);
 
       const st = useMapStore.getState();
+      const zoneGeoData = buildData(st.markers, resources, roads, st.showCases, st.showLocations, st.showRoutes, st.selectedCaseId, st.selectedLocationId, simulationState);
+      const zoneFeatures = zoneGeoData.features.filter((f) => f.properties?.kind === "zone");
+
+      console.log("[JUNCTION ZONES]", {
+        zoneCount: OPERATIONAL_ZONES.length,
+        geoJsonFeatureCount: zoneFeatures.length,
+        firstZone: zoneFeatures[0]?.properties,
+        firstZoneGeometry: zoneFeatures[0]?.geometry,
+        sourceExists: Boolean(map.getSource("secret-data")),
+        fillLayerExists: Boolean(map.getLayer("secret-zone-fill")),
+        outlineLayerExists: Boolean(map.getLayer("secret-zone-outline")),
+      });
+
       const ds = map.getSource("secret-data") as maplibregl.GeoJSONSource | undefined;
-      if (ds) ds.setData(buildData(st.markers, resources, roads, st.showCases, st.showLocations, st.showRoutes, st.selectedCaseId, st.selectedLocationId));
+      if (ds) ds.setData(zoneGeoData);
+      const hds = map.getSource("secret-heatmap-data") as maplibregl.GeoJSONSource | undefined;
+      if (hds) hds.setData(buildHeatmapData(hotspots, st.markers, activeLayers, resources, simulationState));
 
       setReady(true);
     };
 
     map.on("load", applyStyleTheme);
     map.once("idle", applyStyleTheme);
+    map.on("styledata", applyStyleTheme);
 
     const onMove = (event: MapMouseEvent) => {
       const feature = eventFeatures(event)[0];
@@ -954,13 +1123,13 @@ export default function InvestigationMap({
     if (!mapRef.current || !ready) return;
     const ds = mapRef.current.getSource("secret-data") as maplibregl.GeoJSONSource | undefined;
     if (ds) {
-      ds.setData(buildData(markers, resources, roads, showCases, showLocations, showRoutes, selectedCaseId, selectedLocationId));
+      ds.setData(buildData(markers, resources, roads, showCases, showLocations, showRoutes, selectedCaseId, selectedLocationId, simulationState));
     }
     const hds = mapRef.current.getSource("secret-heatmap-data") as maplibregl.GeoJSONSource | undefined;
     if (hds) {
-      hds.setData(buildHeatmapData(hotspots, markers, activeLayers));
+      hds.setData(buildHeatmapData(hotspots, markers, activeLayers, resources, simulationState));
     }
-  }, [markers, resources, roads, hotspots, activeLayers, showCases, showLocations, showRoutes, selectedCaseId, selectedLocationId, ready]);
+  }, [markers, resources, roads, hotspots, activeLayers, showCases, showLocations, showRoutes, selectedCaseId, selectedLocationId, simulationState, ready]);
 
   // Respond to camera request (e.g. flyToGeo / focusLocation)
   useEffect(() => {

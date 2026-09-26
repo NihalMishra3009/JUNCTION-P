@@ -1,4 +1,5 @@
 import { GeoLocation } from "@/types";
+import { canonicalRouteStore, lineStringToGeoLocations } from "@/services/canonicalRouteStore";
 
 export interface NetworkEdge {
   id: string;
@@ -10,6 +11,15 @@ export interface NetworkEdge {
   geometry: GeoLocation[];
 }
 
+function getCanonicalGeoLocations(routeId: string) {
+  const route = canonicalRouteStore.getRoute(routeId);
+  if (!route) {
+    console.error(`[ROUTE ERROR] mockNetworkTopology failed to resolve routeId: ${routeId}`);
+    return [];
+  }
+  return lineStringToGeoLocations(route.geometry);
+}
+
 export const MVP_NETWORK_EDGES: Record<string, NetworkEdge> = {
   EDGE_EXIT_VEER_NARIMAN: {
     id: "EDGE_EXIT_VEER_NARIMAN",
@@ -18,11 +28,7 @@ export const MVP_NETWORK_EDGES: Record<string, NetworkEdge> = {
     toNodeId: "CHURCHGATE",
     lengthMeters: 480,
     capacity: 5000,
-    geometry: [
-      { latitude: 18.9379, longitude: 72.8257 },
-      { latitude: 18.9365, longitude: 72.8265 },
-      { latitude: 18.9355, longitude: 72.8272 },
-    ],
+    geometry: getCanonicalGeoLocations("EDGE_EXIT_VEER_NARIMAN"),
   },
   EDGE_EXIT_TAXI_LINK: {
     id: "EDGE_EXIT_TAXI_LINK",
@@ -31,11 +37,7 @@ export const MVP_NETWORK_EDGES: Record<string, NetworkEdge> = {
     toNodeId: "TAXI_ZONE",
     lengthMeters: 220,
     capacity: 2500,
-    geometry: [
-      { latitude: 18.9379, longitude: 72.8257 },
-      { latitude: 18.9375, longitude: 72.8262 },
-      { latitude: 18.9372, longitude: 72.8268 },
-    ],
+    geometry: getCanonicalGeoLocations("EDGE_EXIT_TAXI_LINK"),
   },
   EDGE_EXIT_MK_ROAD: {
     id: "EDGE_EXIT_MK_ROAD",
@@ -44,11 +46,7 @@ export const MVP_NETWORK_EDGES: Record<string, NetworkEdge> = {
     toNodeId: "MARINE_LINES",
     lengthMeters: 680,
     capacity: 3500,
-    geometry: [
-      { latitude: 18.9379, longitude: 72.8257 },
-      { latitude: 18.9405, longitude: 72.8250 },
-      { latitude: 18.9436, longitude: 72.8236 },
-    ],
+    geometry: getCanonicalGeoLocations("EDGE_EXIT_MK_ROAD"),
   },
   EDGE_DN_ROAD_LINK: {
     id: "EDGE_DN_ROAD_LINK",
@@ -57,12 +55,7 @@ export const MVP_NETWORK_EDGES: Record<string, NetworkEdge> = {
     toNodeId: "CSMT",
     lengthMeters: 1350,
     capacity: 3000,
-    geometry: [
-      { latitude: 18.9379, longitude: 72.8257 },
-      { latitude: 18.9360, longitude: 72.8300 },
-      { latitude: 18.9385, longitude: 72.8330 },
-      { latitude: 18.9400, longitude: 72.8353 },
-    ],
+    geometry: getCanonicalGeoLocations("EDGE_DN_ROAD_LINK"),
   },
   EDGE_CENTRAL_SPINE: {
     id: "EDGE_CENTRAL_SPINE",
@@ -71,12 +64,7 @@ export const MVP_NETWORK_EDGES: Record<string, NetworkEdge> = {
     toNodeId: "DADAR",
     lengthMeters: 9800,
     capacity: 6000,
-    geometry: [
-      { latitude: 18.9379, longitude: 72.8257 },
-      { latitude: 18.9700, longitude: 72.8350 },
-      { latitude: 18.9950, longitude: 72.8400 },
-      { latitude: 19.0183, longitude: 72.8434 },
-    ],
+    geometry: getCanonicalGeoLocations("EDGE_CENTRAL_SPINE"),
   },
 };
 

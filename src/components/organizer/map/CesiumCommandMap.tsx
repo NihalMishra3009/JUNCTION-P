@@ -16,6 +16,7 @@ import {
 import { OPERATIONAL_ZONES } from "@/services/zoneRegistry";
 import { OSM_SOUTH_MUMBAI_ROADS } from "@/data/osmRoadNetwork";
 import { interpolatePathByDistance } from "@/services/routingEngine";
+import { canonicalRouteStore, lineStringToGeoLocations } from "@/services/canonicalRouteStore";
 import styles from "../DestinationMap.module.css";
 import { render3DCityAndStadium } from "./layers/Cesium3DCityLayer";
 
@@ -712,14 +713,16 @@ export default function CesiumCommandMap({
       // C3. Dynamic Vehicle Cohorts & Spatial Distance Interpolation
       if (simulationState?.humanCohorts && simulationState.humanCohorts.length > 0) {
         simulationState.humanCohorts.forEach((cohort) => {
-          const sampleRoutePath = OSM_SOUTH_MUMBAI_ROADS[0]?.geometry || [
+          const currentEdgeId = cohort.path?.[cohort.currentSegmentIndex] || "ROUTE_MARINE_LINES_WANKHEDE";
+          const canonicalRoute = canonicalRouteStore.getRoute(currentEdgeId) || canonicalRouteStore.getRoute("ROUTE_MARINE_LINES_WANKHEDE");
+          const routePath = canonicalRoute ? lineStringToGeoLocations(canonicalRoute.geometry) : [
             { latitude: 18.9355, longitude: 72.8272 },
             { latitude: 18.9389, longitude: 72.8258 },
           ];
 
           const animatedVehiclePos = new Cesium.CallbackProperty(() => {
             const progress = cohort.progress ?? 0.5;
-            const { position } = interpolatePathByDistance(sampleRoutePath, progress);
+            const { position } = interpolatePathByDistance(routePath, progress);
             return Cesium.Cartesian3.fromDegrees(position.longitude, position.latitude, 6);
           }, false);
 
