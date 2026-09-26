@@ -1,6 +1,7 @@
 """
 JUNCTION Computer Vision Bridge - Observation Serializer
-Formats video inference metrics into canonical NormalizedObservation objects matching JUNCTION TypeScript contracts.
+Formats video inference metrics into canonical NormalizedObservation objects matching JUNCTION TypeScript contracts,
+and serializes rich CCTV detection frame payloads for real-time browser canvas overlays.
 """
 
 from datetime import datetime, timezone
@@ -10,7 +11,7 @@ import uuid
 
 class JunctionObservationSerializer:
     """
-    Serializes computer-vision frame metrics into JUNCTION-compatible observations.
+    Serializes computer-vision frame metrics into JUNCTION-compatible observations and CCTV frame telemetry.
     """
 
     def __init__(
@@ -18,7 +19,7 @@ class JunctionObservationSerializer:
         camera_id: str,
         zone_id: str,
         resource_id: Optional[str] = None,
-        provider_name: str = "YOLOv12-ByteTrack-Bridge",
+        provider_name: str = "JUNCTION_VIDEO_CV",
         model_name: str = "yolov12n.pt",
         is_simulated: bool = False,
         video_source_name: str = "local_video_feed",
@@ -30,6 +31,44 @@ class JunctionObservationSerializer:
         self.model_name = model_name
         self.is_simulated = is_simulated
         self.video_source_name = video_source_name
+
+    def serialize_cctv_frame_telemetry(
+        self,
+        frame_metrics: Dict[str, Any],
+        frame_index: int,
+        video_timestamp: Optional[float] = None,
+        fps: float = 30.0,
+        tripwire_y: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Produces a rich CCTV-specific detection frame payload for client-side bounding box / tracking overlay.
+        """
+        frame_w = frame_metrics.get("frame_width", 1920)
+        frame_h = frame_metrics.get("frame_height", 1080)
+        detections = frame_metrics.get("detections", [])
+
+        norm_tripwire_y = None
+        if tripwire_y is not None and frame_h > 0:
+            norm_tripwire_y = round(tripwire_y / frame_h, 4)
+
+        return {
+            "cameraId": self.camera_id,
+            "sourceProvider": "JUNCTION_VIDEO_CV",
+            "videoTimestamp": video_timestamp if video_timestamp is not None else round(frame_index / max(1.0, fps), 3),
+            "frameNumber": frame_index,
+            "frameWidth": frame_w,
+            "frameHeight": frame_h,
+            "personCount": frame_metrics.get("person_count", len(detections)),
+            "activeTracksCount": len(frame_metrics.get("active_track_ids", [])),
+            "meanConfidence": frame_metrics.get("mean_confidence", 0.0),
+            "inflow": frame_metrics.get("inflow_count"),
+            "outflow": frame_metrics.get("outflow_count"),
+            "tripwireY": tripwire_y,
+            "tripwireNormalizedY": norm_tripwire_y,
+            "detections": detections,
+            "receivedAt": datetime.now(timezone.utc).isoformat(),
+            "fps": fps,
+        }
 
     def serialize_frame_observations(
         self,

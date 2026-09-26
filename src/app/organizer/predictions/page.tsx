@@ -1,9 +1,9 @@
 "use client";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { useApp } from "@/state/AppContext";
-import { getPredictions } from "@/services/mockDataService";
-import { SCENARIOS } from "@/data/mockScenarios";
-import { ScenarioId } from "@/types";
+import { forecastingService } from "@/services/forecastingService";
+import { ScenarioId, ResourcePrediction } from "@/types";
 import { getPressureColor, getPressureLabel, getPressureClass } from "@/components/ui/PressureIndicator";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer } from "recharts";
 import { AlertTriangle, Zap, Check } from "lucide-react";
@@ -13,6 +13,14 @@ import styles from "./predictions.module.css";
 
 const TIME_LABELS = ["NOW", "+15 MIN", "+30 MIN", "+60 MIN"];
 
+const TARGET_PREDICTION_NODES = [
+  { id: "CHURCHGATE", name: "Churchgate Station", color: "#EF4444", zoneId: "ZONE_CHURCHGATE" },
+  { id: "WANKHEDE_EXIT", name: "Wankhede Exit", color: "#F97316", zoneId: "ZONE_WANKHEDE" },
+  { id: "TAXI_ZONE", name: "Taxi Zone", color: "#F5C400", zoneId: "ZONE_TAXI_STAGING" },
+  { id: "CSMT", name: "CSMT", color: "#3B82F6", zoneId: "ZONE_CSMT" },
+  { id: "DADAR", name: "Dadar Station", color: "#22C55E", zoneId: "ZONE_DADAR" },
+  { id: "ROAD_MARINE_DR", name: "Marine Drive", color: "#8B5CF6", zoneId: "ZONE_MARINE_LINES" },
+];
 
 interface CascadeStage {
   id: string;
@@ -27,213 +35,214 @@ interface CascadeStage {
   consequenceToNext?: string;
 }
 
-function getCascadeData(scenario: ScenarioId, redistributionApplied: boolean): {
-  stages: CascadeStage[];
-  cascadeTimeLabel: string;
-  isCritical: boolean;
-} {
-  const s = SCENARIOS[scenario] || SCENARIOS.NORMAL;
-  const ttMultiplier = s.travelTimeMultiplier;
-
-  // 1. Wankhede Exit
-  const exitPd = s.pressure.WANKHEDE_EXIT || { pressure: 88, predictedPressure15: 93, predictedPressure30: 85, predictedPressure60: 69 };
-  let exitBefore = exitPd.pressure;
-  let exitAfter = Math.max(exitPd.predictedPressure15, exitPd.predictedPressure30);
-  if (redistributionApplied) {
-    exitBefore = Math.max(40, exitBefore - 6);
-    exitAfter = Math.max(40, exitAfter - 6);
-  }
-  const exitDelta = exitAfter - exitBefore;
-
-  // 2. Road Pressure (Marine Drive)
-  const roadPd = s.pressure.ROAD_MARINE_DR || { pressure: 82, predictedPressure15: 87, predictedPressure30: 79, predictedPressure60: 64 };
-  const roadBefore = roadPd.pressure;
-  const roadAfter = Math.max(roadPd.predictedPressure15, roadPd.predictedPressure30);
-  const roadDelta = roadAfter - roadBefore;
-
-  // 3. Transport Delay
-  const baseDelay = scenario === "TRANSPORT_DISRUPTION" ? 8 : scenario === "HEAVY_RAIN" ? 7 : scenario === "POST_EVENT_SURGE" ? 5 : 4;
-  const delayDelta = Math.round(3 * ttMultiplier + (scenario === "TRANSPORT_DISRUPTION" ? 14 : scenario === "POST_EVENT_SURGE" ? 7 : scenario === "HEAVY_RAIN" ? 9 : 3));
-  const predDelay = baseDelay + delayDelta;
-
-  // 4. Churchgate
-  const cgPd = s.pressure.CHURCHGATE || { pressure: 94, predictedPressure15: 97, predictedPressure30: 89, predictedPressure60: 78 };
-  let cgBefore = cgPd.pressure;
-  let cgAfter = Math.max(cgPd.predictedPressure15, cgPd.predictedPressure30);
-  if (redistributionApplied) {
-    cgBefore = Math.max(40, cgBefore - 18);
-    cgAfter = Math.max(45, cgAfter - 18);
-  }
-  const cgDelta = cgAfter - cgBefore;
-
-  // 5. Taxi Demand
-  const taxiPd = s.pressure.TAXI_ZONE || { pressure: 91, predictedPressure15: 97, predictedPressure30: 88, predictedPressure60: 72 };
-  const taxiBefore = taxiPd.pressure;
-  const taxiAfter = Math.max(taxiPd.predictedPressure15, taxiPd.predictedPressure30);
-  const taxiDelta = taxiAfter - taxiBefore;
-
-  // 6. Pickup Zone
-  const pickupBefore = Math.min(98, Math.round(taxiBefore * 0.94));
-  const pickupAfter = Math.min(99, Math.round(taxiAfter * 1.01));
-  const pickupDelta = pickupAfter - pickupBefore;
-
-  const stages: CascadeStage[] = [
-    {
-      id: "WANKHEDE_EXIT",
-      step: "STAGE 01",
-      name: "Wankhede Exit",
-      context: "Stadium gates dispersal",
-      beforeStr: `${exitBefore}%`,
-      afterStr: `${exitAfter}%`,
-      deltaStr: `${exitDelta >= 0 ? `+${exitDelta}%` : `${exitDelta}%`} pressure`,
-      isIncrease: exitDelta >= 0,
-      pressureForColor: exitAfter,
-      consequenceToNext: `+${Math.round(8 * ttMultiplier)} min road congestion`,
-    },
-    {
-      id: "ROAD_PRESSURE",
-      step: "STAGE 02",
-      name: "Road Pressure",
-      context: "Marine Drive corridor",
-      beforeStr: `${roadBefore}%`,
-      afterStr: `${roadAfter}%`,
-      deltaStr: `${roadDelta >= 0 ? `+${roadDelta}%` : `${roadDelta}%`} pressure`,
-      isIncrease: roadDelta >= 0,
-      pressureForColor: roadAfter,
-      consequenceToNext: `+${delayDelta} min transport delay`,
-    },
-    {
-      id: "TRANSPORT_DELAY",
-      step: "STAGE 03",
-      name: "Transport Delay",
-      context: "Western rail dwell",
-      beforeStr: `+${baseDelay} min`,
-      afterStr: `+${predDelay} min`,
-      deltaStr: `+${delayDelta} min delay`,
-      isIncrease: true,
-      pressureForColor: Math.min(98, Math.round(predDelay * 4.4)),
-      consequenceToNext: scenario === "TRANSPORT_DISRUPTION" ? "Signal fault concourse hold" : "Inflow surges (+35%)",
-    },
-    {
-      id: "CHURCHGATE",
-      step: "STAGE 04",
-      name: "Churchgate",
-      context: "Terminus platform load",
-      beforeStr: `${cgBefore}%`,
-      afterStr: `${cgAfter}%`,
-      deltaStr: `${cgDelta >= 0 ? `+${cgDelta}%` : `${cgDelta}%`} pressure`,
-      isIncrease: cgDelta >= 0,
-      pressureForColor: cgAfter,
-      consequenceToNext: cgAfter >= 85 ? "Over-capacity diverts to cabs" : "Egress manageable",
-    },
-    {
-      id: "TAXI_DEMAND",
-      step: "STAGE 05",
-      name: "Taxi Demand",
-      context: "Rideshare hail spike",
-      beforeStr: `${taxiBefore}%`,
-      afterStr: `${taxiAfter}%`,
-      deltaStr: `${taxiDelta >= 0 ? `+${taxiDelta}%` : `${taxiDelta}%`} pressure`,
-      isIncrease: taxiDelta >= 0,
-      pressureForColor: taxiAfter,
-      consequenceToNext: "Queue bay overflow",
-    },
-    {
-      id: "PICKUP_ZONE",
-      step: "STAGE 06",
-      name: "Pickup Zone",
-      context: "South stadium pickup bay",
-      beforeStr: `${pickupBefore}%`,
-      afterStr: `${pickupAfter}%`,
-      deltaStr: `${pickupDelta >= 0 ? `+${pickupDelta}%` : `${pickupDelta}%`} pressure`,
-      isIncrease: pickupDelta >= 0,
-      pressureForColor: pickupAfter,
-    },
-  ];
-
-  let cascadeTimeLabel = "Projected cascade: ~25 min";
-  let isCritical = false;
-
-  if (scenario === "POST_EVENT_SURGE") {
-    cascadeTimeLabel = "Critical in ~15–20 min";
-    isCritical = true;
-  } else if (scenario === "TRANSPORT_DISRUPTION") {
-    cascadeTimeLabel = "Critical in ~10–15 min";
-    isCritical = true;
-  } else if (scenario === "HEAVY_RAIN") {
-    cascadeTimeLabel = "High impact in ~15 min";
-    isCritical = true;
-  } else if (scenario === "EVENT_DELAY") {
-    cascadeTimeLabel = "Delayed cascade: ~45–50 min";
-  }
-
-  return { stages, cascadeTimeLabel, isCritical };
-}
-
 const NO_ACTION_MESSAGES: Record<ScenarioId, { warning: string; affected: string[]; risk: string }> = {
   NORMAL: {
-    warning: "Steady egress will progressively concentrate 10,000+ attendees toward Churchgate Station. Inflow is projected to reach 94% pressure within ~30 minutes, producing platform dwell delays and curbside taxi queuing.",
-    affected: ["Churchgate (94% Peak)", "Taxi Zone (91% Peak)", "Marine Drive (79% Peak)"],
+    warning: "Steady egress will progressively concentrate 10,000+ attendees toward Churchgate Station. Inflow is projected to reach high pressure within ~30 minutes, producing platform dwell delays and curbside taxi queuing.",
+    affected: ["Churchgate (Peak)", "Taxi Zone (Peak)", "Marine Drive (Peak)"],
     risk: "Unmitigated Inflow Delay: +15 min · Risk: WATCH",
   },
   POST_EVENT_SURGE: {
-    warning: "Simultaneous 33,000 attendee exit will overwhelm Churchgate Station (97% critical pressure) in ~15–20 minutes. Concourse overcrowding will force safety gate holds, causing ~3,400 diverted commuters to flood Marine Drive and pushing Taxi Zone wait times beyond 45 minutes.",
-    affected: ["Churchgate (97% CRITICAL)", "Taxi Zone (97% CRITICAL)", "Marine Drive (87% HIGH)", "Exit Gates (93% HIGH)"],
+    warning: "Simultaneous 33,000 attendee exit will overwhelm Churchgate Station in ~15–20 minutes. Concourse overcrowding will force safety gate holds, causing diverted commuters to flood Marine Drive and pushing Taxi Zone wait times beyond 45 minutes.",
+    affected: ["Churchgate (CRITICAL)", "Taxi Zone (CRITICAL)", "Marine Drive (HIGH)", "Exit Gates (HIGH)"],
     risk: "Unmitigated Bottleneck: +30–45 min · Safety Risk: HIGH",
   },
   TRANSPORT_DISRUPTION: {
-    warning: "Western Railway signal failure halts train departures. Trapped crowds at Churchgate (97% pressure) will back up onto approach roads. Taxi and rideshare demand will instantly spike to 94%, creating severe cascading gridlock across South Mumbai.",
-    affected: ["Churchgate (97% CRITICAL)", "Taxi Zone (94% CRITICAL)", "CSMT Terminal (91% HIGH)", "Marine Drive (89% HIGH)"],
+    warning: "Western Railway signal failure halts train departures. Trapped crowds at Churchgate will back up onto approach roads. Taxi and rideshare demand will instantly spike, creating severe cascading gridlock across South Mumbai.",
+    affected: ["Churchgate (CRITICAL)", "Taxi Zone (CRITICAL)", "CSMT Terminal (HIGH)", "Marine Drive (HIGH)"],
     risk: "Transit Suspension Hold: +40+ min · Severity: CRITICAL",
   },
   HEAVY_RAIN: {
-    warning: "Monsoon downpour eliminates walking viability to Marine Lines and Churchgate. Exiting spectators will converge heavily on curbside taxi pickup bays (97% demand), resulting in curb gridlock and 2.0x vehicular travel delay.",
-    affected: ["Taxi Zone (97% CRITICAL)", "Pickup Bays (96% CRITICAL)", "Marine Drive (86% HIGH)", "Churchgate (93% HIGH)"],
+    warning: "Monsoon downpour eliminates walking viability to Marine Lines and Churchgate. Exiting spectators will converge heavily on curbside taxi pickup bays, resulting in curb gridlock and 2.0x vehicular travel delay.",
+    affected: ["Taxi Zone (CRITICAL)", "Pickup Bays (CRITICAL)", "Marine Drive (HIGH)", "Churchgate (HIGH)"],
     risk: "Monsoon Curb Gridlock: +25–35 min · Severity: HIGH",
   },
   ACCOMMODATION_SATURATION: {
-    warning: "Zone A hotels reach 91%+ occupancy with zero spare rooms. Late-booking attendees will face immediate room shortages, resulting in localized vehicle circling around Nariman Point and increased transit frustration.",
-    affected: ["Zone A Hotels (91% CRITICAL)", "Churchgate Station (91% HIGH)", "Taxi Zone (88% HIGH)"],
+    warning: "Zone A hotels reach high occupancy with limited spare rooms. Late-booking attendees face immediate room shortages, resulting in localized vehicle circling around Nariman Point and increased transit frustration.",
+    affected: ["Zone A Hotels (CRITICAL)", "Churchgate Station (HIGH)", "Taxi Zone (HIGH)"],
     risk: "Hospitality Exhaustion · Severity: HIGH",
   },
   EVENT_DELAY: {
     warning: "Match delayed by 30 minutes. Premature spectator arrival will congest stadium perimeter gates and local dining if attendees are not notified to stagger departure from surrounding transit hubs.",
-    affected: ["Wankhede Gates (74% WATCH)", "Churchgate Station (79% WATCH)", "Taxi Zone (71% WATCH)"],
+    affected: ["Wankhede Gates (WATCH)", "Churchgate Station (WATCH)", "Taxi Zone (WATCH)"],
     risk: "Premature Gate Inflow · Severity: WATCH",
   },
 };
 
 export default function PredictionsPage() {
-  const { activeScenario, redistributionApplied, recommendations } = useApp();
-  const basePredictions = getPredictions(activeScenario);
+  const {
+    activeScenario,
+    redistributionApplied,
+    recommendations,
+    resources,
+    zones,
+    simulationState,
+  } = useApp();
 
-  const predictions = redistributionApplied
-    ? basePredictions.map(p => {
-        if (p.resourceId === "CHURCHGATE") {
-          return {
-            ...p,
-            current: Math.max(40, p.current - 18),
-            points: p.points.map(pt => ({ ...pt, pressure: Math.max(40, pt.pressure - 18) })),
-          };
-        }
-        if (p.resourceId === "DADAR") {
-          return {
-            ...p,
-            current: Math.min(88, p.current + 11),
-            points: p.points.map(pt => ({ ...pt, pressure: Math.min(90, pt.pressure + 10) })),
-          };
-        }
-        return p;
-      })
-    : basePredictions;
+  // Dynamic Live Forecasting computed from live resources, zones, and simulation progression
+  const predictions: ResourcePrediction[] = useMemo(() => {
+    return TARGET_PREDICTION_NODES.map(node => {
+      const res = resources.find(r => r.id === node.id);
+      const zone = zones.find(z => z.id === node.zoneId);
+      const currentPressure = res ? res.pressure : (zone?.pressure ?? 50);
+      const confidenceScore = zone?.confidence ?? 0.85;
 
-  const chartData = TIME_LABELS.map((label, i) => {
-    const obj: Record<string, number | string> = { time: label };
-    predictions.forEach(p => { obj[p.resourceName] = p.points[i]?.pressure || 0; });
-    return obj;
-  });
+      const forecast = forecastingService.generateResourceForecast(
+        node.id,
+        node.name,
+        node.zoneId,
+        currentPressure,
+        activeScenario,
+        confidenceScore
+      );
 
-  const { stages, cascadeTimeLabel, isCritical } = getCascadeData(activeScenario, redistributionApplied);
+      const p15 = forecast.forecastPoints.find(p => p.minutesFromNow === 15)?.predictedPressure ?? currentPressure;
+      const p30 = forecast.forecastPoints.find(p => p.minutesFromNow === 30)?.predictedPressure ?? currentPressure;
+      const p60 = forecast.forecastPoints.find(p => p.minutesFromNow === 60)?.predictedPressure ?? currentPressure;
+
+      return {
+        resourceId: node.id,
+        resourceName: node.name,
+        color: node.color,
+        current: currentPressure,
+        points: [
+          { label: "NOW", minutesFromNow: 0, pressure: currentPressure },
+          { label: "+15 MIN", minutesFromNow: 15, pressure: p15 },
+          { label: "+30 MIN", minutesFromNow: 30, pressure: p30 },
+          { label: "+60 MIN", minutesFromNow: 60, pressure: p60 },
+        ],
+        thresholdCrossing: forecast.thresholdCrossing
+          ? {
+              level: forecast.thresholdCrossing.level,
+              minutesFromNow: forecast.thresholdCrossing.minutesFromNow,
+            }
+          : undefined,
+      };
+    });
+  }, [resources, zones, activeScenario, simulationState.minutesElapsed, simulationState.nodeLoads]);
+
+  // Transform live predictions into Recharts series data
+  const chartData = useMemo(() => {
+    return TIME_LABELS.map((label, i) => {
+      const obj: Record<string, number | string> = { time: label };
+      predictions.forEach(p => {
+        obj[p.resourceName] = p.points[i]?.pressure || 0;
+      });
+      return obj;
+    });
+  }, [predictions]);
+
+  // Live Dynamic Cascade Stages linked to live node pressures and forward forecasts
+  const { stages, cascadeTimeLabel, isCritical } = useMemo(() => {
+    const exitPred = predictions.find(p => p.resourceId === "WANKHEDE_EXIT");
+    const roadPred = predictions.find(p => p.resourceId === "ROAD_MARINE_DR");
+    const cgPred = predictions.find(p => p.resourceId === "CHURCHGATE");
+    const taxiPred = predictions.find(p => p.resourceId === "TAXI_ZONE");
+
+    const exitBefore = exitPred?.current ?? 88;
+    const exitAfter = exitPred?.points[1]?.pressure ?? exitBefore;
+    const exitDelta = exitAfter - exitBefore;
+
+    const roadBefore = roadPred?.current ?? 82;
+    const roadAfter = roadPred?.points[1]?.pressure ?? roadBefore;
+    const roadDelta = roadAfter - roadBefore;
+
+    const baseDelay = activeScenario === "TRANSPORT_DISRUPTION" ? 8 : activeScenario === "HEAVY_RAIN" ? 7 : activeScenario === "POST_EVENT_SURGE" ? 5 : 4;
+    const delayDelta = Math.round((cgPred?.current ?? 80) * 0.12);
+    const predDelay = baseDelay + delayDelta;
+
+    const cgBefore = cgPred?.current ?? 94;
+    const cgAfter = cgPred?.points[1]?.pressure ?? cgBefore;
+    const cgDelta = cgAfter - cgBefore;
+
+    const taxiBefore = taxiPred?.current ?? 91;
+    const taxiAfter = taxiPred?.points[1]?.pressure ?? taxiBefore;
+    const taxiDelta = taxiAfter - taxiBefore;
+
+    const pickupBefore = Math.min(98, Math.round(taxiBefore * 0.95));
+    const pickupAfter = Math.min(99, Math.round(taxiAfter * 1.02));
+    const pickupDelta = pickupAfter - pickupBefore;
+
+    const liveStages: CascadeStage[] = [
+      {
+        id: "WANKHEDE_EXIT",
+        step: "STAGE 01",
+        name: "Wankhede Exit",
+        context: "Stadium gates dispersal",
+        beforeStr: `${exitBefore}%`,
+        afterStr: `${exitAfter}%`,
+        deltaStr: `${exitDelta >= 0 ? `+${exitDelta}%` : `${exitDelta}%`} pressure`,
+        isIncrease: exitDelta >= 0,
+        pressureForColor: exitAfter,
+        consequenceToNext: `+${Math.round(exitAfter * 0.1)} min road congestion`,
+      },
+      {
+        id: "ROAD_PRESSURE",
+        step: "STAGE 02",
+        name: "Road Pressure",
+        context: "Marine Drive corridor",
+        beforeStr: `${roadBefore}%`,
+        afterStr: `${roadAfter}%`,
+        deltaStr: `${roadDelta >= 0 ? `+${roadDelta}%` : `${roadDelta}%`} pressure`,
+        isIncrease: roadDelta >= 0,
+        pressureForColor: roadAfter,
+        consequenceToNext: `+${delayDelta} min transport delay`,
+      },
+      {
+        id: "TRANSPORT_DELAY",
+        step: "STAGE 03",
+        name: "Transport Delay",
+        context: "Western rail dwell",
+        beforeStr: `+${baseDelay} min`,
+        afterStr: `+${predDelay} min`,
+        deltaStr: `+${delayDelta} min delay`,
+        isIncrease: true,
+        pressureForColor: Math.min(98, Math.round(predDelay * 4.4)),
+        consequenceToNext: activeScenario === "TRANSPORT_DISRUPTION" ? "Signal fault concourse hold" : "Inflow surges (+35%)",
+      },
+      {
+        id: "CHURCHGATE",
+        step: "STAGE 04",
+        name: "Churchgate",
+        context: "Terminus platform load",
+        beforeStr: `${cgBefore}%`,
+        afterStr: `${cgAfter}%`,
+        deltaStr: `${cgDelta >= 0 ? `+${cgDelta}%` : `${cgDelta}%`} pressure`,
+        isIncrease: cgDelta >= 0,
+        pressureForColor: cgAfter,
+        consequenceToNext: cgAfter >= 85 ? "Over-capacity diverts to cabs" : "Egress manageable",
+      },
+      {
+        id: "TAXI_DEMAND",
+        step: "STAGE 05",
+        name: "Taxi Demand",
+        context: "Rideshare hail spike",
+        beforeStr: `${taxiBefore}%`,
+        afterStr: `${taxiAfter}%`,
+        deltaStr: `${taxiDelta >= 0 ? `+${taxiDelta}%` : `${taxiDelta}%`} pressure`,
+        isIncrease: taxiDelta >= 0,
+        pressureForColor: taxiAfter,
+        consequenceToNext: "Queue bay overflow",
+      },
+      {
+        id: "PICKUP_ZONE",
+        step: "STAGE 06",
+        name: "Pickup Zone",
+        context: "South stadium pickup bay",
+        beforeStr: `${pickupBefore}%`,
+        afterStr: `${pickupAfter}%`,
+        deltaStr: `${pickupDelta >= 0 ? `+${pickupDelta}%` : `${pickupDelta}%`} pressure`,
+        isIncrease: pickupDelta >= 0,
+        pressureForColor: pickupAfter,
+      },
+    ];
+
+    const maxPressure = Math.max(...liveStages.map(s => s.pressureForColor));
+    const isCrit = maxPressure >= 85;
+    const timeLabel = isCrit ? "Critical in ~15–20 min" : "Projected cascade: ~25–30 min";
+
+    return { stages: liveStages, cascadeTimeLabel: timeLabel, isCritical: isCrit };
+  }, [predictions, activeScenario]);
+
   const noAction = NO_ACTION_MESSAGES[activeScenario] || NO_ACTION_MESSAGES.NORMAL;
   const primaryRec = recommendations.find(r => r.id === "REC1") || recommendations[0];
 
@@ -245,6 +254,9 @@ export default function PredictionsPage() {
         subtitle="Predicted capacity pressure and causal bottleneck propagation across South Mumbai monitored nodes."
         actions={
           <>
+            {simulationState.minutesElapsed > 0 && (
+              <span className="pill pill-live">SIM: +{Math.round(simulationState.minutesElapsed)} MIN</span>
+            )}
             {redistributionApplied && (
               <span className="pill pill-live">REDISTRIBUTION APPLIED</span>
             )}

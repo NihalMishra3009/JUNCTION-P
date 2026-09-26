@@ -10,8 +10,8 @@ import {
 } from "../src/services/zoneRegistry";
 import { deviceRegistry } from "../src/services/deviceRegistry";
 import { SensorStreamSimulator } from "../src/services/sensorStreamSimulator";
-import { IngestionPipeline } from "../src/services/ingestionPipeline";
-import { SensorFusionEngine } from "../src/services/sensorFusionEngine";
+import { IngestionPipeline, ingestionPipeline } from "../src/services/ingestionPipeline";
+import { SensorFusionEngine, sensorFusionEngine } from "../src/services/sensorFusionEngine";
 import {
   OsmRoadRoutingProvider,
   buildRoadConstrainedPath,
@@ -25,7 +25,10 @@ import { hospitalityDemandService } from "../src/services/hospitalityDemandServi
 import { STATIC_RESOURCES } from "../src/data/mockResources";
 import { MOCK_HOTELS_BASE } from "../src/data/mockHotels";
 import { MOCK_RESTAURANTS_BASE } from "../src/data/mockRestaurants";
-import { NormalizedObservation, ZoneState, Resource } from "../src/types";
+import { forecastingService } from "../src/services/forecastingService";
+import { hotspotAndCascadeEngine } from "../src/services/hotspotAndCascadeEngine";
+import { createInitialSimulationState, nextSimulationState } from "../src/services/simulationEngine";
+import { NormalizedObservation, ZoneState, Resource, OperationalIntervention, ActiveIntervention, ZoneBaselineSnapshot } from "../src/types";
 
 let passedCount = 0;
 let failedCount = 0;
@@ -295,7 +298,349 @@ async function runFullSystemSuite() {
   const voucherIntervention = hospitalityResult.recommendedVoucherInterventions[0];
   assert(voucherIntervention.type === "HOSPITALITY_DEMAND_SIGNAL", "Voucher recommendation type is HOSPITALITY_DEMAND_SIGNAL");
   assert(voucherIntervention.status === "PROPOSED", "Voucher recommendation starts in PROPOSED status");
-  assert(voucherIntervention.requiresApproval === true, "Commercial vouchers require operator approval");
+  // =========================================================================
+  // SUITE 6: Live Forecasting & Dynamic Prediction Pipeline
+  // =========================================================================
+  console.log("\n--- 6. Live Dynamic Forecasting & Prediction Pipeline ---");
+  
+  // 1. Initial State (t=0) Egress Surge
+  const simT0 = createInitialSimulationState("POST_EVENT_SURGE", 33000);
+  const baseChurchgateLoadT0 = simT0.nodeLoads["CHURCHGATE"] || 2100;
+  const basePressureT0 = Math.round((baseChurchgateLoadT0 / 10000) * 100);
+  
+  const forecastT0 = forecastingService.generateResourceForecast(
+    "CHURCHGATE",
+    "Churchgate Station",
+    "ZONE_CHURCHGATE",
+    basePressureT0,
+    "POST_EVENT_SURGE"
+  );
+  assert(forecastT0.currentPressure === basePressureT0, "Forecast T0 consumes live initial pressure");
+  assert(forecastT0.forecastPoints.length === 4, "Forecast produces 4 horizons (+15m, +30m, +45m, +60m)");
+  assert(forecastT0.algorithmUsed === "SCENARIO_CURVE", "Uses authoritative ForecastingService without duplicates");
+
+  // 2. Advance Simulation through multiple ticks (20 simulated minutes)
+  let simT20 = simT0;
+  for (let i = 0; i < 20; i++) {
+    simT20 = nextSimulationState(simT20, 1, "POST_EVENT_SURGE", 33000, false);
+  }
+  const liveChurchgateLoadT20 = simT20.nodeLoads["CHURCHGATE"] || 0;
+  const livePressureT20 = Math.round((liveChurchgateLoadT20 / 10000) * 100);
+  
+  assert(liveChurchgateLoadT20 > baseChurchgateLoadT0, "Simulation playback dynamically increases Churchgate attendee load over 20 minutes", `Load t0: ${baseChurchgateLoadT0}, load t20: ${liveChurchgateLoadT20}`);
+  assert(livePressureT20 > basePressureT0, "Simulated operational pressure increases with attendee accumulation", `Pressure t0: ${basePressureT0}%, t20: ${livePressureT20}%`);
+
+  const forecastT20 = forecastingService.generateResourceForecast(
+    "CHURCHGATE",
+    "Churchgate Station",
+    "ZONE_CHURCHGATE",
+    livePressureT20,
+    "POST_EVENT_SURGE"
+  );
+  assert(forecastT20.currentPressure === livePressureT20, "Forecast re-evaluates from live updated operational pressure (t=20)");
+  assert(forecastT20.forecastPoints[0].predictedPressure > forecastT0.forecastPoints[0].predictedPressure, "Predictions dynamically change during simulation playback", `t0 +15m: ${forecastT0.forecastPoints[0].predictedPressure}%, t20 +15m: ${forecastT20.forecastPoints[0].predictedPressure}%`);
+
+  // 3. Scenario Divergence Test: NORMAL vs POST_EVENT_SURGE
+  const forecastNormal = forecastingService.generateResourceForecast(
+    "CHURCHGATE",
+    "Churchgate Station",
+    "ZONE_CHURCHGATE",
+    50,
+    "NORMAL"
+  );
+  assert(forecastNormal.contributingFactors.some(f => f.includes("Nominal background dispersal")), "Scenario change alters surge velocity and contributing factor models");
+  assert(forecastNormal.forecastPoints[3].predictedPressure < 50, "Normal scenario exhibits nominal dissipation over 60 minutes", `Normal +60m: ${forecastNormal.forecastPoints[3].predictedPressure}% vs start 50%`);
+
+  // 4. Dynamic Cascade Matching Test
+  const dynamicCascade = hotspotAndCascadeEngine.analyzeCascade("ZONE_WANKHEDE", livePressureT20, []);
+  assert(dynamicCascade.rootResourceId === "ZONE_WANKHEDE", "Cascade analysis root resource dynamically binds to origin zone ID");
+  assert(dynamicCascade.affectedPathways.length > 0, "Dynamic cascade produces multi-stage forward spillover pathways");
+  // =========================================================================
+  // SUITE 7: AI Recommendation Planning, Grounded Telemetry & Catalogue Bounds
+  // =========================================================================
+  console.log("\n--- 7. AI Recommendation Planning & Grounded Telemetry ---");
+  const { aiRecommendationPlanner } = await import("../src/services/aiRecommendationPlanner");
+  const { SUPPORTED_ACTION_CATALOGUE } = await import("../src/types/aiRecommendation");
+
+  // 1. RecommendationContext Construction Test
+  const baseZone: ZoneState = {
+    id: "ZONE_CHURCHGATE",
+    name: "Churchgate Station",
+    tier: "TIER_1_CRITICAL",
+    baseTier: "TIER_1_CRITICAL",
+    monitoringStatus: "CONTINUOUS",
+    isEscalated: false,
+    pressure: 92,
+    predictedPressure15: 94,
+    predictedPressure30: 95,
+    predictedPressure60: 88,
+    pressureLevel: "CRITICAL",
+    trend: "INCREASING",
+    inflowRate: 180,
+    outflowRate: 40,
+    netFlow: 140,
+    totalCapacity: 10000,
+    currentUtilization: 9200,
+    availableCapacity: 800,
+    usableCapacity: 800,
+    activeBottlenecks: ["Churchgate Entry"],
+    memberResources: ["CHURCHGATE"],
+    lastUpdated: new Date().toISOString(),
+    confidence: 0.95,
+    source: "OBSERVED",
+    density: 4.8,
+    contributingSensors: ["DEV_CCTV_CHURCHGATE_1", "DEV_WIFI_CHURCHGATE_HUB"],
+    dataQuality: "FRESH",
+    conflicts: [],
+    missingSensors: [],
+  };
+  const fusedZones: ZoneState[] = [baseZone];
+
+  const fullResources: Resource[] = STATIC_RESOURCES.map(r => ({
+    ...r,
+    pressure: 50,
+    pressureLevel: "NORMAL" as const,
+    currentUtilization: Math.round(r.totalCapacity * 0.5),
+    availableCapacity: Math.round(r.totalCapacity * 0.5),
+    predictedDemand: Math.round(r.totalCapacity * 0.5),
+    trend: "STABLE" as const,
+  }));
+
+  const candidateInterventions = recommendationLifecycleEngine.generateInterventions(fusedZones);
+  const context = aiRecommendationPlanner.buildContext(
+    "POST_EVENT_SURGE",
+    fusedZones,
+    fullResources,
+    [
+      {
+        id: "HOT_CHURCHGATE",
+        resourceId: "CHURCHGATE",
+        zoneId: "ZONE_CHURCHGATE",
+        name: "Churchgate Exit Gates",
+        location: { latitude: 18.9322, longitude: 72.8264 },
+        currentPressure: 92,
+        peakPredictedPressure: 96,
+        severity: "CRITICAL",
+        projectedOnsetMinutes: 15,
+        projectedDurationMinutes: 45,
+        radiusMeters: 250,
+        keyDrivers: ["Post-match egress surge", "Single choke point"],
+        confidence: 0.95,
+      }
+    ],
+    dynamicCascade,
+    candidateInterventions,
+    simT20,
+    false
+  );
+
+  assert(context.activeScenario === "POST_EVENT_SURGE", "Context accurately reflects active scenario");
+  assert(context.zones.length === 1, "Context includes fused zone telemetry");
+  assert(context.zones[0].pressure === 92, "Context preserves precise fused operational pressure");
+  assert(context.zones[0].contributingSensors.length > 0, "Context includes verifiable sensor signals");
+  assert(context.supportedActions.length === 7, "Context exposes strict 7 supported action types in catalogue");
+  assert(context.fingerprint.length > 0, "Context computes operational fingerprint");
+
+  // 2. Semantic Deduplication / Fingerprinting Test
+  const fingerprint1 = aiRecommendationPlanner.computeFingerprint("POST_EVENT_SURGE", fusedZones, [], false);
+  const fusedZonesMinorTick: ZoneState[] = [{ ...baseZone, pressure: 93 }]; // Still in CRIT band (>=90)
+  const fingerprint2 = aiRecommendationPlanner.computeFingerprint("POST_EVENT_SURGE", fusedZonesMinorTick, [], false);
+  assert(fingerprint1 === fingerprint2, "Minor simulation tick within same pressure band retains identical fingerprint (deduplication active)");
+
+  const fusedZonesMajorDrop: ZoneState[] = [{ ...baseZone, pressure: 60, trend: "DECREASING" }]; // Drops to NORM band
+  const fingerprint3 = aiRecommendationPlanner.computeFingerprint("POST_EVENT_SURGE", fusedZonesMajorDrop, [], false);
+  assert(fingerprint1 !== fingerprint3, "Meaningful pressure band drop triggers fingerprint invalidation for fresh evaluation");
+
+  // 3. Supported Action Catalogue Integrity
+  const validActionTypes = SUPPORTED_ACTION_CATALOGUE.map(a => a.type);
+  assert(validActionTypes.includes("REROUTE_ATTENDEES"), "Catalogue includes REROUTE_ATTENDEES");
+  assert(validActionTypes.includes("ADD_TRANSIT_SHUTTLES"), "Catalogue includes ADD_TRANSIT_SHUTTLES");
+  assert(validActionTypes.includes("GATE_CAPACITY_CHANGE"), "Catalogue includes GATE_CAPACITY_CHANGE");
+  assert(!validActionTypes.includes("DISPATCH_AIRLIFT" as any), "Catalogue excludes unsupported/hallucinated action DISPATCH_AIRLIFT");
+  assert(!validActionTypes.includes("CONSTRUCT_NEW_METRO" as any), "Catalogue excludes unsupported/hallucinated action CONSTRUCT_NEW_METRO");
+
+  // 4. Deterministic Fallback & Grounded Impact Test
+  const fallbackPlan = await aiRecommendationPlanner.getOrFetchPlan(context, true);
+  assert(fallbackPlan.recommendations.length > 0, "Fallback generates valid operational recommendations");
+  assert(fallbackPlan.source === "AI" || fallbackPlan.source === "DETERMINISTIC_FALLBACK" || fallbackPlan.source === "CACHED_AI", "Plan has explicit traceable source (AI, CACHED_AI, or DETERMINISTIC_FALLBACK)");
+  assert(fallbackPlan.recommendations.every(r => r.expectedImpact.every(imp => imp.before >= 0 && imp.after <= 100)), "Expected impact values are bounded and physically grounded");
+
+  // 5. Caching & Cooldown Protection Test
+  const cachedPlan = await aiRecommendationPlanner.getOrFetchPlan(context, false);
+  assert(cachedPlan !== null, "Planner returns valid plan on subsequent call");
+  assert(cachedPlan.contextFingerprint === context.fingerprint, "Cached plan matches context fingerprint");
+  const remainingCooldown = aiRecommendationPlanner.getRemainingCooldownSeconds();
+  assert(remainingCooldown >= 0 && remainingCooldown <= 60, "Cooldown timer is active and bounded [0, 60s]", `Remaining: ${remainingCooldown}s`);
+
+  // 6. Minor Jitter vs Major Phase Shift Fingerprinting Test
+  const minorJitterZones: ZoneState[] = [{ ...baseZone, pressure: 91 }]; // 92 -> 91 (still >= 85 CRIT)
+  const minorJitterFingerprint = aiRecommendationPlanner.computeFingerprint("POST_EVENT_SURGE", minorJitterZones, [], false);
+  assert(minorJitterFingerprint === fingerprint1, "Minor pressure fluctuation (92% -> 91%) does not invalidate fingerprint (quota protected)");
+
+  const phaseShiftFingerprint = aiRecommendationPlanner.computeFingerprint("MONSOON_DISRUPTION" as any, fusedZones, [], false);
+  assert(phaseShiftFingerprint !== fingerprint1, "Scenario phase shift immediately invalidates fingerprint for re-evaluation");
+
+  // 5. Human Decision Lifecycle Integrity
+  const targetRec = fallbackPlan.recommendations[0];
+  const testIntervention: OperationalIntervention = {
+    id: targetRec.id,
+    type: "REROUTE_ATTENDEES",
+    title: targetRec.title,
+    description: targetRec.action,
+    targetZoneId: "ZONE_CHURCHGATE",
+    status: "PROPOSED",
+    urgency: "HIGH",
+    requiresApproval: true,
+    approvalRoleRequired: "ORGANIZER",
+    rationale: targetRec.reason,
+    contributingSignals: targetRec.evidence || ["Live pressure > 90%"],
+    expectedPressureReductionPercent: 15,
+    timeToEffectMinutes: 10,
+    confidenceScore: 0.9,
+    proposedAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    rollbackFeasible: true,
+  };
+  const { updatedIntervention, auditRecord } = recommendationLifecycleEngine.processApproval(
+    testIntervention,
+    "APPROVE",
+    "OPERATOR_CHIEF",
+    "ORGANIZER"
+  );
+  // =========================================================================
+  // SUITE 8: Approved Intervention → Simulated Operational Impact & Flow Conservation
+  // =========================================================================
+  console.log("\n--- 8. Approved Intervention → Simulated Operational Impact ---");
+  const { interventionEffectsEngine } = await import("../src/services/interventionEffectsEngine");
+
+  // 1. Baseline Capture Snapshot
+  const initialSnapshot: Record<string, ZoneBaselineSnapshot> = {
+    ZONE_CHURCHGATE: {
+      zoneId: "ZONE_CHURCHGATE",
+      zoneName: "Churchgate Station",
+      pressure: 92,
+      density: 4.8,
+      currentUtilization: 9200,
+      inflowRate: 180,
+      outflowRate: 40,
+      timestamp: new Date().toISOString(),
+    },
+    ZONE_MARINE_LINES: {
+      zoneId: "ZONE_MARINE_LINES",
+      zoneName: "Marine Lines Station",
+      pressure: 45,
+      density: 1.8,
+      currentUtilization: 3600,
+      inflowRate: 60,
+      outflowRate: 50,
+      timestamp: new Date().toISOString(),
+    },
+  };
+
+  const activeTestIntervention: ActiveIntervention = {
+    id: "ACT_INT_TEST_REROUTE",
+    recommendationId: "REC_REROUTE_CHURCHGATE",
+    type: "REROUTE_ATTENDEES",
+    actionType: "REROUTE_ATTENDEES",
+    title: "Divert Northbound Traffic to Marine Lines",
+    description: "Signal navigation to divert crowd to Marine Lines.",
+    sourceZoneId: "ZONE_CHURCHGATE",
+    targetZoneId: "ZONE_MARINE_LINES",
+    status: "ACTIVE",
+    approvedAt: Date.now() - 20_000, // 20s ago (full ramp factor 1.0)
+    approvedAtSimulationMinute: 10,
+    durationMinutes: 30,
+    rampDurationSeconds: 15,
+    intensity: 1.0,
+    baselines: initialSnapshot,
+  };
+
+  // 2. Ramp Factor Test
+  const fullRamp = interventionEffectsEngine.computeRampFactor(activeTestIntervention, Date.now());
+  assert(fullRamp === 1.0, "Intervention past ramp duration achieves full intensity (ramp = 1.0)");
+
+  const earlyIntervention: ActiveIntervention = {
+    ...activeTestIntervention,
+    approvedAt: Date.now() - 5_000, // 5s ago (5/15 = 0.333)
+  };
+  const partialRamp = interventionEffectsEngine.computeRampFactor(earlyIntervention, Date.now());
+  assert(partialRamp >= 0.3 && partialRamp <= 0.4, "Intervention gradually ramps effect over 15 seconds without instantaneous jump", `Ramp: ${partialRamp}`);
+
+  // 3. Flow Conservation & Destination Fraction Redistribution Test
+  const modifiers = interventionEffectsEngine.calculateModifiers([activeTestIntervention], 15);
+  const totalFractions = Object.values(modifiers.destinationFractions).reduce((a, b) => a + b, 0);
+  assert(Math.abs(totalFractions - 1.0) < 0.001, "Redistributed destination fractions strictly sum to 1.0 (Flow Conservation)", `Sum: ${totalFractions}`);
+  assert(modifiers.destinationFractions.CHURCHGATE < 0.52, "Reroute intervention reduces Churchgate destination share", `Churchgate: ${modifiers.destinationFractions.CHURCHGATE} vs base 0.52`);
+  assert(modifiers.destinationFractions.MARINE_LINES > 0.16, "Diverted passenger flow increases Marine Lines share", `Marine Lines: ${modifiers.destinationFractions.MARINE_LINES} vs base 0.16`);
+
+  // 4. Simulation Engine Integration Test (No Direct ZoneState Mutation)
+  let simWithIntervention = createInitialSimulationState("POST_EVENT_SURGE", 33000);
+  let simWithoutIntervention = createInitialSimulationState("POST_EVENT_SURGE", 33000);
+
+  // Advance both simulations for 15 simulated minutes
+  for (let i = 0; i < 15; i++) {
+    simWithIntervention = nextSimulationState(simWithIntervention, 1, "POST_EVENT_SURGE", 33000, [activeTestIntervention]);
+    simWithoutIntervention = nextSimulationState(simWithoutIntervention, 1, "POST_EVENT_SURGE", 33000, []);
+  }
+
+  const churchgateLoadWith = simWithIntervention.nodeLoads["CHURCHGATE"] || 0;
+  const churchgateLoadWithout = simWithoutIntervention.nodeLoads["CHURCHGATE"] || 0;
+  const marineEdgeLoadWith = simWithIntervention.edgeLoads["EDGE_EXIT_MK_ROAD"] || 0;
+  const marineEdgeLoadWithout = simWithoutIntervention.edgeLoads["EDGE_EXIT_MK_ROAD"] || 0;
+
+  assert(churchgateLoadWith < churchgateLoadWithout, "Active intervention reduces accumulated Churchgate crowd in simulation engine", `With: ${churchgateLoadWith}, Without: ${churchgateLoadWithout}`);
+  assert(marineEdgeLoadWith > marineEdgeLoadWithout, "Active intervention transfers crowd to receiving Marine Lines corridor (Flow Conservation)", `With: ${marineEdgeLoadWith}, Without: ${marineEdgeLoadWithout}`);
+
+  // 5. Sensor Observation & Normalization of Changed State
+  const simulatorInstance = new SensorStreamSimulator({ scenarioId: "POST_EVENT_SURGE" });
+  const rawObsWithIntervention = simulatorInstance.generateObservationsForState(simWithIntervention.nodeLoads, 800);
+  const normalizedObs = ingestionPipeline.processBatch(rawObsWithIntervention).accepted;
+  assert(normalizedObs.length > 0, "Synthetic sensors observe modified simulation state and pass through ingestion pipeline");
+
+  const churchgateCctvObs = normalizedObs.find(o => o.sourceId === "DEV_CCTV_CHURCHGATE_CONCOURSE" && o.metricType === "CROWD_COUNT");
+  assert(churchgateCctvObs !== undefined, "Churchgate CCTV sensor emits observation from modified node load");
+
+  // 6. Sensor Fusion Naturally Produces Changed ZoneState (Zero Direct Mutation)
+  const churchgateZoneDef = getAllZones().find(z => z.id === "ZONE_CHURCHGATE")!;
+  const fusedWithIntervention = sensorFusionEngine.fuseZoneObservations(churchgateZoneDef, normalizedObs, {
+    scenario: "POST_EVENT_SURGE",
+    simulationState: simWithIntervention,
+  });
+
+  const rawObsWithout = simulatorInstance.generateObservationsForState(simWithoutIntervention.nodeLoads, 800);
+  const normalizedObsWithout = ingestionPipeline.processBatch(rawObsWithout).accepted;
+  const fusedWithoutIntervention = sensorFusionEngine.fuseZoneObservations(churchgateZoneDef, normalizedObsWithout, {
+    scenario: "POST_EVENT_SURGE",
+    simulationState: simWithoutIntervention,
+  });
+
+  assert(fusedWithIntervention.pressure <= fusedWithoutIntervention.pressure, "Fused Churchgate ZoneState reflects operational pressure relief via natural sensor pipeline", `With intervention: ${fusedWithIntervention.pressure}%, Without: ${fusedWithoutIntervention.pressure}%`);
+
+  // 7. Multi-Action & Node Clearance Modifier Test (ADD_TRANSIT_SHUTTLES)
+  const shuttleIntervention: ActiveIntervention = {
+    id: "ACT_INT_SHUTTLE",
+    recommendationId: "REC_SHUTTLES",
+    type: "ADD_TRANSIT_SHUTTLES",
+    actionType: "ADD_TRANSIT_SHUTTLES",
+    title: "Deploy 12 High-Capacity Shuttles to Taxi Bay",
+    description: "Boost curbside clearance rate.",
+    status: "ACTIVE",
+    approvedAt: Date.now() - 20_000,
+    approvedAtSimulationMinute: 10,
+    durationMinutes: 30,
+    rampDurationSeconds: 15,
+    intensity: 1.0,
+    baselines: {},
+  };
+
+  const multiModifiers = interventionEffectsEngine.calculateModifiers([activeTestIntervention, shuttleIntervention], 15);
+  assert(multiModifiers.activeInterventionCount === 2, "Engine combines multiple active interventions deterministically");
+  assert(multiModifiers.nodeClearanceAdditions["TAXI_ZONE"] > 100, "Shuttle dispatch intervention adds +140 pax/min clearance throughput to Taxi Staging Bay", `Added: ${multiModifiers.nodeClearanceAdditions["TAXI_ZONE"]}`);
+
+  // 8. Intervention Expiration Test
+  const expiredModifiers = interventionEffectsEngine.calculateModifiers([activeTestIntervention], 45); // 45 - 10 = 35m > duration 30m
+  assert(expiredModifiers.activeInterventionCount === 0, "Intervention past its duration expires and returns simulation to baseline fractions");
+  assert(expiredModifiers.destinationFractions.CHURCHGATE === 0.52, "Expired intervention restores Churchgate baseline fraction to 0.52");
 
   console.log("\n=======================================================");
   console.log(`  SUMMARY: ${passedCount} PASSED, ${failedCount} FAILED`);

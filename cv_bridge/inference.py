@@ -1,7 +1,7 @@
 """
 JUNCTION Computer Vision Bridge - Real YOLOv12 + ByteTrack Inference Pipeline
 Reads video frames, performs YOLOv12 person detection, tracks trajectories with ByteTrack,
-calculates crowd metrics, annotates video, and transports observations to JUNCTION.
+calculates crowd metrics, annotates video, and transports rich detection telemetry to JUNCTION.
 """
 
 import argparse
@@ -56,20 +56,24 @@ def resolve_model_path(model_arg: Optional[str] = None) -> str:
 
 def run_pipeline(
     video_path: str,
-    zone_id: str,
-    camera_id: str,
+    zone_id: str = "ZONE_DIAGNOSTIC_01",
+    camera_id: str = "CCTV-01",
     resource_id: Optional[str] = None,
     model_path: Optional[str] = None,
     output_video_path: Optional[str] = None,
     emit_jsonl_path: Optional[str] = None,
-    http_url: Optional[str] = None,
-    conf_threshold: float = 0.3,
+    http_url: Optional[str] = "http://localhost:3000/api/observations",
+    conf_threshold: float = 0.15,
+    iou_threshold: float = 0.5,
+    imgsz: int = 1280,
     device: str = "cpu",
     frame_stride: int = 1,
     max_frames: Optional[int] = None,
     calibrated_area_sq_m: Optional[float] = None,
     tripwire_y: Optional[int] = None,
     emit_stdout: bool = False,
+    loop_video: bool = False,
+    realtime_rate: bool = True,
 ) -> dict:
     """
     Executes frame-by-frame computer-vision inference on the input video.
@@ -86,7 +90,6 @@ def run_pipeline(
     # Configure tripwire if Y coordinate provided
     tripwire_config = None
     if tripwire_y is not None:
-        # Tripwire horizontally across frame
         tripwire_config = TripwireConfig(
             start_point=(0, tripwire_y),
             end_point=(1920, tripwire_y),
@@ -104,7 +107,7 @@ def run_pipeline(
         camera_id=camera_id,
         zone_id=zone_id,
         resource_id=resource_id,
-        provider_name="YOLOv12-ByteTrack-Bridge",
+        provider_name="JUNCTION_VIDEO_CV",
         model_name=os.path.basename(resolved_model_path),
         is_simulated=False,
         video_source_name=os.path.basename(video_path),
@@ -120,7 +123,7 @@ def run_pipeline(
     if not cap.isOpened():
         raise RuntimeError(f"OpenCV failed to open video: {video_path}")
 
-    fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     total_video_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -141,14 +144,25 @@ def run_pipeline(
     total_observations_emitted = 0
     start_time = time.time()
 
-    print(f"[*] Starting inference on '{video_path}' ({width}x{height} @ {fps:.1f} FPS, {total_video_frames} total frames)...")
+    print(f"[*] Starting YOLOv12 + ByteTrack inference on '{video_path}'")
+    print(f"    • Resolution: {width}x{height} | FPS: {fps:.1f} | Total Frames: {total_video_frames}")
+    print(f"    • Camera ID: {camera_id} | Diagnostic Zone: {zone_id}")
+    print(f"    • HTTP Telemetry Destination: {http_url or 'Disabled'}")
 
     frame_idx = 0
+    target_frame_interval = 1.0 / max(1.0, fps) if realtime_rate else 0.0
+
     try:
-        while cap.isOpened():
+        while True:
+            frame_start = time.time()
             ret, frame = cap.read()
             if not ret:
-                break
+                if loop_video:
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    frame_idx = 0
+                    continue
+                else:
+                    break
 
             if max_frames and frames_processed >= max_frames:
                 break
@@ -158,12 +172,15 @@ def run_pipeline(
                 continue
 
             frames_processed += 1
+            elapsed_video_sec = round(frame_idx / max(1.0, fps), 3)
 
             # Run Ultralytics YOLO with ByteTrack persistence (filtered strictly to class 0 'person')
             results = model.track(
                 source=frame,
                 persist=True,
                 conf=conf_threshold,
+                iou=iou_threshold,
+                imgsz=imgsz,
                 classes=[0],  # COCO class 0 = person
                 tracker="bytetrack.yaml",
                 verbose=False,
@@ -182,43 +199,45 @@ def run_pipeline(
 
                     detected_boxes.append(tuple(coords))
                     confidences.append(conf)
+                    track_ids.append(tid)
                     if tid is not None:
-                        track_ids.append(tid)
                         all_seen_track_ids.add(tid)
 
-            # Compute crowd metrics
+            # Compute crowd metrics and normalized detections with movement trails
             frame_metrics = metrics_engine.process_frame_tracks(
                 detected_boxes=detected_boxes,
-                track_ids=track_ids if len(track_ids) == len(detected_boxes) else None,
+                track_ids=track_ids,
                 confidences=confidences,
+                frame_width=width,
+                frame_height=height,
             )
 
             current_count = frame_metrics["person_count"]
             if current_count > max_visible_count:
                 max_visible_count = current_count
 
-            # Serialize and transmit observations
+            # Serialize observations and rich CCTV frame detection payload
             observations = serializer.serialize_frame_observations(
                 frame_metrics=frame_metrics,
                 frame_index=frame_idx,
             )
 
-            transport.emit_observations(observations)
+            cctv_frame = serializer.serialize_cctv_frame_telemetry(
+                frame_metrics=frame_metrics,
+                frame_index=frame_idx,
+                video_timestamp=elapsed_video_sec,
+                fps=fps,
+                tripwire_y=tripwire_y,
+            )
+
+            transport.emit_observations(observations, cctv_frame=cctv_frame)
             total_observations_emitted += len(observations)
 
-            # Annotate Frame if output video is requested
+            # Annotate Frame if output video writer is active
             if writer:
                 annotated = frame.copy()
-
-                # 1. Draw Tripwire line if configured
                 if tripwire_config:
-                    cv2.line(
-                        annotated,
-                        tripwire_config.start_point,
-                        tripwire_config.end_point,
-                        (0, 165, 255),
-                        2,
-                    )
+                    cv2.line(annotated, tripwire_config.start_point, tripwire_config.end_point, (0, 165, 255), 2)
                     cv2.putText(
                         annotated,
                         "TRIPWIRE (Inbound/Outbound)",
@@ -229,7 +248,6 @@ def run_pipeline(
                         1,
                     )
 
-                # 2. Draw detections, IDs, and centroids
                 for i, box in enumerate(detected_boxes):
                     x1, y1, x2, y2 = map(int, box)
                     tid_label = f"ID:{track_ids[i]}" if i < len(track_ids) else "Person"
@@ -246,28 +264,17 @@ def run_pipeline(
                     cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
                     cv2.circle(annotated, (cx, cy), 4, (0, 0, 255), -1)
 
-                # 3. HUD Overlay
-                overlay_text = f"JUNCTION CCTV | Frame: {frame_idx} | People: {current_count} | Max: {max_visible_count}"
-                if frame_metrics.get("inflow_count") is not None:
-                    overlay_text += f" | Inflow: {frame_metrics['inflow_count']} | Outflow: {frame_metrics['outflow_count']}"
-                if frame_metrics.get("density_people_per_sq_m") is not None:
-                    overlay_text += f" | Density: {frame_metrics['density_people_per_sq_m']} p/m2"
-
-                cv2.rectangle(annotated, (0, 0), (width, 35), (20, 20, 20), -1)
-                cv2.putText(
-                    annotated,
-                    overlay_text,
-                    (12, 24),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.55,
-                    (255, 255, 255),
-                    2,
-                )
-
                 writer.write(annotated)
 
             if frames_processed % 30 == 0:
-                print(f"[*] Processed {frames_processed} frames (Current count: {current_count}, Peak: {max_visible_count})...")
+                print(f"[*] Frame {frame_idx:04d} | Persons: {current_count} | Active Tracks: {len(frame_metrics['active_track_ids'])} | In: {frame_metrics.get('inflow_count', 0)} | Out: {frame_metrics.get('outflow_count', 0)}")
+
+            # Realtime throttle if enabled
+            if realtime_rate:
+                compute_time = time.time() - frame_start
+                sleep_needed = target_frame_interval - compute_time
+                if sleep_needed > 0:
+                    time.sleep(sleep_needed)
 
     finally:
         cap.release()
@@ -304,20 +311,24 @@ def run_pipeline(
 def main():
     parser = argparse.ArgumentParser(description="JUNCTION YOLOv12 + ByteTrack CCTV Bridge")
     parser.add_argument("--video", required=True, help="Path to input video file (.mp4, .avi, etc.)")
-    parser.add_argument("--zone-id", default="ZONE_WANKHEDE", help="JUNCTION zone ID")
-    parser.add_argument("--camera-id", default="DEV_CCTV_WANKHEDE_01", help="CCTV camera ID")
-    parser.add_argument("--resource-id", default="WANKHEDE_EXIT", help="Resource ID")
-    parser.add_argument("--model", default=None, help="Path to YOLO weights (defaults to models/yolo/yolov12n.pt or JUNCTION_YOLO_MODEL env)")
+    parser.add_argument("--zone-id", default="ZONE_DIAGNOSTIC_01", help="JUNCTION diagnostic zone ID")
+    parser.add_argument("--camera-id", default="CCTV-01", help="CCTV camera ID (e.g. CCTV-01, CCTV-02)")
+    parser.add_argument("--resource-id", default=None, help="Optional resource ID")
+    parser.add_argument("--model", default=None, help="Path to YOLO weights")
     parser.add_argument("--output", default=None, help="Path to output annotated MP4 video")
     parser.add_argument("--emit-jsonl", default=None, help="Path to write JSONL observations")
-    parser.add_argument("--http-url", default=None, help="JUNCTION observation API URL")
-    parser.add_argument("--conf", type=float, default=0.3, help="Confidence threshold")
+    parser.add_argument("--http-url", default="http://localhost:3000/api/observations", help="JUNCTION observation API URL")
+    parser.add_argument("--conf", type=float, default=0.15, help="Confidence threshold")
+    parser.add_argument("--iou", type=float, default=0.5, help="NMS IoU threshold")
+    parser.add_argument("--imgsz", type=int, default=1280, help="Inference resolution image size")
     parser.add_argument("--device", default="cpu", help="Inference device ('cpu' or 'cuda')")
     parser.add_argument("--frame-stride", type=int, default=1, help="Process every Nth frame")
     parser.add_argument("--max-frames", type=int, default=None, help="Max frames to process")
     parser.add_argument("--calibrated-area", type=float, default=None, help="Calibrated area in m2")
     parser.add_argument("--tripwire-y", type=int, default=None, help="Y pixel coord for horizontal tripwire")
     parser.add_argument("--emit-stdout", action="store_true", help="Print JSONL to stdout")
+    parser.add_argument("--loop", action="store_true", help="Loop video continuously for live display")
+    parser.add_argument("--no-realtime", action="store_true", help="Run as fast as possible without frame rate throttling")
 
     args = parser.parse_args()
 
@@ -331,12 +342,16 @@ def main():
         emit_jsonl_path=args.emit_jsonl,
         http_url=args.http_url,
         conf_threshold=args.conf,
+        iou_threshold=args.iou,
+        imgsz=args.imgsz,
         device=args.device,
         frame_stride=args.frame_stride,
         max_frames=args.max_frames,
         calibrated_area_sq_m=args.calibrated_area,
         tripwire_y=args.tripwire_y,
         emit_stdout=args.emit_stdout,
+        loop_video=args.loop,
+        realtime_rate=not args.no_realtime,
     )
 
 

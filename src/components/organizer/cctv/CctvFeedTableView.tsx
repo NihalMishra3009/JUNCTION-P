@@ -1,7 +1,7 @@
 import React from "react";
 import { CctvFeedConfig } from "@/types/cctv";
 import { NormalizedObservation, ZoneState } from "@/types";
-import { Video } from "lucide-react";
+import { Video, Maximize2 } from "lucide-react";
 import styles from "./cctvComponents.module.css";
 
 interface CctvFeedTableViewProps {
@@ -25,9 +25,9 @@ export default function CctvFeedTableView({
     <div className={styles.tableContainer}>
       <div className={styles.tableHeaderBar}>
         <div>
-          <h3 className={styles.tableTitle}>Multi-Camera Telemetry Matrix</h3>
+          <h3 className={styles.tableTitle}>Multi-Camera Fleet Telemetry Matrix</h3>
           <p className={styles.tableSubtitle}>
-            Live fleet comparison across all 5 operational vision checkpoints
+            Cross-channel telemetry and diagnostic status across all 9 video verification streams
           </p>
         </div>
         <div className={styles.tableBadgeGroup}>
@@ -41,22 +41,20 @@ export default function CctvFeedTableView({
         <table className={styles.fleetTable}>
           <thead>
             <tr>
-              <th>Feed / Camera</th>
-              <th>Camera ID</th>
-              <th>Operational Zone</th>
-              <th>Source & AI Status</th>
-              <th>Detected Persons</th>
-              <th>Inflow Rate</th>
-              <th>Outflow Rate</th>
-              <th>Zone State</th>
-              <th>Resolution & FPS</th>
-              <th>Primary Monitor</th>
+              <th>Channel / ID</th>
+              <th>Source Type</th>
+              <th>Format &amp; Resolution</th>
+              <th>AI Detection Status</th>
+              <th>Visible Persons</th>
+              <th>Inflow</th>
+              <th>Outflow</th>
+              <th>Calibrated Area</th>
+              <th>Primary Focus</th>
             </tr>
           </thead>
           <tbody>
             {feeds.map((feed) => {
               const isPrimary = feed.id === primaryFeedId;
-              const zone = getZoneState(feed.zoneId);
               const cameraObs = observations.filter(
                 (o) => o.sourceId === feed.cameraId || o.zoneId === feed.zoneId
               );
@@ -68,9 +66,6 @@ export default function CctvFeedTableView({
               const inflowVal = inflowObs ? Number(inflowObs.value) : null;
               const outflowVal = outflowObs ? Number(outflowObs.value) : null;
 
-              const pressureLevel = zone?.pressureLevel || "NORMAL";
-              const pressurePct = zone?.pressure ?? 45;
-
               return (
                 <tr
                   key={feed.id}
@@ -78,41 +73,39 @@ export default function CctvFeedTableView({
                     isPrimary ? styles.tableRowPrimary : ""
                   }`}
                 >
-                  {/* Feed Name */}
+                  {/* Feed Name & Camera ID */}
                   <td className={styles.tdFeedName}>
                     <div className={styles.feedCell}>
                       <Video size={16} className={styles.tableFeedIcon} />
                       <div>
                         <div className={styles.tableFeedNameText}>{feed.name}</div>
-                        <div className={styles.tableFeedDesc}>{feed.description}</div>
+                        <code className={styles.codeCameraId}>{feed.cameraId}</code>
                       </div>
                     </div>
                   </td>
 
-                  {/* Camera ID */}
-                  <td className={styles.tdCameraId}>
-                    <code className={styles.codeCameraId}>{feed.cameraId}</code>
+                  {/* Source Type */}
+                  <td>
+                    <span className={styles.tableBadgeReplay}>
+                      RECORDED CCTV
+                    </span>
                   </td>
 
-                  {/* Operational Zone */}
-                  <td className={styles.tdZone}>
-                    <span className={styles.tableZoneName}>{feed.zoneName}</span>
+                  {/* Format & Resolution */}
+                  <td className={styles.tdSpec}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <span className={styles.specText}>
+                        {feed.resolution} @ {feed.fps}fps
+                      </span>
+                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                        {feed.orientation} ({feed.aspectRatio})
+                      </span>
+                    </div>
                   </td>
 
-                  {/* Source & AI Status */}
+                  {/* AI Detection Status */}
                   <td>
                     <div className={styles.statusCell}>
-                      <span
-                        className={
-                          feed.sourceType === "SYNTHETIC"
-                            ? styles.tableBadgeSynthetic
-                            : styles.tableBadgeReplay
-                        }
-                      >
-                        {feed.sourceType === "SYNTHETIC"
-                          ? "SYNTHETIC"
-                          : "LOCAL REPLAY"}
-                      </span>
                       <span
                         className={
                           countObs && apiConnected
@@ -121,7 +114,7 @@ export default function CctvFeedTableView({
                         }
                       >
                         <span className={styles.statusDot} />
-                        {countObs && apiConnected ? "STREAMING" : "STANDBY"}
+                        {countObs && apiConnected ? "YOLO ACTIVE" : "STANDBY"}
                       </span>
                     </div>
                   </td>
@@ -132,7 +125,7 @@ export default function CctvFeedTableView({
                       {countVal !== null ? (
                         <strong>{countVal}</strong>
                       ) : (
-                        <span className={styles.mutedText}>Ready</span>
+                        <span className={styles.mutedText}>Unavailable</span>
                       )}
                     </span>
                   </td>
@@ -140,36 +133,23 @@ export default function CctvFeedTableView({
                   {/* Inflow */}
                   <td className={styles.tdMetric}>
                     <span className={`${styles.tableMetricValue} ${styles.colorEmerald}`}>
-                      {inflowVal !== null ? `+${inflowVal}` : "—"}
+                      {inflowVal !== null ? `+${inflowVal}` : "Unavailable"}
                     </span>
                   </td>
 
                   {/* Outflow */}
                   <td className={styles.tdMetric}>
                     <span className={`${styles.tableMetricValue} ${styles.colorAmber}`}>
-                      {outflowVal !== null ? `-${outflowVal}` : "—"}
+                      {outflowVal !== null ? `-${outflowVal}` : "Unavailable"}
                     </span>
                   </td>
 
-                  {/* Zone State */}
+                  {/* Calibrated Area */}
                   <td>
-                    <span
-                      className={`${styles.zoneStatusPill} ${
-                        pressureLevel === "CRITICAL"
-                          ? styles.pillCritical
-                          : pressureLevel === "HIGH"
-                          ? styles.pillAmber
-                          : styles.pillNormal
-                      }`}
-                    >
-                      {pressurePct}% ({pressureLevel})
-                    </span>
-                  </td>
-
-                  {/* Resolution & FPS */}
-                  <td className={styles.tdSpec}>
-                    <span className={styles.specText}>
-                      {feed.resolution} @ {feed.fps}fps
+                    <span style={{ fontSize: "12px", color: "#cbd5e1" }}>
+                      {feed.calibratedAreaSqM
+                        ? `${feed.calibratedAreaSqM} m²`
+                        : "Uncalibrated"}
                     </span>
                   </td>
 
@@ -183,7 +163,7 @@ export default function CctvFeedTableView({
                         onClick={() => onSelectPrimary(feed.id)}
                         className={styles.btnTableFocus}
                       >
-                        Set Primary
+                        <Maximize2 size={12} /> Focus
                       </button>
                     )}
                   </td>

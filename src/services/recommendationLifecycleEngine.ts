@@ -244,6 +244,37 @@ export class RecommendationLifecycleEngine {
     };
   }
 
+  /**
+   * Convenience helper to record approval/rejection decision by ID and persist audit record.
+   */
+  public recordDecision(
+    recommendationId: string,
+    action: "APPROVE" | "REJECT",
+    actorId: string,
+    actorRole: "ORGANIZER" | "PARTNER"
+  ): AuditRecord {
+    const now = new Date().toISOString();
+    const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
+    const auditRecord: AuditRecord = {
+      id: `AUDIT_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      timestamp: now,
+      actorId,
+      actorRole,
+      category: action === "APPROVE" ? "RECOMMENDATION_APPROVAL" : "RECOMMENDATION_REJECTION",
+      targetEntityType: "RECOMMENDATION",
+      targetEntityId: recommendationId,
+      previousState: { status: "PROPOSED" },
+      newState: { status: newStatus },
+      changeSummary: `Operational recommendation #${recommendationId} was ${newStatus} by ${actorId} (${actorRole})`,
+      rationale: `Human-in-the-loop decision executed from operations console.`,
+      isSimulatedScenario: true,
+    };
+
+    this.auditLog.push(auditRecord);
+    persistenceService.persistAuditEvent(auditRecord).catch(() => {});
+    return auditRecord;
+  }
+
   public getAuditTrail(): AuditRecord[] {
     return [...this.auditLog];
   }

@@ -3,15 +3,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useApp } from "@/state/AppContext";
 import { CCTV_FEEDS } from "@/data/cctvFeeds";
-import { CctvFeedConfig } from "@/types/cctv";
+import { CctvFeedConfig, CctvFrameTelemetry } from "@/types/cctv";
 import { NormalizedObservation } from "@/types";
 import CctvVideoFeedCard from "@/components/organizer/cctv/CctvVideoFeedCard";
 import CctvFeedTableView from "@/components/organizer/cctv/CctvFeedTableView";
 import CctvOperationalActions from "@/components/organizer/cctv/CctvOperationalActions";
 import CctvTechnicalPanel from "@/components/organizer/cctv/CctvTechnicalPanel";
 import PageHeader from "@/components/ui/PageHeader";
+import { LayoutGrid, Maximize2, Table, ShieldCheck, Activity, Terminal } from "lucide-react";
 import styles from "./cctv.module.css";
-
 
 export default function CctvCrowdMonitoringPage() {
   const {
@@ -25,17 +25,24 @@ export default function CctvCrowdMonitoringPage() {
     isRecommendationApproved,
   } = useApp();
 
-  // View state
-  const [viewMode, setViewMode] = useState<"CARDS" | "TABLE">("CARDS");
-  const [primaryFeedId, setPrimaryFeedId] = useState<string>(
-    CCTV_FEEDS[0].id
-  );
+  // View state: 3x3 Video Wall (default), Primary Focus View, or Fleet Table View
+  const [viewMode, setViewMode] = useState<"WALL" | "FOCUS" | "TABLE">("WALL");
+  const [primaryFeedId, setPrimaryFeedId] = useState<string>(CCTV_FEEDS[0].id);
 
-  // Ingested observation telemetry from API
+  // Ingested observation telemetry & real-time detection frames from API
   const [liveObservations, setLiveObservations] = useState<NormalizedObservation[]>([]);
+  const [latestCctvFrames, setLatestCctvFrames] = useState<Record<string, CctvFrameTelemetry>>({});
+  const [activeCameraIds, setActiveCameraIds] = useState<string[]>([]);
+  const [isCvBridgeActive, setIsCvBridgeActive] = useState<boolean>(false);
   const [apiStatus, setApiStatus] = useState<string>("CONNECTING");
   const [totalIngested, setTotalIngested] = useState<number>(0);
   const [lastUpdatedTime, setLastUpdatedTime] = useState<string>("Awaiting telemetry");
+
+  // Compute primary feed
+  const primaryFeed = useMemo(
+    () => CCTV_FEEDS.find((f) => f.id === primaryFeedId) || CCTV_FEEDS[0],
+    [primaryFeedId]
+  );
 
   // Poll server-side observation endpoint
   useEffect(() => {
@@ -49,6 +56,12 @@ export default function CctvCrowdMonitoringPage() {
         if (isMounted) {
           setApiStatus(data.status || "ONLINE");
           setTotalIngested(data.totalIngestedCount || 0);
+          setIsCvBridgeActive(Boolean(data.isCvBridgeActive));
+          setActiveCameraIds(data.activeCameraIds || []);
+
+          if (data.latestCctvFrames) {
+            setLatestCctvFrames(data.latestCctvFrames);
+          }
           if (data.latestObservations && data.latestObservations.length > 0) {
             setLiveObservations(data.latestObservations);
             setLastUpdatedTime(new Date().toLocaleTimeString());
@@ -56,67 +69,87 @@ export default function CctvCrowdMonitoringPage() {
         }
       } catch {
         if (isMounted) {
-          setApiStatus("OFFLINE / STANDBY");
+          setApiStatus("STANDBY");
+          setIsCvBridgeActive(false);
+          setActiveCameraIds([]);
         }
       }
     }
 
     fetchObservations();
-    const interval = setInterval(fetchObservations, 1500);
+    // Fast polling in focus mode (300ms) for responsive bounding boxes; 1000ms in grid
+    const pollInterval = viewMode === "FOCUS" ? 300 : 1000;
+    const interval = setInterval(fetchObservations, pollInterval);
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, []);
-
-  // Compute primary and secondary feeds
-  const primaryFeed = useMemo(
-    () => CCTV_FEEDS.find((f) => f.id === primaryFeedId) || CCTV_FEEDS[0],
-    [primaryFeedId]
-  );
-
-  const secondaryFeeds = useMemo(
-    () => CCTV_FEEDS.filter((f) => f.id !== primaryFeed.id),
-    [primaryFeed.id]
-  );
+  }, [viewMode]);
 
   // Find latest observation for selected primary camera
   const primaryCameraObs = liveObservations.filter(
     (o) => o.sourceId === primaryFeed.cameraId || o.zoneId === primaryFeed.zoneId
   );
-  const latestCountObs = primaryCameraObs.find(
-    (o) => o.metricType === "CROWD_COUNT"
-  ) || liveObservations.find((o) => o.metricType === "CROWD_COUNT");
+  const latestCountObs =
+    primaryCameraObs.find((o) => o.metricType === "CROWD_COUNT") ||
+    liveObservations.find((o) => o.metricType === "CROWD_COUNT");
 
-  // Aggregate active visible person counts across observations
+  // Primary camera real-time detection frame
+  const primaryFrame = latestCctvFrames[primaryFeed.cameraId];
+  const isPrimaryCamActive = activeCameraIds.includes(primaryFeed.cameraId);
+
+  // Aggregate active visible person counts across observations or active frames
   const totalVisibleCount = useMemo(() => {
+    // If we have active CCTV detection frames, prioritize them
+    const activeFrameKeys = Object.keys(latestCctvFrames);
+    if (activeFrameKeys.length > 0) {
+      return activeFrameKeys.reduce((acc, k) => acc + (latestCctvFrames[k]?.personCount ?? 0), 0);
+    }
     const countObsList = liveObservations.filter(
       (o) => o.metricType === "CROWD_COUNT"
     );
     if (countObsList.length === 0) return null;
     return countObsList.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
-  }, [liveObservations]);
+  }, [latestCctvFrames, liveObservations]);
 
-  // Operational zone for primary feed
+  // Operational zone for primary feed (diagnostic reference)
   const primaryZoneState = getZoneState(primaryFeed.zoneId);
+
+  const handleSelectCamera = (feedId: string) => {
+    setPrimaryFeedId(feedId);
+    setViewMode("FOCUS");
+  };
 
   return (
     <div className={styles.page}>
       {/* Top Header */}
       <PageHeader
-        category="OBSERVE"
-        title="Live Crowd & CCTV Monitoring Workspace"
-        subtitle="Multi-camera spatial surveillance, YOLOv12 object tracking telemetry, and automated bottleneck mitigation"
+        category="VISUAL VERIFICATION & DIAGNOSTICS"
+        title="Recorded CCTV & YOLO Computer Vision Suite"
+        subtitle="Independent multi-channel visual surveillance wall, YOLOv12 person detection, ByteTrack trajectory linking, and tripwire analytics."
         actions={
           <div className={styles.viewSwitcher}>
             <button
               type="button"
               className={`${styles.viewBtn} ${
-                viewMode === "CARDS" ? styles.viewBtnActive : ""
+                viewMode === "WALL" ? styles.viewBtnActive : ""
               }`}
-              onClick={() => setViewMode("CARDS")}
+              onClick={() => setViewMode("WALL")}
+              title="3x3 Responsive Video Wall (All 9 Feeds)"
             >
-              Card View ({CCTV_FEEDS.length})
+              <LayoutGrid size={14} />
+              <span>3x3 Video Wall (9)</span>
+            </button>
+            <button
+              type="button"
+              className={`${styles.viewBtn} ${
+                viewMode === "FOCUS" ? styles.viewBtnActive : ""
+              }`}
+              onClick={() => setViewMode("FOCUS")}
+              title="Primary Focus Mode"
+            >
+              <Maximize2 size={14} />
+              <span>Focus: {primaryFeed.cameraId}</span>
             </button>
             <button
               type="button"
@@ -124,12 +157,27 @@ export default function CctvCrowdMonitoringPage() {
                 viewMode === "TABLE" ? styles.viewBtnActive : ""
               }`}
               onClick={() => setViewMode("TABLE")}
+              title="Telemetry Matrix"
             >
-              Table View
+              <Table size={14} />
+              <span>Telemetry Matrix</span>
             </button>
           </div>
         }
       />
+
+      {/* Subsystem Boundary & Architectural Disclosure Ribbon */}
+      <div className={styles.subsystemBanner}>
+        <div className={styles.subsystemBannerLeft}>
+          <ShieldCheck size={18} className={styles.subsystemIcon} />
+          <div>
+            <strong>Independent Subsystem Boundary:</strong> CCTV &amp; YOLO telemetry operates strictly as a visual verification and diagnostic tool. Video observations carry <code>sourceProvider: &quot;JUNCTION_VIDEO_CV&quot;</code> and do <strong>not</strong> overwrite the venue-wide sensor-fusion operational simulation or total attendance.
+          </div>
+        </div>
+        <div className={styles.subsystemTag}>
+          <span>9 RECORDED ASSETS</span>
+        </div>
+      </div>
 
       {/* Operational Summary Ribbon */}
       <div className={styles.summaryRibbon}>
@@ -138,127 +186,157 @@ export default function CctvCrowdMonitoringPage() {
           <span className={`${styles.summaryValue} ${styles.colorSky}`}>
             {CCTV_FEEDS.length} Monitored
           </span>
-          <span className={styles.summarySubtext}>All video assets loaded</span>
+          <span className={styles.summarySubtext}>
+            4K UHD, Ultrawide &amp; Portrait
+          </span>
+        </div>
+
+        <div className={styles.summaryTile}>
+          <span className={styles.summaryLabel}>CV Inference Bridge</span>
+          <span
+            className={`${styles.summaryValue} ${
+              isCvBridgeActive ? styles.colorEmerald : styles.colorAmber
+            }`}
+          >
+            {isCvBridgeActive ? "YOLO ACTIVE" : "STANDBY"}
+          </span>
+          <span className={styles.summarySubtext}>
+            {activeCameraIds.length > 0
+              ? `${activeCameraIds.join(", ")} streaming`
+              : "Awaiting Python CLI"}
+          </span>
+        </div>
+
+        <div className={styles.summaryTile}>
+          <span className={styles.summaryLabel}>Detected Persons</span>
+          <span className={styles.summaryValue}>
+            {totalVisibleCount !== null && totalVisibleCount > 0 ? (
+              `${totalVisibleCount} persons`
+            ) : (
+              <span style={{ color: "#94a3b8", fontSize: "1.1rem" }}>Awaiting Bridge</span>
+            )}
+          </span>
+          <span className={styles.summarySubtext}>
+            {isCvBridgeActive ? "Real YOLOv12 Class 0" : "Synthetic fallback ready"}
+          </span>
+        </div>
+
+        <div className={styles.summaryTile}>
+          <span className={styles.summaryLabel}>Active Focus Feed</span>
+          <span className={styles.summaryValue} style={{ fontSize: "1.2rem" }}>
+            {primaryFeed.cameraId}
+          </span>
+          <span className={styles.summarySubtext}>
+            {primaryFeed.orientation} • {primaryFeed.resolution}
+          </span>
         </div>
 
         <div className={styles.summaryTile}>
           <span className={styles.summaryLabel}>Telemetry Gateway</span>
-          <span
-            className={`${styles.summaryValue} ${
-              apiStatus === "ONLINE" ? styles.colorEmerald : styles.colorAmber
-            }`}
-          >
-            {apiStatus}
-          </span>
-          <span className={styles.summarySubtext}>
-            Buffer: {totalIngested} observations
-          </span>
-        </div>
-
-        <div className={styles.summaryTile}>
-          <span className={styles.summaryLabel}>Aggregate Crowd Count</span>
-          <span className={styles.summaryValue}>
-            {totalVisibleCount !== null ? (
-              `${totalVisibleCount} persons`
-            ) : (
-              <span style={{ color: "#94a3b8", fontSize: "1.1rem" }}>Ready / Standby</span>
-            )}
-          </span>
-          <span className={styles.summarySubtext}>Across active streams</span>
-        </div>
-
-        <div className={styles.summaryTile}>
-          <span className={styles.summaryLabel}>Primary Focus Zone</span>
-          <span className={styles.summaryValue}>
-            {primaryZoneState ? `${primaryZoneState.pressure}%` : "Normal"}
-          </span>
-          <span className={styles.summarySubtext}>
-            {primaryZoneState?.pressureLevel || "Nominal"} ({primaryFeed.zoneName.split(" ")[0]})
-          </span>
-        </div>
-
-        <div className={styles.summaryTile}>
-          <span className={styles.summaryLabel}>Last Observation</span>
           <span className={styles.summaryValue} style={{ fontSize: "1.1rem" }}>
             {lastUpdatedTime}
           </span>
-          <span className={styles.summarySubtext}>Polling interval: 1.5s</span>
+          <span className={styles.summarySubtext}>Buffer: {totalIngested} Ingested</span>
         </div>
       </div>
 
-      {/* Privacy Governance Banner */}
-      <div className={styles.privacyBanner}>
-        <svg
-          className={styles.privacyIcon}
-          width="22"
-          height="22"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-          />
-        </svg>
-        <span>
-          <strong>Privacy Governance & Compliance:</strong> Computer-vision inference processes strictly non-identifiable spatial telemetry (head/body centroid bounding boxes and tripwire vectors). Facial recognition, biometric indexing, and personal identity tracking are strictly excluded by design.
-        </span>
-      </div>
-
-      {/* Main Content Area */}
-      {viewMode === "CARDS" ? (
-        <div className={styles.feedSection}>
+      {/* Main Content Area based on View Mode */}
+      {viewMode === "WALL" ? (
+        /* 1. 3x3 Responsive Video Wall */
+        <div className={styles.videoWallSection}>
           <div className={styles.sectionHeadingRow}>
             <h2 className={styles.sectionHeading}>
-              <span>Featured Primary Feed</span>
-              <span className={styles.feedCountBadge}>{primaryFeed.name}</span>
+              <LayoutGrid size={18} />
+              <span>9-Camera Visual Verification Wall</span>
+              <span className={styles.feedCountBadge}>3x3 Scalable Grid</span>
             </h2>
+            <div className={styles.wallSubtitle}>
+              Click any camera tile to enter Primary Focus Mode with real-time YOLOv12 + ByteTrack bounding box overlays.
+            </div>
           </div>
 
-          {/* Large Primary Video Card */}
-          <CctvVideoFeedCard
-            feed={primaryFeed}
-            isPrimary={true}
-            zoneState={primaryZoneState}
-            observations={liveObservations}
-            apiConnected={apiStatus === "ONLINE"}
-          />
-
-          {/* Secondary Stacked Video Cards */}
-          <div className={styles.secondaryFeedsContainer}>
-            <h3 className={styles.secondarySectionTitle}>
-              Additional Operational Channels ({secondaryFeeds.length})
-            </h3>
-
-            {secondaryFeeds.map((feed) => (
+          <div className={styles.gridWallContainer}>
+            {CCTV_FEEDS.map((feed) => (
               <CctvVideoFeedCard
                 key={feed.id}
                 feed={feed}
                 isPrimary={false}
-                onSelectPrimary={setPrimaryFeedId}
+                isGridMode={true}
+                onSelectPrimary={handleSelectCamera}
                 zoneState={getZoneState(feed.zoneId)}
                 observations={liveObservations}
                 apiConnected={apiStatus === "ONLINE"}
+                cctvFrame={latestCctvFrames[feed.cameraId]}
+                isCvBridgeActive={activeCameraIds.includes(feed.cameraId)}
               />
             ))}
           </div>
         </div>
+      ) : viewMode === "FOCUS" ? (
+        /* 2. Primary Focus View with Camera Selector Strip */
+        <div className={styles.focusSection}>
+          <div className={styles.sectionHeadingRow}>
+            <h2 className={styles.sectionHeading}>
+              <Maximize2 size={18} />
+              <span>Primary Focus Mode</span>
+              <span className={styles.feedCountBadge}>{primaryFeed.cameraId}</span>
+            </h2>
+            <button
+              type="button"
+              className={styles.btnBackToWall}
+              onClick={() => setViewMode("WALL")}
+            >
+              ← Return to 3x3 Video Wall
+            </button>
+          </div>
+
+          {/* Quick Camera Selector Bar */}
+          <div className={styles.cameraSelectorBar}>
+            {CCTV_FEEDS.map((feed) => {
+              const hasActiveFeed = activeCameraIds.includes(feed.cameraId);
+              return (
+                <button
+                  key={feed.id}
+                  type="button"
+                  className={`${styles.selectorChip} ${
+                    feed.id === primaryFeed.id ? styles.selectorChipActive : ""
+                  }`}
+                  onClick={() => setPrimaryFeedId(feed.id)}
+                >
+                  <span className={styles.chipId}>{feed.cameraId}</span>
+                  <span className={styles.chipResolution}>
+                    {hasActiveFeed ? "🟢 LIVE" : (feed.orientation || "LANDSCAPE").slice(0, 4)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Primary Featured Card with Full Detection Canvas Overlay */}
+          <CctvVideoFeedCard
+            feed={primaryFeed}
+            isPrimary={true}
+            isGridMode={false}
+            zoneState={primaryZoneState}
+            observations={liveObservations}
+            apiConnected={apiStatus === "ONLINE"}
+            cctvFrame={primaryFrame}
+            isCvBridgeActive={isPrimaryCamActive}
+          />
+        </div>
       ) : (
-        /* Table View */
+        /* 3. Tabular Telemetry Matrix */
         <CctvFeedTableView
           feeds={CCTV_FEEDS}
           primaryFeedId={primaryFeedId}
-          onSelectPrimary={setPrimaryFeedId}
+          onSelectPrimary={handleSelectCamera}
           getZoneState={getZoneState}
           observations={liveObservations}
           apiConnected={apiStatus === "ONLINE"}
         />
       )}
 
-      {/* Operational Decision Support & Action Workflows */}
+      {/* Operational Actions Workflows (Independent decision support) */}
       <CctvOperationalActions
         recommendations={recommendations}
         alerts={alerts}

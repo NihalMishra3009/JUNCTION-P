@@ -8,7 +8,18 @@ import styles from "./recommendations.module.css";
 
 export default function RecommendationsPage() {
   const router = useRouter();
-  const { recommendations, approveRecommendation, rejectRecommendation, isRecommendationApproved, auditRecords } = useApp();
+  const {
+    recommendations,
+    zones,
+    approveRecommendation,
+    rejectRecommendation,
+    isRecommendationApproved,
+    auditRecords,
+    recommendationSource,
+    aiPlanSummary,
+    isGeneratingAiPlan,
+    regenerateAiRecommendations
+  } = useApp();
   const [approving, setApproving] = useState<string | null>(null);
   const [justApproved, setJustApproved] = useState<string | null>(null);
 
@@ -26,9 +37,53 @@ export default function RecommendationsPage() {
         category="DECISIONS"
         title="Action Recommendations"
         subtitle="AI recommends. Humans decide. Verified operational interventions requiring explicit operator review."
-        actions={<ConfidenceBadge source="SIMULATED" />}
+        actions={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              className={`pill ${recommendationSource === "AI" ? "pill-live" : recommendationSource === "CACHED_AI" ? "pill-predicted" : "pill-watch"}`}
+              style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em" }}
+            >
+              {recommendationSource === "AI"
+                ? "⚡ AI PLANNER (GEMINI FLASH)"
+                : recommendationSource === "CACHED_AI"
+                ? "⚡ CACHED AI RECOMMENDATION"
+                : "⚙ DETERMINISTIC FALLBACK"}
+            </span>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => regenerateAiRecommendations()}
+              disabled={isGeneratingAiPlan}
+              title="Request a fresh AI recommendation evaluation from live operational state"
+            >
+              {isGeneratingAiPlan ? "ANALYZING..." : "↻ EVALUATE WITH AI"}
+            </button>
+            <ConfidenceBadge source="SIMULATED" />
+          </div>
+        }
       />
 
+      {aiPlanSummary && (
+        <div style={{
+          background: "var(--surface-sunken)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-sm)",
+          padding: "10px 16px",
+          marginBottom: 16,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          fontSize: 12,
+          color: "var(--ink-muted)"
+        }}>
+          <div>
+            <span style={{ fontWeight: 700, color: "var(--ink)", marginRight: 8 }}>Operational Context:</span>
+            <span>{aiPlanSummary}</span>
+          </div>
+          <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--ink-faint)" }}>
+            SOURCE: {recommendationSource}
+          </span>
+        </div>
+      )}
 
       <div className={styles.list}>
         {recommendations.map((rec, idx) => {
@@ -41,8 +96,13 @@ export default function RecommendationsPage() {
                   <span className={styles.recNum}>RECOMMENDATION {String(idx + 1).padStart(2, "0")}</span>
                   <span className={`pill ${rec.type === "REDISTRIBUTE" ? "pill-high" : rec.type === "TRANSPORT" ? "pill-predicted" : "pill-watch"}`}>{rec.type}</span>
                   <span className={`pill ${rec.confidence === "HIGH" ? "pill-live" : "pill-watch"}`}>Confidence: {rec.confidence}</span>
+                  {rec.actionType && (
+                    <span className="pill" style={{ background: "var(--surface-sunken)", color: "var(--ink-faint)", fontSize: 10, fontFamily: "var(--font-mono)" }}>
+                      {rec.actionType}
+                    </span>
+                  )}
                 </div>
-                {approved && <span className="pill pill-live">✓ APPROVED · Published to attendees</span>}
+                {approved && <span className="pill pill-live">● ACTIVE · Operational intervention active in live simulation</span>}
                 {rejected && <span className="pill bg-unknown">✗ REJECTED</span>}
               </div>
 
@@ -67,24 +127,93 @@ export default function RecommendationsPage() {
                 </div>
               </div>
 
-              <div className={styles.impactSection}>
-                <span className="text-meta">Expected Impact</span>
-                <div className={styles.impactGrid}>
-                  {rec.expectedImpact.map(imp => (
-                    <div key={imp.resourceName} className={styles.impactCard}>
-                      <span className={styles.impactResource}>{imp.resourceName}</span>
-                      <div className={styles.impactChange}>
-                        <span className={styles.impactBefore}>{imp.before}%</span>
-                        <span className={styles.impactArrow}>→</span>
-                        <span className={styles.impactAfter}>{imp.after}%</span>
+              {/* OBSERVED IMPACT (POST-APPROVAL LIVE TELEMETRY) VS EXPECTED IMPACT */}
+              {approved ? (
+                <div className={styles.impactSection} style={{ borderLeft: "3px solid var(--green)", paddingLeft: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <span className="text-meta" style={{ color: "var(--green)", fontWeight: 700 }}>
+                      ● OBSERVED IMPACT (LIVE SENSOR FUSION)
+                    </span>
+                    <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--ink-faint)" }}>
+                      CAPTURED FROM POST-APPROVAL TELEMETRY
+                    </span>
+                  </div>
+
+                  <div className={styles.impactGrid}>
+                    {rec.expectedImpact.map(imp => {
+                      const matchedZone = zones.find(
+                        z =>
+                          z.name.toLowerCase().includes(imp.resourceName.toLowerCase()) ||
+                          imp.resourceName.toLowerCase().includes(z.name.toLowerCase()) ||
+                          z.id.toLowerCase().includes(imp.resourceName.toLowerCase())
+                      );
+                      const beforePressure = rec.baselines?.[matchedZone?.id || ""]?.pressure ?? imp.before;
+                      const currentPressure = matchedZone?.pressure ?? imp.before;
+                      const delta = currentPressure - beforePressure;
+
+                      return (
+                        <div key={imp.resourceName} className={styles.impactCard} style={{ borderColor: delta <= 0 ? "var(--green)" : "var(--amber)" }}>
+                          <span className={styles.impactResource}>{imp.resourceName}</span>
+                          <div className={styles.impactChange}>
+                            <span className={styles.impactBefore} title="Immutable baseline pressure at moment of human approval">
+                              {beforePressure}%
+                            </span>
+                            <span className={styles.impactArrow}>→</span>
+                            <span className={styles.impactAfter} style={{ color: delta < 0 ? "var(--green)" : delta > 0 ? "var(--amber)" : "var(--ink)" }}>
+                              {currentPressure}%
+                            </span>
+                          </div>
+                          <span
+                            className={styles.impactDelta}
+                            style={{
+                              color: delta < 0 ? "var(--green)" : delta > 0 ? "var(--red)" : "var(--ink-muted)",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {delta < 0 ? `↓ ${Math.abs(delta)}% RELIEF` : delta > 0 ? `↑ +${delta}% LOAD` : "→ 0% STABLE"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 8, fontStyle: "italic" }}>
+                    Observed impact is based on subsequent simulated sensor telemetry; outcomes are not guaranteed.
+                  </p>
+                </div>
+              ) : (
+                <div className={styles.impactSection}>
+                  <span className="text-meta">Expected Impact (Proposal)</span>
+                  <div className={styles.impactGrid}>
+                    {rec.expectedImpact.map(imp => (
+                      <div key={imp.resourceName} className={styles.impactCard}>
+                        <span className={styles.impactResource}>{imp.resourceName}</span>
+                        <div className={styles.impactChange}>
+                          <span className={styles.impactBefore}>{imp.before}%</span>
+                          <span className={styles.impactArrow}>→</span>
+                          <span className={styles.impactAfter}>{imp.after}%</span>
+                        </div>
+                        <span className={styles.impactDelta}>
+                          {imp.after > imp.before ? `+${imp.after - imp.before}%` : `${imp.after - imp.before}%`}
+                        </span>
                       </div>
-                      <span className={styles.impactDelta}>
-                        {imp.after > imp.before ? `+${imp.after - imp.before}%` : `${imp.after - imp.before}%`}
-                      </span>
-                    </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {rec.evidence && rec.evidence.length > 0 && (
+                <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-faint)" }}>
+                    Telemetry Evidence:
+                  </span>
+                  {rec.evidence.map((ev, i) => (
+                    <span key={i} className="pill" style={{ fontSize: 10, background: "var(--surface-sunken)", color: "var(--ink)" }}>
+                      {ev}
+                    </span>
                   ))}
                 </div>
-              </div>
+              )}
 
               {rec.attendeeMessage && (
                 <div className={styles.attendeeNote}>

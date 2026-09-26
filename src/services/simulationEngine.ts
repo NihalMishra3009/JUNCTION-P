@@ -4,6 +4,7 @@ import {
   DensityCell,
   ScenarioId,
   GeoLocation,
+  ActiveIntervention,
 } from "@/types";
 import {
   MVP_NETWORK_EDGES,
@@ -11,6 +12,7 @@ import {
   getPathForDestination,
 } from "@/data/mockNetworkTopology";
 import { STATIC_RESOURCES } from "@/data/mockResources";
+import { interventionEffectsEngine } from "./interventionEffectsEngine";
 
 const NODE_CAPACITIES: Record<string, number> = {
   WANKHEDE_EXIT: 4000,
@@ -162,36 +164,51 @@ function computeDensityCells(nodeLoads: Record<string, number>): DensityCell[] {
 
 /**
  * Core Step Function: advances simulation state by deltaMinutes in pure TypeScript
+ * Supports both ActiveIntervention[] and legacy boolean redistributionApplied parameter.
  */
 export function nextSimulationState(
   currentState: SimulationState,
   deltaMinutes: number,
   scenario: ScenarioId,
   attendance: number,
-  redistributionApplied = false
+  interventionsOrRedistribution: ActiveIntervention[] | boolean = false
 ): SimulationState {
   const newMinutesElapsed = currentState.minutesElapsed + deltaMinutes;
   const baseHour = scenario === "POST_EVENT_SURGE" ? 21 : 18;
   const baseMin = scenario === "POST_EVENT_SURGE" ? 30 : 30;
   const newTime = formatSimulationTime(baseHour, baseMin, newMinutesElapsed);
 
-  // 1. Calculate new demand volume for this time slice (people per min * deltaMinutes)
-  const ratePerMin = calculateOutflowRate(currentState.minutesElapsed, scenario, attendance);
-  const newVolume = Math.round(ratePerMin * deltaMinutes);
-
-  // 2. Apportion new demand across destinations
-  // Fractions: Churchgate 52%, Taxi Zone 20%, Marine Lines 16%, CSMT 8%, Dadar 4%
-  // If redistribution is applied: Churchgate reduced to 36%, Dadar increased to 20%
+  // Determine active interventions and calculate physical modifiers
   let fracChurchgate = 0.52;
   let fracTaxi = 0.20;
   let fracMarine = 0.16;
   let fracCsmt = 0.08;
   let fracDadar = 0.04;
+  let outflowMultiplier = 1.0;
+  const clearanceAdditions: Record<string, number> = {};
 
-  if (redistributionApplied) {
+  if (Array.isArray(interventionsOrRedistribution)) {
+    const modifiers = interventionEffectsEngine.calculateModifiers(
+      interventionsOrRedistribution,
+      currentState.minutesElapsed
+    );
+    fracChurchgate = modifiers.destinationFractions.CHURCHGATE;
+    fracTaxi = modifiers.destinationFractions.TAXI_ZONE;
+    fracMarine = modifiers.destinationFractions.MARINE_LINES;
+    fracCsmt = modifiers.destinationFractions.CSMT;
+    fracDadar = modifiers.destinationFractions.DADAR;
+    outflowMultiplier = modifiers.outflowRateMultiplier;
+    Object.assign(clearanceAdditions, modifiers.nodeClearanceAdditions);
+  } else if (interventionsOrRedistribution === true) {
+    // Legacy boolean redistribution
     fracChurchgate = 0.36;
     fracDadar = 0.20;
   }
+
+  // 1. Calculate new demand volume for this time slice (people per min * deltaMinutes * modifier)
+  const baseRatePerMin = calculateOutflowRate(currentState.minutesElapsed, scenario, attendance);
+  const ratePerMin = Math.round(baseRatePerMin * outflowMultiplier);
+  const newVolume = Math.round(ratePerMin * deltaMinutes);
 
   const newCohorts: HumanCohort[] = [];
   const destinations: { id: string; fraction: number; speedMps: number }[] = [
@@ -293,7 +310,7 @@ export function nextSimulationState(
   // 5. Abstract Node Clearance (Transit / Kerb service rate)
   let totalCleared = currentState.totalCleared;
   Object.keys(NOMINAL_CLEARANCE_PER_MIN).forEach(nodeId => {
-    const ratePerMin = NOMINAL_CLEARANCE_PER_MIN[nodeId];
+    const ratePerMin = (NOMINAL_CLEARANCE_PER_MIN[nodeId] || 200) + (clearanceAdditions[nodeId] || 0);
     const maxClear = Math.round(ratePerMin * deltaMinutes);
     const baseline = Math.round((attendance / 33000) * (BASELINE_NODE_LOADS[nodeId] || 500));
 

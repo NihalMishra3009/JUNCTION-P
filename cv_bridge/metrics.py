@@ -1,10 +1,10 @@
 """
 JUNCTION Computer Vision Bridge - Crowd Metrics Module
 Calculates visible person counts, track centroids, directional line crossings (tripwire),
-and physical density (when calibrated).
+physical density, normalized bounding boxes, and ByteTrack movement trails.
 """
 
-from typing import Dict, List, Optional, Tuple, Set
+from typing import Dict, List, Optional, Tuple, Set, Any
 from collections import defaultdict
 import numpy as np
 
@@ -82,19 +82,11 @@ class CrowdMetricsEngine:
         detected_boxes: List[Tuple[float, float, float, float]],
         track_ids: Optional[List[int]] = None,
         confidences: Optional[List[float]] = None,
-    ) -> Dict:
+        frame_width: int = 1920,
+        frame_height: int = 1080,
+    ) -> Dict[str, Any]:
         """
-        Processes detections for the current frame.
-        
-        Returns:
-            Dict containing:
-                - person_count: int
-                - mean_confidence: float
-                - density_people_per_sq_m: Optional[float]
-                - inflow_count: Optional[int]
-                - outflow_count: Optional[int]
-                - active_track_ids: List[int]
-                - centroids: List[Tuple[int, int]]
+        Processes detections for the current frame and generates rich normalized telemetry.
         """
         person_count = max(0, len(detected_boxes))
         mean_confidence = float(np.mean(confidences)) if confidences and len(confidences) > 0 else 0.0
@@ -104,20 +96,31 @@ class CrowdMetricsEngine:
         if self.calibrated_area_sq_m is not None:
             density_sq_m = round(person_count / self.calibrated_area_sq_m, 3)
 
+        fw = max(1.0, float(frame_width))
+        fh = max(1.0, float(frame_height))
+
         active_track_ids: List[int] = []
         centroids: List[Tuple[int, int]] = []
+        detections: List[Dict[str, Any]] = []
 
-        if track_ids and len(track_ids) == len(detected_boxes):
-            active_track_ids = track_ids
-            for box, tid in zip(detected_boxes, track_ids):
-                cx, cy = calculate_centroid(box)
-                centroids.append((cx, cy))
+        for i, box in enumerate(detected_boxes):
+            x1, y1, x2, y2 = box
+            conf = confidences[i] if confidences and i < len(confidences) else 0.0
+            tid = track_ids[i] if track_ids and i < len(track_ids) else None
+            if tid is not None:
+                active_track_ids.append(tid)
 
-                # Update bounded history
-                history = self.track_history[tid]
-                history.append((cx, cy))
-                if len(history) > self.max_track_history:
-                    history.pop(0)
+            cx, cy = calculate_centroid(box)
+            centroids.append((cx, cy))
+
+            # Update bounded history for this track ID if valid
+            history: List[Tuple[int, int]] = []
+            if tid is not None:
+                hist = self.track_history[tid]
+                hist.append((cx, cy))
+                if len(hist) > self.max_track_history:
+                    hist.pop(0)
+                history = hist
 
                 # Line crossing tripwire evaluation
                 if self.tripwire is not None and tid not in self.crossed_tracks and len(history) >= 2:
@@ -150,10 +153,49 @@ class CrowdMetricsEngine:
                                 self.total_outflow += 1
 
                             self.crossed_tracks.add(tid)
-        else:
-            # Fallback for detections without tracking IDs
-            for box in detected_boxes:
-                centroids.append(calculate_centroid(box))
+
+            # Normalized bounding box [0, 1] for canvas alignment
+            norm_x = max(0.0, min(1.0, round(x1 / fw, 5)))
+            norm_y = max(0.0, min(1.0, round(y1 / fh, 5)))
+            norm_w = max(0.0, min(1.0 - norm_x, round((x2 - x1) / fw, 5)))
+            norm_h = max(0.0, min(1.0 - norm_y, round((y2 - y1) / fh, 5)))
+
+            # Normalized centroid [0, 1]
+            norm_cx = max(0.0, min(1.0, round(cx / fw, 5)))
+            norm_cy = max(0.0, min(1.0, round(cy / fh, 5)))
+
+            # Subtle trajectory trail (normalized coordinates of recent positions)
+            trail_points = [
+                {
+                    "x": max(0.0, min(1.0, round(pt[0] / fw, 5))),
+                    "y": max(0.0, min(1.0, round(pt[1] / fh, 5))),
+                }
+                for pt in history[-6:]
+            ]
+
+            detections.append({
+                "trackId": tid,
+                "classId": 0,
+                "className": "person",
+                "confidence": round(conf, 3),
+                "bbox": {
+                    "x": norm_x,
+                    "y": norm_y,
+                    "width": norm_w,
+                    "height": norm_h,
+                    "pixelX1": int(round(x1)),
+                    "pixelY1": int(round(y1)),
+                    "pixelX2": int(round(x2)),
+                    "pixelY2": int(round(y2)),
+                },
+                "centroid": {
+                    "x": norm_cx,
+                    "y": norm_cy,
+                    "pixelX": cx,
+                    "pixelY": cy,
+                },
+                "trail": trail_points,
+            })
 
         inflow_count = self.total_inflow if self.tripwire is not None else None
         outflow_count = self.total_outflow if self.tripwire is not None else None
@@ -168,4 +210,7 @@ class CrowdMetricsEngine:
             "centroids": centroids,
             "calibrated_area_sq_m": self.calibrated_area_sq_m,
             "tripwire_configured": self.tripwire is not None,
+            "detections": detections,
+            "frame_width": int(frame_width),
+            "frame_height": int(frame_height),
         }

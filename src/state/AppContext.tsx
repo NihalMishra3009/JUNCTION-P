@@ -11,6 +11,8 @@ import {
   SimulationSpeed,
   SimulationParams,
   ZoneState,
+  ActiveIntervention,
+  ZoneBaselineSnapshot,
 } from "@/types";
 import { MOCK_RECOMMENDATIONS } from "@/data/mockRecommendations";
 import { getHotels, getResources, getScenarioKPIs, getAlerts } from "@/services/mockDataService";
@@ -23,14 +25,19 @@ import { ingestionPipeline } from "@/services/ingestionPipeline";
 import { sensorFusionEngine } from "@/services/sensorFusionEngine";
 import { hotspotAndCascadeEngine } from "@/services/hotspotAndCascadeEngine";
 import { recommendationLifecycleEngine } from "@/services/recommendationLifecycleEngine";
+import { aiRecommendationPlanner } from "@/services/aiRecommendationPlanner";
 
 interface AppContextValue {
   // Scenario
   activeScenario: ScenarioId;
   setScenario: (s: ScenarioId) => void;
 
-  // Recommendations
+  // Recommendations & AI Planner
   recommendations: Recommendation[];
+  recommendationSource: "AI" | "CACHED_AI" | "DETERMINISTIC_FALLBACK";
+  aiPlanSummary: string;
+  isGeneratingAiPlan: boolean;
+  regenerateAiRecommendations: () => Promise<void>;
   approveRecommendation: (id: string) => void;
   rejectRecommendation: (id: string) => void;
   isRecommendationApproved: (id: string) => boolean;
@@ -77,6 +84,7 @@ interface AppContextValue {
   hotspots: import("@/types").HotspotPrediction[];
   cascadeResult: import("@/types").CascadeAnalysisResult | null;
   interventions: import("@/types").OperationalIntervention[];
+  activeInterventions: import("@/types").ActiveIntervention[];
   auditRecords: import("@/types").AuditRecord[];
 
   // Sensor Fault Simulation Controls (Interactive Evaluation)
@@ -98,6 +106,10 @@ const AppContext = createContext<AppContextValue | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [activeScenario, setActiveScenario] = useState<ScenarioId>("NORMAL");
   const [recommendations, setRecommendations] = useState<Recommendation[]>(MOCK_RECOMMENDATIONS);
+  const [recommendationSource, setRecommendationSource] = useState<"AI" | "CACHED_AI" | "DETERMINISTIC_FALLBACK">("AI");
+  const [aiPlanSummary, setAiPlanSummary] = useState<string>("Synthesizing live operational intelligence...");
+  const [isGeneratingAiPlan, setIsGeneratingAiPlan] = useState<boolean>(false);
+
   const [attendeeSelectedRouteId, setAttendeeSelectedRouteId] = useState<string | null>(null);
   const [hotelOverrides, setHotelOverrides] = useState<Record<string, Partial<Hotel>>>({});
   const [selectedEvidenceZoneId, setSelectedEvidenceZoneId] = useState<string>("ZONE_CHURCHGATE");
@@ -123,6 +135,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     transportDisruption: false,
   });
 
+  // Active Approved Interventions for Live Operational Simulation
+  const [activeInterventions, setActiveInterventions] = useState<ActiveIntervention[]>([]);
+
   // Pure Domain Simulation State
   const [simulationState, setSimulationState] = useState<SimulationState>(() =>
     createInitialSimulationState(activeScenario, simParams.attendance)
@@ -138,6 +153,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetSimulation = useCallback(() => {
+    setActiveInterventions([]);
     setSimulationState(createInitialSimulationState(activeScenario, simParams.attendance));
   }, [activeScenario, simParams.attendance]);
 
@@ -166,26 +182,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setScenario = useCallback((s: ScenarioId) => {
     setActiveScenario(s);
     setAttendeeSelectedRouteId(null);
-    setRecommendations(MOCK_RECOMMENDATIONS.map(r => ({ ...r, status: "PENDING" as const })));
     setHotelOverrides({});
+    setActiveInterventions([]);
     setSimulationState(createInitialSimulationState(s, simParams.attendance));
   }, [simParams.attendance]);
-
-  const approveRecommendation = useCallback((id: string) => {
-    setRecommendations(prev =>
-      prev.map(r => r.id === id ? { ...r, status: "APPROVED" as const } : r)
-    );
-  }, []);
-
-  const rejectRecommendation = useCallback((id: string) => {
-    setRecommendations(prev =>
-      prev.map(r => r.id === id ? { ...r, status: "REJECTED" as const } : r)
-    );
-  }, []);
-
-  const isRecommendationApproved = useCallback((id: string) => {
-    return recommendations.find(r => r.id === id)?.status === "APPROVED";
-  }, [recommendations]);
 
   const selectAttendeeRoute = useCallback((id: string) => {
     setAttendeeSelectedRouteId(id);
@@ -218,8 +218,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return getHotels(activeScenario, hotelOverrides);
   }, [activeScenario, hotelOverrides]);
 
-  // REC1 affects attendees (redistribute Churchgate -> Dadar)
-  const rec1Approved = recommendations.find(r => r.id === "REC1")?.status === "APPROVED";
+  // REC1 or first REDISTRIBUTE recommendation affects attendees
+  const rec1Approved = recommendations.find(r => r.id === "REC1" || r.type === "REDISTRIBUTE")?.status === "APPROVED" || recommendations.find(r => r.id === "REC1" || r.type === "REDISTRIBUTE")?.status === "ACTIVE";
   const hasAttendeeRecommendation = rec1Approved;
   const attendeeRecommendationMessage = rec1Approved
     ? "Churchgate pressure is rising. Dadar Station offers a better journey with only 8 minutes extra travel time."
@@ -244,7 +244,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Controlled Simulation Ticker Loop
   // Fires at a controlled cadence (800ms) when status is PLAYING.
-  // Advances simulation time by (1 * speed) simulated minutes per tick.
+  // Advances simulation time by (1 * speed) simulated minutes per tick, passing all active interventions.
   useEffect(() => {
     if (simulationState.status !== "PLAYING") return;
 
@@ -256,7 +256,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           1 * prev.speed,
           activeScenario,
           simParams.attendance,
-          redistributionApplied
+          activeInterventions
         );
       });
     }, 800);
@@ -267,7 +267,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     simulationState.speed,
     activeScenario,
     simParams.attendance,
-    redistributionApplied,
+    activeInterventions,
   ]);
 
   // Dynamic destination resources (reflecting scenario + attendee redistribution + live simulation loads)
@@ -394,6 +394,78 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [zones]
   );
 
+  const approveRecommendation = useCallback((id: string) => {
+    const rec = recommendations.find(r => r.id === id);
+    if (!rec) return;
+
+    // 1. Capture immutable baseline snapshot of all zones at approval time
+    const baselines: Record<string, ZoneBaselineSnapshot> = {};
+    zones.forEach(z => {
+      baselines[z.id] = {
+        zoneId: z.id,
+        zoneName: z.name,
+        pressure: z.pressure,
+        density: z.density || 0,
+        currentUtilization: z.currentUtilization,
+        inflowRate: z.inflowRate,
+        outflowRate: z.outflowRate,
+        timestamp: new Date().toISOString(),
+      };
+    });
+
+    const approvedAt = Date.now();
+    const actionType: any = rec.actionType || (rec.type === "REDISTRIBUTE" ? "REROUTE_ATTENDEES" : rec.type === "TRANSPORT" ? "ADD_TRANSIT_SHUTTLES" : "REROUTE_ATTENDEES");
+
+    const newIntervention: ActiveIntervention = {
+      id: `ACT_INT_${rec.id}_${approvedAt}`,
+      recommendationId: rec.id,
+      type: actionType,
+      actionType,
+      title: rec.title,
+      description: rec.action,
+      status: "ACTIVE",
+      approvedAt,
+      approvedAtSimulationMinute: simulationState.minutesElapsed,
+      durationMinutes: rec.timeHorizonMinutes || 30,
+      rampDurationSeconds: 15,
+      intensity: 1.0,
+      baselines,
+    };
+
+    setActiveInterventions(prev => [...prev.filter(i => i.recommendationId !== id), newIntervention]);
+
+    setRecommendations(prev =>
+      prev.map(r => r.id === id ? { ...r, status: "ACTIVE" as const, approvedAt, baselines } : r)
+    );
+
+    // Log approval in lifecycle engine & persistence audit trail
+    recommendationLifecycleEngine.recordDecision(
+      id,
+      "APPROVE",
+      "USER_ORGANIZER_01",
+      "ORGANIZER"
+    );
+  }, [recommendations, zones, simulationState.minutesElapsed]);
+
+  const rejectRecommendation = useCallback((id: string) => {
+    setActiveInterventions(prev => prev.filter(i => i.recommendationId !== id));
+    setRecommendations(prev =>
+      prev.map(r => r.id === id ? { ...r, status: "REJECTED" as const } : r)
+    );
+    // Log rejection in lifecycle engine & persistence audit trail
+    recommendationLifecycleEngine.recordDecision(
+      id,
+      "REJECT",
+      "USER_ORGANIZER_01",
+      "ORGANIZER"
+    );
+  }, []);
+
+  const isRecommendationApproved = useCallback((id: string) => {
+    const rec = recommendations.find(r => r.id === id);
+    return rec?.status === "APPROVED" || rec?.status === "ACTIVE";
+  }, [recommendations]);
+
   // Dynamic alerts
   const alerts = useMemo(() => {
     const baseAlerts = getAlerts(activeScenario);
@@ -461,10 +533,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return recommendationLifecycleEngine.getAuditTrail();
   }, [recommendations]);
 
+  // AI Recommendation Planner Synchronizer
+  const fetchAiPlan = useCallback(async (force = false) => {
+    if (zones.length === 0) return;
+    setIsGeneratingAiPlan(true);
+    try {
+      const context = aiRecommendationPlanner.buildContext(
+        activeScenario,
+        zones,
+        resources,
+        hotspots,
+        cascadeResult,
+        interventions,
+        simulationState,
+        redistributionApplied
+      );
+      const plan = await aiRecommendationPlanner.getOrFetchPlan(context, force);
+      if (plan && plan.recommendations && plan.recommendations.length > 0) {
+        setRecommendations(prev => {
+          const approvedSet = new Set(prev.filter(r => r.status === "APPROVED").map(r => r.id));
+          const rejectedSet = new Set(prev.filter(r => r.status === "REJECTED").map(r => r.id));
+
+          return plan.recommendations.map(newRec => ({
+            ...newRec,
+            status: approvedSet.has(newRec.id) ? "APPROVED" : (rejectedSet.has(newRec.id) ? "REJECTED" : newRec.status),
+          }));
+        });
+        setRecommendationSource(plan.source);
+        setAiPlanSummary(plan.planSummary);
+      }
+    } catch (err) {
+      console.warn("[AppContext] AI plan fetch failed:", err);
+    } finally {
+      setIsGeneratingAiPlan(false);
+    }
+  }, [activeScenario, zones, resources, hotspots, cascadeResult, interventions, simulationState.minutesElapsed, redistributionApplied]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-fetch on scenario shift or new hotspot detection
+  useEffect(() => {
+    fetchAiPlan(false);
+  }, [activeScenario, hotspots.length, redistributionApplied]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const regenerateAiRecommendations = useCallback(async () => {
+    await fetchAiPlan(true);
+  }, [fetchAiPlan]);
+
   return (
     <AppContext.Provider value={{
       activeScenario, setScenario,
-      recommendations, approveRecommendation, rejectRecommendation, isRecommendationApproved,
+      recommendations, recommendationSource, aiPlanSummary, isGeneratingAiPlan, regenerateAiRecommendations,
+      approveRecommendation, rejectRecommendation, isRecommendationApproved,
       attendeeSelectedRouteId, selectAttendeeRoute,
       hasAttendeeRecommendation, attendeeRecommendationMessage,
       redistributionApplied, redistributionImpact,
@@ -473,7 +591,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       simulationState, playSimulation, pauseSimulation, resetSimulation, setSimulationSpeed,
       simParams, updateSimParams,
       zones, getZoneState,
-      devices, latestObservations, hotspots, cascadeResult, interventions, auditRecords,
+      devices, latestObservations, hotspots, cascadeResult, interventions, activeInterventions, auditRecords,
       faultInjections, toggleDeviceOutage, toggleDeviceLag, toggleDeviceConflict, resetFaultInjections,
       selectedEvidenceZoneId, setSelectedEvidenceZoneId,
     }}>

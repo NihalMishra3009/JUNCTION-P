@@ -8,10 +8,12 @@
     "start": "next start",
     "test:input": "tsx scripts/test-input-system.ts",
     "test:full": "tsx scripts/test-full-system.ts",
+    "test:cctv": "tsx scripts/test-cctv-system.ts",
     "postinstall": "node -e \"const fs=require('fs'); const path=require('path'); const src=path.join('node_modules','cesium','Build','Cesium'); const dest=path.join('public','cesium'); if(fs.existsSync(src)){fs.mkdirSync(dest,{recursive:true}); fs.cpSync(src,dest,{recursive:true});}\""
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.7",
+    "@google/genai": "^2.24.0",
     "@types/cesium": "^1.67.14",
     "@types/leaflet": "^1.9.22",
     "@types/pg": "^8.23.1",

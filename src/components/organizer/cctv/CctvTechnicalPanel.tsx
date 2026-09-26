@@ -21,14 +21,8 @@ export default function CctvTechnicalPanel({
   const [copied, setCopied] = useState<boolean>(false);
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
-  const command = `python -m cv_bridge.inference --video ${selectedFeed.videoSrc.replace(
-    "/videos/",
-    "assets/"
-  )} --zone-id ${selectedFeed.zoneId} --camera-id ${
-    selectedFeed.cameraId
-  } --http-url http://localhost:3000/api/observations --tripwire-y ${
-    selectedFeed.defaultTripwireY || 350
-  }`;
+  const assetVideoPath = selectedFeed.videoSrc.replace("/videos/cctv_suite/", "assets/");
+  const command = `python -m cv_bridge.inference --video "${assetVideoPath}" --camera-id ${selectedFeed.cameraId} --tripwire-y ${selectedFeed.defaultTripwireY || 540} --loop`;
 
   const jsonPayload = latestObservation
     ? JSON.stringify(latestObservation, null, 2)
